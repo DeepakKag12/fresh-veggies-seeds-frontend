@@ -41,7 +41,7 @@ const Contact = () => {
                   <Typography variant="body2" color="text.secondary">
                     Phone
                   </Typography>
-                  <Typography variant="body1">+91 98765 43210</Typography>
+                  <Typography variant="body1">+91 99932 48054</Typography>
                 </Box>
               </Box>
 
@@ -51,12 +51,12 @@ const Contact = () => {
                   <Typography variant="body2" color="text.secondary">
                     WhatsApp
                   </Typography>
-                  <Typography variant="body1">+91 98765 43210</Typography>
+                  <Typography variant="body1">+91 99932 48054</Typography>
                   <Button
                     variant="outlined"
                     size="small"
                     startIcon={<WhatsApp />}
-                    href="https://wa.me/919876543210"
+                    href="https://wa.me/919993248054"
                     target="_blank"
                     sx={{ mt: 1 }}
                   >
