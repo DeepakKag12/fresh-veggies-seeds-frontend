@@ -159,7 +159,7 @@ const Footer = () => {
             <p className="flex items-center gap-1">
               © {currentYear} Fresh Veggies. Made with <Heart className="w-4 h-4 text-red-500 fill-current" /> in India
             </p>
-            <p>All Rights Reserved</p>
+            <p>Created by Deepak Kag | All Rights Reserved</p>
           </div>
         </div>
       </div>
