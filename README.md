@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Fresh Veggies Frontend
 
 React-based frontend for Fresh Veggies e-commerce platform with Material-UI components.
@@ -194,3 +195,7 @@ Add `REACT_APP_` prefix to all custom environment variables.
 **Styling Issues**
 - Clear browser cache
 - Check Material-UI version compatibility
+=======
+# fresh-veggies-seeds-frontend
+Full-stack e-commerce platform for selling organic seeds, fertilizers, gardening kits, and combo packs with admin product management.
+>>>>>>> 2d0f18f0a4951af63d8a87b2eda1beee6e3f9c5c
