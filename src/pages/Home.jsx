@@ -363,8 +363,8 @@ const Home = () => {
               icon: <LocalOffer sx={{ fontSize: 48 }} />, 
               title: 'Combo Packs', 
               desc: 'Special bundles at great prices',
-              color: '#ff9800',
-              bgColor: '#fff3e0',
+              color: '#43a047',
+              bgColor: '#e8f5e9',
               link: '/combos'
             },
           ].map((category, index) => (
@@ -854,17 +854,17 @@ const Home = () => {
                         component={Link}
                         to="/combos"
                         sx={{
-                          bgcolor: '#ff9800',
+                          bgcolor: '#66bb6a',
                           color: 'white',
                           py: 1.25,
                           fontSize: '1rem',
                           fontWeight: 600,
                           borderRadius: 2,
                           textTransform: 'none',
-                          boxShadow: '0 4px 14px rgba(255,152,0,0.4)',
+                          boxShadow: '0 4px 14px rgba(102,187,106,0.4)',
                           '&:hover': { 
-                            bgcolor: '#f57c00',
-                            boxShadow: '0 6px 20px rgba(255,152,0,0.5)'
+                            bgcolor: '#43a047',
+                            boxShadow: '0 6px 20px rgba(102,187,106,0.5)'
                           }
                         }}
                       >
@@ -889,13 +889,13 @@ const Home = () => {
                   fontSize: '1.063rem',
                   fontWeight: 600,
                   borderRadius: 2,
-                  bgcolor: '#ff9800',
+                  bgcolor: '#66bb6a',
                   textTransform: 'none',
-                  boxShadow: '0 4px 14px rgba(255,152,0,0.4)',
+                  boxShadow: '0 4px 14px rgba(102,187,106,0.4)',
                   '&:hover': { 
-                    bgcolor: '#f57c00',
+                    bgcolor: '#43a047',
                     transform: 'translateY(-2px)',
-                    boxShadow: '0 6px 20px rgba(255,152,0,0.5)'
+                    boxShadow: '0 6px 20px rgba(102,187,106,0.5)'
                   },
                   transition: 'all 0.3s ease'
                 }}
