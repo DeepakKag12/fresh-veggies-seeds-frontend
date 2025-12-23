@@ -139,7 +139,7 @@ const AdminCombos = () => {
           const response = await api.post('/upload', formDataUpload, {
             headers: { 'Content-Type': 'multipart/form-data' }
           });
-          return response.data.url;
+          return response.data.data.url;
         });
         const uploadedUrls = await Promise.all(uploadPromises);
         imageUrls = [...imageUrls, ...uploadedUrls];

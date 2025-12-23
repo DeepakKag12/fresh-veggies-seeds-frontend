@@ -160,7 +160,7 @@ const AdminProducts = () => {
           const response = await api.post('/upload', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
           });
-          return response.data.url;
+          return response.data.data.url;
         });
         const uploadedUrls = await Promise.all(uploadPromises);
         imageUrls = [...imageUrls, ...uploadedUrls];
