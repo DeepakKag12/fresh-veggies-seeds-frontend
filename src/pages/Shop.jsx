@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -49,6 +49,25 @@ const Shop = () => {
   const [comboImages, setComboImages] = useState([]);
   const [comboImagePreview, setComboImagePreview] = useState([]);
 
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = {
+        ...filters,
+        page,
+        limit: 12,
+      };
+      const response = await api.get('/products', { params });
+      const productsData = response.data?.data || response.data || [];
+      setProducts(Array.isArray(productsData) ? productsData : []);
+      setTotalPages(response.data?.totalPages || 1);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      setProducts([]);
+    }
+    setLoading(false);
+  }, [filters, page]);
+
   useEffect(() => {
     fetchCategories();
   }, []);
@@ -59,11 +78,11 @@ const Shop = () => {
     if (categoryFromUrl && categoryFromUrl !== filters.category) {
       setFilters(prev => ({ ...prev, category: categoryFromUrl }));
     }
-  }, [searchParams]);
+  }, [searchParams, filters.category]);
 
   useEffect(() => {
     fetchProducts();
-  }, [filters, page]);
+  }, [fetchProducts]);
 
   // Auto-calculate original price and discount for combo
   useEffect(() => {
@@ -107,25 +126,6 @@ const Shop = () => {
       console.error('Error fetching categories:', error);
       setCategories([]);
     }
-  };
-
-  const fetchProducts = async () => {
-    setLoading(true);
-    try {
-      const params = {
-        ...filters,
-        page,
-        limit: 12,
-      };
-      const response = await api.get('/products', { params });
-      const productsData = response.data?.data || response.data || [];
-      setProducts(Array.isArray(productsData) ? productsData : []);
-      setTotalPages(response.data?.totalPages || 1);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      setProducts([]);
-    }
-    setLoading(false);
   };
 
   const handleFilterChange = (field, value) => {

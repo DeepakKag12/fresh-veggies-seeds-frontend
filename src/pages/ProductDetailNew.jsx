@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -9,7 +9,6 @@ import {
   Truck,
   Shield,
   RefreshCw,
-  ChevronLeft,
   ChevronRight,
   Check,
   Minus,
@@ -49,12 +48,7 @@ const ProductDetailNew = () => {
     { label: '500 Seeds', value: '500', price: product ? product.price * 7 : 0 }
   ];
 
-  useEffect(() => {
-    fetchProduct();
-    window.scrollTo(0, 0);
-  }, [id]);
-
-  const fetchProduct = async () => {
+  const fetchProduct = useCallback(async () => {
     setLoading(true);
     try {
       const response = await api.get(`/products/${id}`);
@@ -77,7 +71,12 @@ const ProductDetailNew = () => {
       console.error('Error fetching product:', error);
     }
     setLoading(false);
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchProduct();
+    window.scrollTo(0, 0);
+  }, [fetchProduct]);
 
   const handleAddToCart = () => {
     const productWithPackage = {

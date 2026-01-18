@@ -12,7 +12,8 @@ import {
   MapPin,
   ChevronDown,
   ChevronUp,
-  User
+  User,
+  Package
 } from 'lucide-react';
 import api from '../../utils/api';
 
@@ -36,6 +37,9 @@ const AdminOrders = () => {
 
   useEffect(() => {
     fetchOrders();
+  }, []);
+
+  useEffect(() => {
     const statusFromUrl = searchParams.get('status');
     if (statusFromUrl) {
       setStatusFilter(statusFromUrl);

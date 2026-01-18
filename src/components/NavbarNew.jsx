@@ -15,8 +15,7 @@ import {
   Users,
   Settings,
   Tag,
-  Image,
-  ShoppingBag
+  Image
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';

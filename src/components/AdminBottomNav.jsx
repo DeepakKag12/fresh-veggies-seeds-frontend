@@ -5,8 +5,7 @@ import {
   Package, 
   ClipboardList, 
   Users,
-  Settings,
-  Bell
+  Settings
 } from 'lucide-react';
 import api from '../utils/api';
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Edit, Trash2, Plus, X, Upload, Package, ShoppingBag } from 'lucide-react';
+import { Edit, Trash2, Plus, X, Upload, ShoppingBag } from 'lucide-react';
 import api from '../../utils/api';
 
 const AdminCombos = () => {
