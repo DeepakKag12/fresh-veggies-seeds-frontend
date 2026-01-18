@@ -96,40 +96,42 @@ const NavbarNew = () => {
             {/* Admin Buttons */}
             {user?.role === 'admin' && (
               <>
+                <Link to="/admin/orders?status=Pending">
+                  <button className="hidden md:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg">
+                    <ClipboardList className="w-4 h-4" />
+                    <span className="text-sm">New Orders</span>
+                  </button>
+                </Link>
                 <Link to="/admin/products">
                   <button className="hidden md:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg">
                     <Plus className="w-4 h-4" />
                     <span className="text-sm">Add Product</span>
                   </button>
                 </Link>
-                <Link to="/admin/combos">
-                  <button className="hidden md:flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg">
-                    <ShoppingBag className="w-4 h-4" />
-                    <span className="text-sm">Create Combo</span>
-                  </button>
-                </Link>
               </>
             )}
             
-            {/* Cart Button */}
-            <Link to="/cart">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative"
-              >
-                <ShoppingCart className="w-5 h-5" />
-                {cartItemsCount > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-green-600 text-white text-xs rounded-full flex items-center justify-center font-semibold"
-                  >
-                    {cartItemsCount}
-                  </motion.span>
-                )}
-              </Button>
-            </Link>
+            {/* Cart Button - Only for non-admin users */}
+            {user?.role !== 'admin' && (
+              <Link to="/cart">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative"
+                >
+                  <ShoppingCart className="w-5 h-5" />
+                  {cartItemsCount > 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 w-5 h-5 bg-green-600 text-white text-xs rounded-full flex items-center justify-center font-semibold"
+                    >
+                      {cartItemsCount}
+                    </motion.span>
+                  )}
+                </Button>
+              </Link>
+            )}
 
             {/* User Menu */}
             {user ? (

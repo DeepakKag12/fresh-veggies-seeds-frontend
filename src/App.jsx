@@ -5,7 +5,9 @@ import NavbarNew from './components/NavbarNew';
 import PageTransitionLoader from './components/PageTransitionLoader';
 import Footer from './components/Footer';
 import BottomNav from './components/BottomNav';
+import AdminBottomNav from './components/AdminBottomNav';
 import WhatsAppButton from './components/WhatsAppButton';
+import { useAuth } from './context/AuthContext';
 import HomePage from './features/landing/pages/HomePage';
 import Shop from './pages/Shop';
 import ProductDetailNew from './pages/ProductDetailNew';
@@ -45,8 +47,10 @@ function ScrollToTop() {
 
 function App() {
   const location = useLocation();
+  const { user } = useAuth();
   const isAdminPage = location.pathname.startsWith('/admin');
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isAdmin = user?.role === 'admin';
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -84,9 +88,11 @@ function App() {
           <Route path="/admin/banners" element={<AdminRoute><AdminBanners /></AdminRoute>} />
         </Routes>
       </main>
-      {!isAuthPage && <Footer />}
-      {!isAdminPage && !isAuthPage && <BottomNav />}
-      {!isAuthPage && <WhatsAppButton />}
+      {!isAuthPage && !isAdminPage && <Footer />}
+      {/* Show AdminBottomNav for admin on admin pages, regular BottomNav for others */}
+      {!isAuthPage && isAdmin && isAdminPage && <AdminBottomNav />}
+      {!isAuthPage && !isAdmin && !isAdminPage && <BottomNav />}
+      {!isAuthPage && !isAdmin && <WhatsAppButton />}
     </div>
   );
 }
