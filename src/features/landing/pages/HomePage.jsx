@@ -635,30 +635,72 @@ const HomePage = () => {
           <div className="relative">
             <div className="overflow-x-auto scrollbar-hide">
               <div className="flex gap-6 pb-4">
-                {categories.slice(0, 6).map((category) => (
-                  <Link
-                    key={category._id}
-                    to={`/shop?category=${category._id}`}
-                    className="flex-shrink-0 w-72 group"
-                  >
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden"
+                {categories.slice(0, 6).map((category) => {
+                  // Get category image using same logic as top section
+                  const getCategoryImage = (name) => {
+                    if (!name) return null;
+                    const lowerName = name.toLowerCase().trim();
+                    
+                    if (lowerName.includes('vegetable') || lowerName.includes('veggie') || lowerName === 'vegetable seeds') {
+                      return 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=300&h=300&fit=crop';
+                    }
+                    if (lowerName.includes('flower') || lowerName.includes('rose') || lowerName === 'flower seeds') {
+                      return 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=300&h=300&fit=crop';
+                    }
+                    if (lowerName.includes('herb')) {
+                      return 'https://images.unsplash.com/photo-1509587584298-0f3b3a3a1797?w=300&h=300&fit=crop';
+                    }
+                    if (lowerName.includes('fruit')) {
+                      return 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=300&h=300&fit=crop';
+                    }
+                    if (lowerName.includes('soil') || lowerName.includes('fertil') || lowerName.includes('fertilizer')) {
+                      return 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=300&h=300&fit=crop';
+                    }
+                    if (lowerName.includes('grow') || lowerName.includes('bag') || lowerName.includes('pot')) {
+                      return 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSYEsxXxd50GZmSLWIwDVYSfhGVOxrCtHoyAA&s';
+                    }
+                    if (lowerName.includes('tool') || lowerName.includes('garden')) {
+                      return 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=300&h=300&fit=crop';
+                    }
+                    
+                    return category.image || null;
+                  };
+                  
+                  const displayImage = getCategoryImage(category.name);
+                  
+                  return (
+                    <Link
+                      key={category._id}
+                      to={`/shop?category=${category._id}`}
+                      className="flex-shrink-0 w-72 group"
                     >
-                      <div className="h-48 bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center">
-                        <span className="text-7xl">{category.icon || '🌱'}</span>
-                      </div>
-                      <div className="p-4 text-center">
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                          {category.name}
-                        </h3>
-                        <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-                          Buy {category.name.toLowerCase()}
-                        </button>
-                      </div>
-                    </motion.div>
-                  </Link>
-                ))}
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden"
+                      >
+                        <div className="h-48 bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center overflow-hidden">
+                          {displayImage ? (
+                            <img 
+                              src={displayImage} 
+                              alt={category.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-7xl">{category.icon || '🌱'}</span>
+                          )}
+                        </div>
+                        <div className="p-4 text-center">
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                            {category.name}
+                          </h3>
+                          <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                            Buy {category.name.toLowerCase()}
+                          </button>
+                        </div>
+                      </motion.div>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
 
