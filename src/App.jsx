@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import './animations.css';
 import NavbarNew from './components/NavbarNew';
+import PageTransitionLoader from './components/PageTransitionLoader';
 import Footer from './components/Footer';
 import BottomNav from './components/BottomNav';
 import WhatsAppButton from './components/WhatsAppButton';
@@ -30,6 +31,17 @@ import AdminBanners from './pages/admin/AdminBanners';
 import PrivateRoute from './components/PrivateRoute';
 import AdminRoute from './components/AdminRoute';
 
+// ScrollToTop component to handle page scroll on route change
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
 function App() {
   const location = useLocation();
   const isAdminPage = location.pathname.startsWith('/admin');
@@ -37,6 +49,8 @@ function App() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
+      <PageTransitionLoader />
+      <ScrollToTop />
       {!isAuthPage && <NavbarNew />}
       <main className="flex-grow pt-16 pb-20 md:pb-0">
         <Routes>

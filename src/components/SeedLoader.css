@@ -1,0 +1,377 @@
+/* SeedLoader - Watering & Growing Plant Animation */
+.seed-loader {
+  --loader-size: 48px;
+  --pot-color: #C67B5C;
+  --pot-dark: #A65D3F;
+  --soil-color: #5D4037;
+  --stem-color: #4CAF50;
+  --stem-dark: #388E3C;
+  --leaf-color: #66BB6A;
+  --leaf-light: #81C784;
+  --leaf-dark: #43A047;
+  --water-color: #64B5F6;
+  
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.seed-loader__scene {
+  position: relative;
+  width: var(--loader-size);
+  height: var(--loader-size);
+}
+
+/* ========== POT ========== */
+.seed-loader__pot {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 55%;
+  height: 35%;
+}
+
+.seed-loader__pot-top {
+  position: absolute;
+  top: 0;
+  left: -8%;
+  width: 116%;
+  height: 20%;
+  background: var(--pot-color);
+  border-radius: 3px;
+}
+
+.seed-loader__pot-body {
+  position: absolute;
+  top: 18%;
+  left: 5%;
+  width: 90%;
+  height: 82%;
+  background: linear-gradient(135deg, var(--pot-color) 0%, var(--pot-dark) 100%);
+  border-radius: 0 0 8px 8px;
+  clip-path: polygon(5% 0%, 95% 0%, 85% 100%, 15% 100%);
+}
+
+/* ========== SOIL ========== */
+.seed-loader__soil {
+  position: absolute;
+  bottom: 28%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 42%;
+  height: 8%;
+  background: linear-gradient(to bottom, #6D4C41, var(--soil-color));
+  border-radius: 50%;
+}
+
+/* ========== WATER DROPS ========== */
+.seed-loader__water {
+  position: absolute;
+  top: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40%;
+  height: 40%;
+}
+
+.seed-loader__drop {
+  position: absolute;
+  width: 12%;
+  height: 18%;
+  background: var(--water-color);
+  border-radius: 50% 50% 50% 50% / 30% 30% 70% 70%;
+  opacity: 0;
+  filter: drop-shadow(0 0 2px rgba(100, 181, 246, 0.5));
+}
+
+.seed-loader__drop--1 {
+  left: 20%;
+  animation: water-drop 1.5s ease-in infinite;
+  animation-delay: 0s;
+}
+
+.seed-loader__drop--2 {
+  left: 45%;
+  animation: water-drop 1.5s ease-in infinite;
+  animation-delay: 0.15s;
+}
+
+.seed-loader__drop--3 {
+  left: 70%;
+  animation: water-drop 1.5s ease-in infinite;
+  animation-delay: 0.3s;
+}
+
+/* ========== STEM ========== */
+.seed-loader__stem {
+  position: absolute;
+  bottom: 32%;
+  left: 50%;
+  width: 6%;
+  height: 0;
+  background: linear-gradient(to top, var(--stem-dark), var(--stem-color));
+  border-radius: 3px;
+  transform: translateX(-50%);
+  transform-origin: bottom center;
+  animation: stem-grow 1.5s ease-out infinite;
+}
+
+/* ========== LEAVES ========== */
+.seed-loader__leaf {
+  position: absolute;
+  background: linear-gradient(135deg, var(--leaf-light) 0%, var(--leaf-color) 50%, var(--leaf-dark) 100%);
+  border-radius: 50% 0 50% 0;
+  opacity: 0;
+  transform-origin: center;
+}
+
+.seed-loader__leaf--1 {
+  bottom: 45%;
+  left: 30%;
+  width: 20%;
+  height: 12%;
+  transform: rotate(-45deg) scale(0);
+  animation: leaf-grow-left 1.5s ease-out infinite;
+  animation-delay: 0.35s;
+}
+
+.seed-loader__leaf--2 {
+  bottom: 45%;
+  right: 30%;
+  width: 20%;
+  height: 12%;
+  transform: rotate(45deg) scale(0);
+  border-radius: 0 50% 0 50%;
+  animation: leaf-grow-right 1.5s ease-out infinite;
+  animation-delay: 0.45s;
+}
+
+.seed-loader__leaf--3 {
+  bottom: 55%;
+  left: 34%;
+  width: 16%;
+  height: 10%;
+  transform: rotate(-55deg) scale(0);
+  animation: leaf-grow-left-2 1.5s ease-out infinite;
+  animation-delay: 0.55s;
+}
+
+.seed-loader__leaf--4 {
+  bottom: 55%;
+  right: 34%;
+  width: 16%;
+  height: 10%;
+  transform: rotate(55deg) scale(0);
+  border-radius: 0 50% 0 50%;
+  animation: leaf-grow-right-2 1.5s ease-out infinite;
+  animation-delay: 0.65s;
+}
+
+/* ========== TOP SPROUT ========== */
+.seed-loader__sprout {
+  position: absolute;
+  bottom: 64%;
+  left: 50%;
+  width: 12%;
+  height: 16%;
+  background: linear-gradient(to top, var(--leaf-color), var(--leaf-light));
+  border-radius: 50% 50% 20% 20%;
+  transform: translateX(-50%) scale(0);
+  transform-origin: bottom center;
+  opacity: 0;
+  animation: sprout-grow 1.5s ease-out infinite;
+  animation-delay: 0.75s;
+}
+
+/* ========== LOADING TEXT ========== */
+.seed-loader__text {
+  font-size: calc(var(--loader-size) * 0.22);
+  color: var(--stem-color);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  animation: text-pulse 1.5s ease-in-out infinite;
+}
+
+/* ========== ANIMATIONS ========== */
+
+/* Water drops falling */
+@keyframes water-drop {
+  0% {
+    top: 0;
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0.8;
+  }
+  100% {
+    top: 85%;
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+/* Stem growing up */
+@keyframes stem-grow {
+  0%, 10% {
+    height: 0;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  50% {
+    height: 38%;
+  }
+  80%, 95% {
+    height: 38%;
+    opacity: 1;
+  }
+  100% {
+    height: 38%;
+    opacity: 0;
+  }
+}
+
+/* Left leaves growing */
+@keyframes leaf-grow-left {
+  0%, 5% {
+    transform: rotate(-45deg) scale(0);
+    opacity: 0;
+  }
+  35% {
+    transform: rotate(-50deg) scale(1.1);
+    opacity: 1;
+  }
+  50%, 85% {
+    transform: rotate(-45deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(-45deg) scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes leaf-grow-left-2 {
+  0%, 5% {
+    transform: rotate(-55deg) scale(0);
+    opacity: 0;
+  }
+  35% {
+    transform: rotate(-60deg) scale(1.1);
+    opacity: 1;
+  }
+  50%, 85% {
+    transform: rotate(-55deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(-55deg) scale(0);
+    opacity: 0;
+  }
+}
+
+/* Right leaves growing */
+@keyframes leaf-grow-right {
+  0%, 5% {
+    transform: rotate(45deg) scale(0);
+    opacity: 0;
+  }
+  35% {
+    transform: rotate(50deg) scale(1.1);
+    opacity: 1;
+  }
+  50%, 85% {
+    transform: rotate(45deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(45deg) scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes leaf-grow-right-2 {
+  0%, 5% {
+    transform: rotate(55deg) scale(0);
+    opacity: 0;
+  }
+  35% {
+    transform: rotate(60deg) scale(1.1);
+    opacity: 1;
+  }
+  50%, 85% {
+    transform: rotate(55deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(55deg) scale(0);
+    opacity: 0;
+  }
+}
+
+/* Top sprout growing */
+@keyframes sprout-grow {
+  0%, 5% {
+    transform: translateX(-50%) scale(0);
+    opacity: 0;
+  }
+  30% {
+    transform: translateX(-50%) scale(1.15);
+    opacity: 1;
+  }
+  45%, 85% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%) scale(0);
+    opacity: 0;
+  }
+}
+
+/* Text pulsing */
+@keyframes text-pulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Gentle sway while fully grown */
+@media (prefers-reduced-motion: no-preference) {
+  .seed-loader__leaf--1 {
+    animation: leaf-grow-left 1.5s ease-out infinite, sway-left 0.8s ease-in-out infinite 0.6s;
+  }
+  
+  .seed-loader__leaf--2 {
+    animation: leaf-grow-right 1.5s ease-out infinite, sway-right 0.8s ease-in-out infinite 0.6s;
+  }
+}
+
+@keyframes sway-left {
+  0%, 100% {
+    transform: rotate(-45deg) scale(1);
+  }
+  50% {
+    transform: rotate(-48deg) scale(1);
+  }
+}
+
+@keyframes sway-right {
+  0%, 100% {
+    transform: rotate(45deg) scale(1);
+  }
+  50% {
+    transform: rotate(48deg) scale(1);
+  }
+}

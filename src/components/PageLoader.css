@@ -1,0 +1,15 @@
+/* PageLoader - Container styles for SeedLoader */
+.page-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.page-loader--centered {
+  width: 100%;
+}
+
+.page-loader--full-height {
+  min-height: 200px;
+}
