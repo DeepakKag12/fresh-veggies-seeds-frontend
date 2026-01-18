@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Star, CheckCircle, XCircle, Trash2, MessageSquare, ShoppingBag, Filter } from 'lucide-react';
+import { Star, CheckCircle, XCircle, Trash2, MessageSquare, ShoppingBag } from 'lucide-react';
 import api from '../../utils/api';
 
 function AdminReviews() {
@@ -13,13 +13,25 @@ function AdminReviews() {
   const [showResponseDialog, setShowResponseDialog] = useState(false);
   const [actionType, setActionType] = useState(''); // approve or reject
 
+  const applyFilter = useCallback(() => {
+    if (filter === 'all') {
+      setFilteredReviews(reviews);
+    } else if (filter === 'pending') {
+      setFilteredReviews(reviews.filter(r => r.isApproved === null));
+    } else if (filter === 'approved') {
+      setFilteredReviews(reviews.filter(r => r.isApproved === true));
+    } else if (filter === 'rejected') {
+      setFilteredReviews(reviews.filter(r => r.isApproved === false));
+    }
+  }, [reviews, filter]);
+
   useEffect(() => {
     fetchReviews();
   }, []);
 
   useEffect(() => {
     applyFilter();
-  }, [reviews, filter]);
+  }, [applyFilter]);
 
   const fetchReviews = async () => {
     try {
@@ -31,18 +43,6 @@ function AdminReviews() {
       alert('Failed to load reviews');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const applyFilter = () => {
-    if (filter === 'all') {
-      setFilteredReviews(reviews);
-    } else if (filter === 'pending') {
-      setFilteredReviews(reviews.filter(r => r.isApproved === null));
-    } else if (filter === 'approved') {
-      setFilteredReviews(reviews.filter(r => r.isApproved === true));
-    } else if (filter === 'rejected') {
-      setFilteredReviews(reviews.filter(r => r.isApproved === false));
     }
   };
 

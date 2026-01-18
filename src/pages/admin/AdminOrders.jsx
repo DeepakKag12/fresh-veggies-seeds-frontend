@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Package,
   Clock,
   CheckCircle,
   Truck,
@@ -27,17 +26,25 @@ const AdminOrders = () => {
 
   const statusOptions = ['All', 'Pending', 'Confirmed', 'Packed', 'Shipped', 'Delivered', 'Cancelled'];
 
+  const filterOrders = useCallback(() => {
+    if (statusFilter === 'All') {
+      setFilteredOrders(orders);
+    } else {
+      setFilteredOrders(orders.filter(order => order.orderStatus === statusFilter));
+    }
+  }, [statusFilter, orders]);
+
   useEffect(() => {
     fetchOrders();
     const statusFromUrl = searchParams.get('status');
     if (statusFromUrl) {
       setStatusFilter(statusFromUrl);
     }
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     filterOrders();
-  }, [statusFilter, orders]);
+  }, [filterOrders]);
 
   const fetchOrders = async () => {
     try {
@@ -49,14 +56,6 @@ const AdminOrders = () => {
       setOrders([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const filterOrders = () => {
-    if (statusFilter === 'All') {
-      setFilteredOrders(orders);
-    } else {
-      setFilteredOrders(orders.filter(order => order.orderStatus === statusFilter));
     }
   };
 
@@ -222,7 +221,6 @@ const AdminOrders = () => {
 
 // Order Card Component
 const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, getStatusColor, getStatusIcon, statusOptions }) => {
-  const [selectedStatus, setSelectedStatus] = useState(order.orderStatus);
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleStatusChange = async (newStatus) => {
@@ -230,7 +228,6 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, getStatu
     
     setIsUpdating(true);
     await onUpdateStatus(order._id, newStatus);
-    setSelectedStatus(newStatus);
     setIsUpdating(false);
   };
 
