@@ -2,8 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
-  ClipboardList, 
-  PlusCircle,
+  ClipboardList,
   Package,
   Menu,
   X,
