@@ -6,6 +6,9 @@ import { useCart } from '../context/CartContext';
 
 const CartPopup = () => {
   const { cartPopup, hideCartPopup, getCartCount } = useCart();
+  
+  // Force fresh deployment
+  const deploymentVersion = '2.0.1';
 
   return (
     <AnimatePresence>
