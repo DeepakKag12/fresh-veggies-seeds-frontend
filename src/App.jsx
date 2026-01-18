@@ -3,6 +3,7 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import './animations.css';
 import NavbarNew from './components/NavbarNew';
 import PageTransitionLoader from './components/PageTransitionLoader';
+import CartPopup from './components/CartPopup';
 import Footer from './components/Footer';
 import BottomNav from './components/BottomNav';
 import AdminBottomNav from './components/AdminBottomNav';
@@ -55,6 +56,7 @@ function App() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <PageTransitionLoader />
+      <CartPopup />
       <ScrollToTop />
       {!isAuthPage && <NavbarNew />}
       <main className="flex-grow pt-16 pb-20 md:pb-0">
@@ -88,10 +90,10 @@ function App() {
           <Route path="/admin/banners" element={<AdminRoute><AdminBanners /></AdminRoute>} />
         </Routes>
       </main>
-      {!isAuthPage && !isAdminPage && <Footer />}
-      {/* Show AdminBottomNav for admin on admin pages, regular BottomNav for others */}
-      {!isAuthPage && isAdmin && isAdminPage && <AdminBottomNav />}
-      {!isAuthPage && !isAdmin && !isAdminPage && <BottomNav />}
+      {!isAuthPage && !isAdminPage && !isAdmin && <Footer />}
+      {/* Admin always sees AdminBottomNav, regular users see BottomNav */}
+      {!isAuthPage && isAdmin && <AdminBottomNav />}
+      {!isAuthPage && !isAdmin && <BottomNav />}
       {!isAuthPage && !isAdmin && <WhatsAppButton />}
     </div>
   );

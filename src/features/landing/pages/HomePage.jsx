@@ -428,36 +428,84 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Categories Section */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4 overflow-x-auto scrollbar-hide">
+      {/* Categories Section - Horizontal Scroll */}
+      <div className="bg-gradient-to-b from-green-50 to-white dark:from-gray-900 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Shop by Category</h2>
+            <Link to="/shop" className="text-sm text-green-600 hover:text-green-700 font-medium">
+              View All →
+            </Link>
+          </div>
+          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
             {loading ? (
-              [...Array(5)].map((_, i) => (
-                <div key={i} className="flex-shrink-0">
-                  <div className="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
-                  <div className="w-16 h-3 bg-gray-200 dark:bg-gray-700 rounded mt-2 mx-auto animate-pulse" />
+              [...Array(4)].map((_, i) => (
+                <div key={i} className="flex-shrink-0 w-[calc(25%-12px)] min-w-[80px] flex flex-col items-center snap-start">
+                  <div className="w-full aspect-square bg-gray-200 dark:bg-gray-700 rounded-2xl animate-pulse" />
+                  <div className="w-14 h-3 bg-gray-200 dark:bg-gray-700 rounded mt-2 animate-pulse" />
                 </div>
               ))
             ) : (
-              categories.map((category) => (
-                <Link
-                  key={category._id}
-                  to={`/shop?category=${category._id}`}
-                  className="flex-shrink-0 flex flex-col items-center group"
-                >
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow"
+              categories.map((category, index) => {
+                // Default images for specific categories - meaningful plant/seed images
+                const getCategoryImage = (name) => {
+                  const lowerName = name.toLowerCase();
+                  if (lowerName.includes('vegetable') || lowerName.includes('veggie')) {
+                    return 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=300&h=300&fit=crop'; // Fresh vegetables tomatoes
+                  }
+                  if (lowerName.includes('flower') || lowerName.includes('rose')) {
+                    return 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=300&h=300&fit=crop'; // Colorful flower garden
+                  }
+                  if (lowerName.includes('herb')) {
+                    return 'https://images.unsplash.com/photo-1509587584298-0f3b3a3a1797?w=300&h=300&fit=crop'; // Fresh green herbs
+                  }
+                  if (lowerName.includes('fruit')) {
+                    return 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=300&h=300&fit=crop'; // Fresh fruits
+                  }
+                  if (lowerName.includes('soil') || lowerName.includes('fertil')) {
+                    return 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=300&h=300&fit=crop'; // Soil in hands
+                  }
+                  if (lowerName.includes('grow') || lowerName.includes('bag') || lowerName.includes('pot')) {
+                    return 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSYEsxXxd50GZmSLWIwDVYSfhGVOxrCtHoyAA&s'; // Grow bags
+                  }
+                  if (lowerName.includes('tool') || lowerName.includes('garden')) {
+                    return 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=300&h=300&fit=crop'; // Garden tools
+                  }
+                  return category.image; // Fallback to database image
+                };
+                
+                const displayImage = getCategoryImage(category.name);
+                
+                return (
+                  <Link
+                    key={category._id}
+                    to={`/shop?category=${category._id}`}
+                    className="flex-shrink-0 w-[calc(25%-12px)] min-w-[80px] flex flex-col items-center group snap-start"
                   >
-                    <span className="text-3xl">{category.icon || '🌱'}</span>
-                  </motion.div>
-                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-2 text-center max-w-[80px] leading-tight">
-                    {category.name}
-                  </span>
-                </Link>
-              ))
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="w-full aspect-square rounded-2xl flex items-center justify-center shadow-md group-hover:shadow-xl transition-all duration-300 overflow-hidden bg-gradient-to-br from-green-400 to-emerald-500"
+                    >
+                      {displayImage ? (
+                        <img 
+                          src={displayImage} 
+                          alt={category.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-3xl md:text-4xl">{category.icon || '🌱'}</span>
+                      )}
+                    </motion.div>
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-2 text-center leading-tight line-clamp-2">
+                      {category.name}
+                    </span>
+                  </Link>
+                );
+              })
             )}
           </div>
         </div>

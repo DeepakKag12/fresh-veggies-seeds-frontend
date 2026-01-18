@@ -12,6 +12,7 @@ export const useCart = () => {
 
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
+  const [cartPopup, setCartPopup] = useState({ show: false, product: null });
 
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
@@ -47,6 +48,10 @@ export const CartProvider = ({ children }) => {
         },
       ]);
     }
+    
+    // Show popup notification
+    setCartPopup({ show: true, product });
+    setTimeout(() => setCartPopup({ show: false, product: null }), 3000);
   };
 
   const removeFromCart = (productId, isCombo) => {
@@ -83,14 +88,19 @@ export const CartProvider = ({ children }) => {
     return cartItems.reduce((count, item) => count + item.quantity, 0);
   };
 
+  const hideCartPopup = () => setCartPopup({ show: false, product: null });
+
   const value = {
     cartItems,
+    cart: cartItems, // alias for compatibility
     addToCart,
     removeFromCart,
     updateQuantity,
     clearCart,
     getCartTotal,
     getCartCount,
+    cartPopup,
+    hideCartPopup,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
