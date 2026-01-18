@@ -449,29 +449,40 @@ const HomePage = () => {
               categories.map((category, index) => {
                 // Default images for specific categories - meaningful plant/seed images
                 const getCategoryImage = (name) => {
-                  const lowerName = name.toLowerCase();
-                  if (lowerName.includes('vegetable') || lowerName.includes('veggie')) {
-                    return 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=300&h=300&fit=crop'; // Fresh vegetables tomatoes
+                  if (!name) return null;
+                  const lowerName = name.toLowerCase().trim();
+                  
+                  // Vegetable Seeds
+                  if (lowerName.includes('vegetable') || lowerName.includes('veggie') || lowerName === 'vegetable seeds') {
+                    return 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=300&h=300&fit=crop';
                   }
-                  if (lowerName.includes('flower') || lowerName.includes('rose')) {
-                    return 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=300&h=300&fit=crop'; // Colorful flower garden
+                  // Flower Seeds
+                  if (lowerName.includes('flower') || lowerName.includes('rose') || lowerName === 'flower seeds') {
+                    return 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=300&h=300&fit=crop';
                   }
+                  // Herbs
                   if (lowerName.includes('herb')) {
-                    return 'https://images.unsplash.com/photo-1509587584298-0f3b3a3a1797?w=300&h=300&fit=crop'; // Fresh green herbs
+                    return 'https://images.unsplash.com/photo-1509587584298-0f3b3a3a1797?w=300&h=300&fit=crop';
                   }
+                  // Fruits
                   if (lowerName.includes('fruit')) {
-                    return 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=300&h=300&fit=crop'; // Fresh fruits
+                    return 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=300&h=300&fit=crop';
                   }
-                  if (lowerName.includes('soil') || lowerName.includes('fertil')) {
-                    return 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=300&h=300&fit=crop'; // Soil in hands
+                  // Soil & Fertilizers
+                  if (lowerName.includes('soil') || lowerName.includes('fertil') || lowerName.includes('fertilizer')) {
+                    return 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=300&h=300&fit=crop';
                   }
+                  // Grow Bags
                   if (lowerName.includes('grow') || lowerName.includes('bag') || lowerName.includes('pot')) {
-                    return 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSYEsxXxd50GZmSLWIwDVYSfhGVOxrCtHoyAA&s'; // Grow bags
+                    return 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSYEsxXxd50GZmSLWIwDVYSfhGVOxrCtHoyAA&s';
                   }
+                  // Tools
                   if (lowerName.includes('tool') || lowerName.includes('garden')) {
-                    return 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=300&h=300&fit=crop'; // Garden tools
+                    return 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=300&h=300&fit=crop';
                   }
-                  return category.image; // Fallback to database image
+                  
+                  // Fallback to database image or null
+                  return category.image || null;
                 };
                 
                 const displayImage = getCategoryImage(category.name);
