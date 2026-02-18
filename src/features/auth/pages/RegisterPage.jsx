@@ -193,7 +193,7 @@ const RegisterPage = () => {
               onChange={handleChange}
               error={errors.password}
               placeholder="Create a strong password"
-              showStrength
+              showStrengthIndicator
               required
             />
 

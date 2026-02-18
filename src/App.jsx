@@ -16,6 +16,9 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import LoginPage from './features/auth/pages/LoginPage';
 import RegisterPage from './features/auth/pages/RegisterPage';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import MobileLogin from './pages/MobileLogin';
 import MyOrders from './pages/MyOrders';
 import OrderDetail from './pages/OrderDetail';
 import Settings from './pages/Settings';
@@ -50,7 +53,7 @@ function App() {
   const location = useLocation();
   const { user } = useAuth();
   const isAdminPage = location.pathname.startsWith('/admin');
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/forgot-password' || location.pathname === '/mobile-login' || location.pathname.startsWith('/reset-password/');
   const isAdmin = user?.role === 'admin';
 
   return (
@@ -69,6 +72,9 @@ function App() {
           <Route path="/cart" element={<Cart />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
+          <Route path="/mobile-login" element={<MobileLogin />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
 

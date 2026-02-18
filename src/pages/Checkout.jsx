@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CreditCard, MapPin, Package, AlertCircle, CheckCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -11,6 +11,7 @@ const Checkout = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
 
   const [shippingAddress, setShippingAddress] = useState({
     name: user?.name || '',
@@ -23,7 +24,124 @@ const Checkout = () => {
 
   const [paymentMode, setPaymentMode] = useState('COD');
 
-  const handleSubmit = async (e) => {
+  // Load Razorpay script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => setRazorpayLoaded(true);
+    document.body.appendChild(script);
+
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
+
+  // Razorpay Payment Handler
+  const handleRazorpayPayment = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const orderItems = cartItems.map((item) => ({
+        product: item._id,
+        productType: item.isCombo ? 'Combo' : 'Product',
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        image: item.images?.[0] || '',
+      }));
+
+      const itemsPrice = getCartTotal();
+      const shippingPrice = 50;
+      const totalAmount = itemsPrice + shippingPrice;
+
+      const orderData = {
+        amount: totalAmount,
+        orderItems,
+        shippingAddress: {
+          ...shippingAddress,
+          country: 'India',
+        },
+        itemsPrice,
+        shippingPrice,
+        totalAmount,
+      };
+
+      // Step 1: Create Razorpay Order
+      const createOrderResponse = await api.post('/payments/create-order', orderData);
+      const { razorpayOrderId, key } = createOrderResponse.data.data;
+
+      // Step 2: Open Razorpay Checkout Modal
+      const options = {
+        key: key,
+        amount: totalAmount * 100, // Convert to paise
+        currency: 'INR',
+        order_id: razorpayOrderId,
+        name: 'Fresh Veggies',
+        image: '/logo.png', // Add your logo path
+        prefill: {
+          name: shippingAddress.name,
+          email: user?.email,
+          contact: shippingAddress.phone,
+        },
+        handler: async (response) => {
+          try {
+            // Step 3: Verify Payment on Backend
+            const verifyResponse = await api.post('/payments/verify-payment', {
+              razorpay_order_id: razorpayOrderId,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              orderData: {
+                orderItems,
+                shippingAddress: {
+                  ...shippingAddress,
+                  country: 'India',
+                },
+                itemsPrice,
+                shippingPrice,
+                totalAmount,
+              },
+            });
+
+            if (verifyResponse.data.success) {
+              // Step 4: Order Created Successfully
+              clearCart();
+              navigate(`/orders/${verifyResponse.data.data._id}`, {
+                state: { success: true, message: 'Payment successful! Order confirmed.' }
+              });
+            }
+          } catch (verifyError) {
+            setError('Payment verification failed. Please contact support.');
+            console.error('Verification Error:', verifyError);
+          } finally {
+            setLoading(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setLoading(false);
+            setError('Payment cancelled. Please try again.');
+          }
+        },
+        theme: {
+          color: '#16a34a' // Green color to match your theme
+        }
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to initiate payment');
+      setLoading(false);
+    }
+  };
+
+  // COD Payment Handler
+  const handleCODPayment = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -48,7 +166,7 @@ const Checkout = () => {
           ...shippingAddress,
           country: 'India',
         },
-        paymentMode,
+        paymentMode: 'COD',
         itemsPrice,
         shippingPrice,
         totalAmount,
@@ -56,11 +174,25 @@ const Checkout = () => {
 
       const response = await api.post('/orders', orderData);
       clearCart();
-      navigate(`/orders/${response.data.data._id}`);
-    } catch (error) {
-      setError(error.response?.data?.message || 'Failed to place order');
+      navigate(`/orders/${response.data.data._id}`, {
+        state: { success: true, message: 'Order placed successfully! Pay on delivery.' }
+      });
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to place order');
     }
     setLoading(false);
+  };
+
+  const handleSubmit = (e) => {
+    if (paymentMode === 'Online') {
+      if (!razorpayLoaded) {
+        setError('Payment gateway is loading. Please wait a moment and try again.');
+        return;
+      }
+      handleRazorpayPayment(e);
+    } else {
+      handleCODPayment(e);
+    }
   };
 
   const itemsPrice = getCartTotal();
@@ -191,7 +323,11 @@ const Checkout = () => {
                 </div>
                 
                 <div className="space-y-3">
-                  <label className="flex items-center gap-3 p-4 border-2 border-green-500 bg-green-50 dark:bg-green-900/20 rounded-lg cursor-pointer">
+                  <label className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    paymentMode === 'COD'
+                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                      : 'border-gray-200 dark:border-gray-700'
+                  }`}>
                     <input
                       type="radio"
                       name="paymentMode"
@@ -205,17 +341,22 @@ const Checkout = () => {
                       <p className="text-sm text-gray-600 dark:text-gray-400">Pay when you receive your order</p>
                     </div>
                   </label>
-                  <label className="flex items-center gap-3 p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg cursor-not-allowed opacity-50">
+                  <label className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    paymentMode === 'Online'
+                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                      : 'border-gray-200 dark:border-gray-700'
+                  }`}>
                     <input
                       type="radio"
                       name="paymentMode"
                       value="Online"
-                      disabled
+                      checked={paymentMode === 'Online'}
+                      onChange={(e) => setPaymentMode(e.target.value)}
                       className="w-5 h-5 text-green-600"
                     />
                     <div>
-                      <p className="font-semibold text-gray-900 dark:text-white">Online Payment</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Coming Soon</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">Online Payment (Razorpay)</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Pay securely using Razorpay</p>
                     </div>
                   </label>
                 </div>

@@ -30,7 +30,7 @@ const BottomNav = () => {
           
           return (
             <button
-              key={item.path}
+              key={item.label}
               onClick={() => navigate(item.path)}
               className="flex flex-col items-center justify-center flex-1 h-full py-2 transition-colors relative"
             >

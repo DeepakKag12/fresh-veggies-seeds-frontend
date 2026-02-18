@@ -22,7 +22,7 @@ const HomePage = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [topSellingProducts, setTopSellingProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [reviews, setReviews] = useState([]);
+  const [reviews] = useState([]); // Empty reviews - fetching from protected endpoint removed
   const [activeBanners, setActiveBanners] = useState([]);
   const [currentBanner, setCurrentBanner] = useState(0);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
@@ -144,14 +144,8 @@ const HomePage = () => {
       setCategories(Array.isArray(categoriesData) ? categoriesData : []);
       setActiveBanners(Array.isArray(bannersData) ? bannersData : []);
       
-      // Fetch approved reviews for testimonials
-      try {
-        const reviewsRes = await api.get('/reviews/admin?status=approved&limit=10');
-        const reviewsData = reviewsRes.data?.data || [];
-        setReviews(Array.isArray(reviewsData) ? reviewsData.filter(r => r.rating >= 4) : []);
-      } catch (error) {
-        console.log('Reviews not available');
-      }
+      // Note: Reviews are fetched from individual product endpoints if needed
+      // Public reviews endpoint not available - only product-specific reviews can be fetched
     } catch (error) {
       console.error('Failed to fetch data:', error);
       setAllProducts([]);

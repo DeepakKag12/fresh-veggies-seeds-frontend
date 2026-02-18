@@ -184,6 +184,24 @@ const LoginPage = () => {
                 Create one now
               </Link>
             </p>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400">
+                  Or
+                </span>
+              </div>
+            </div>
+
+            <Link
+              to="/mobile-login"
+              className="w-full block text-center px-4 py-2 border-2 border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg font-semibold transition-colors"
+            >
+              Login with Phone Number
+            </Link>
           </motion.form>
         </div>
       </motion.div>
