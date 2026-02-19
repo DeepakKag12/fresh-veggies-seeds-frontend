@@ -28,14 +28,10 @@ const AdminProducts = () => {
     season: 'All Season',
     images: '',
     featured: false,
-    trending: false
+    trending: false,
+    hasPackages: false   // toggle: sell by package variants (quantity-based)
   });
 
-  // Check if selected category is a seed category
-  const isSeedCategory = () => {
-    const selectedCategory = categories.find(cat => cat._id === formData.categoryId);
-    return selectedCategory?.name?.toLowerCase().includes('seed');
-  };
 
   useEffect(() => {
     fetchProducts();
@@ -68,28 +64,30 @@ const AdminProducts = () => {
     if (product) {
       setEditMode(true);
       setCurrentProduct(product);
+      const hasPkgs = product.packages && product.packages.length > 0;
       setFormData({
         name: product.name,
         categoryId: product.categoryId._id || product.categoryId,
         price: product.price,
         originalPrice: product.originalPrice || '',
-        weight: product.weight,
+        weight: product.weight || '',
         stock: product.stock,
         description: product.description,
         season: product.season || 'All Season',
         images: product.images.join(', '),
         featured: product.featured || false,
-        trending: product.trending || false
+        trending: product.trending || false,
+        hasPackages: hasPkgs
       });
       // Load packages if exists
-      if (product.packages && product.packages.length > 0) {
+      if (hasPkgs) {
         setPackages(product.packages.map(p => ({
           quantity: p.quantity,
           price: p.price.toString(),
           stock: p.stock.toString()
         })));
       } else {
-        setPackages([{ quantity: '50 Seeds', price: '', stock: '' }]);
+        setPackages([{ quantity: '', price: '', stock: '' }]);
       }
       setImagePreview(product.images || []);
     } else {
@@ -100,15 +98,16 @@ const AdminProducts = () => {
         categoryId: '',
         price: '',
         originalPrice: '',
-        weight: '20g',
+        weight: '',
         stock: '',
         description: '',
         season: 'All Season',
         images: '',
         featured: false,
-        trending: false
+        trending: false,
+        hasPackages: false
       });
-      setPackages([{ quantity: '50 Seeds', price: '', stock: '' }]);
+      setPackages([{ quantity: '', price: '', stock: '' }]);
       setImagePreview([]);
       setImageFiles([]);
     }
@@ -175,13 +174,19 @@ const AdminProducts = () => {
           stock: parseInt(p.stock)
         }));
 
+      // Strip UI-only fields before sending to backend
+      const { hasPackages, ...restFormData } = formData;
+
       const productData = {
-        ...formData,
+        ...restFormData,
         images: imageUrls,
-        packages: validPackages.length > 0 ? validPackages : undefined,
+        packages: formData.hasPackages && validPackages.length > 0 ? validPackages : [],
         originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : undefined,
         price: parseFloat(formData.price),
-        stock: parseInt(formData.stock)
+        // If selling by packages, stock is managed per-package; set 0 as overall stock
+        stock: formData.hasPackages ? 0 : parseInt(formData.stock) || 0,
+        // Clear weight when using packages
+        weight: formData.hasPackages ? undefined : (formData.weight || undefined)
       };
 
       if (editMode) {
@@ -392,11 +397,36 @@ const AdminProducts = () => {
                     </div>
                   </div>
 
-                  {/* Weight - Only show for non-seed categories */}
-                  {!isSeedCategory() && (
+                  {/* Selling Mode Toggle */}
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-800 dark:text-gray-200">Sell by Package / Quantity Variants</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          Enable to offer multiple quantity options (e.g. 50 Seeds, 1 Bag, 5 Bags). Disable to sell as a single unit with weight.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, hasPackages: !formData.hasPackages })}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                          formData.hasPackages ? 'bg-green-600' : 'bg-gray-300 dark:bg-gray-600'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                            formData.hasPackages ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Weight — only when NOT using package variants */}
+                  {!formData.hasPackages && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Weight
+                        Weight <span className="text-gray-400 font-normal">(optional)</span>
                       </label>
                       <select
                         value={formData.weight}
@@ -404,34 +434,36 @@ const AdminProducts = () => {
                         className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
                       >
                         <option value="">Select Weight</option>
-                        {['10g', '20g', '50g', '100g', '250g', '500g', '1kg', '2kg', '5kg', '10kg'].map((w) => (
+                        {['5g','8g','10g','20g','50g','100g','150g','250g','500g','1kg','2kg','5kg','10kg'].map((w) => (
                           <option key={w} value={w}>{w}</option>
                         ))}
                       </select>
                     </div>
                   )}
 
-                  {/* Stock */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Stock Quantity *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      value={formData.stock}
-                      onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
-                    />
-                  </div>
+                  {/* Stock — only when NOT using package variants (each package has its own stock) */}
+                  {!formData.hasPackages && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Stock Quantity *
+                      </label>
+                      <input
+                        type="number"
+                        required={!formData.hasPackages}
+                        value={formData.stock}
+                        onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                  )}
 
-                  {/* Package Variants - Only show for seed categories */}
-                  {isSeedCategory() && (
+                  {/* Package Variants — any product type */}
+                  {formData.hasPackages && (
                     <div className="border border-green-200 dark:border-green-800 rounded-lg p-4 bg-green-50 dark:bg-green-900/20">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                           <Package className="w-5 h-5 text-green-600 dark:text-green-400" />
-                          Package Variants (Seeds)
+                          Package / Quantity Variants
                         </h3>
                         <button
                           type="button"
@@ -439,18 +471,25 @@ const AdminProducts = () => {
                           className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
                         >
                           <Plus className="w-4 h-4" />
-                          Add Package
+                          Add Variant
                         </button>
                       </div>
                       <p className="text-xs text-green-700 dark:text-green-400 mb-3">
-                        Add different seed quantities with their respective prices (e.g., 50 Seeds, 100 Seeds, etc.)
+                        Each row is one option shown in the dropdown on the product page. Label it anything — e.g. &quot;50 Seeds&quot;, &quot;1 Bag&quot;, &quot;5 Bags&quot;, &quot;Small Box&quot;.
                       </p>
+                      {/* Column headers */}
+                      <div className="flex gap-3 mb-1 px-1">
+                        <span className="flex-1 text-xs font-medium text-gray-500 dark:text-gray-400">Label (shown to customer)</span>
+                        <span className="w-24 text-xs font-medium text-gray-500 dark:text-gray-400">Price (₹)</span>
+                        <span className="w-20 text-xs font-medium text-gray-500 dark:text-gray-400">Stock</span>
+                        <span className="w-8"></span>
+                      </div>
                       <div className="space-y-3">
                         {packages.map((pkg, index) => (
-                          <div key={index} className="flex gap-3 items-start">
+                          <div key={index} className="flex gap-3 items-center">
                             <input
                               type="text"
-                              placeholder="Quantity (e.g., 50 Seeds)"
+                              placeholder="e.g. 50 Seeds / 1 Bag / Small Box"
                               value={pkg.quantity}
                               onChange={(e) => handlePackageChange(index, 'quantity', e.target.value)}
                               className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
@@ -469,18 +508,21 @@ const AdminProducts = () => {
                               onChange={(e) => handlePackageChange(index, 'stock', e.target.value)}
                               className="w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
                             />
-                            {packages.length > 1 && (
+                            {packages.length > 1 ? (
                               <button
                                 type="button"
                                 onClick={() => handleRemovePackage(index)}
-                                className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                                className="p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 rounded-lg transition-colors"
                               >
                                 <X className="w-4 h-4" />
                               </button>
-                            )}
+                            ) : <span className="w-8" />}
                           </div>
                         ))}
                       </div>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+                        * Base Price above is used as fallback. Each variant overrides it.
+                      </p>
                     </div>
                   )}
 
