@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import api from '../utils/api';
 
 const AuthContext = createContext();
@@ -32,12 +33,14 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   };
 
+  // Login via email + password
   const login = async (email, password) => {
     try {
       const response = await api.post('/auth/login', { email, password });
       const { token, ...userData } = response.data.data;
       localStorage.setItem('token', token);
       setUser(userData);
+      toast.success(`Welcome back, ${userData.name || 'User'}! 🎉`);
       return { success: true };
     } catch (error) {
       return { 
@@ -47,12 +50,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Login via OTP — token + user data come directly from OTP verify response
+  const loginWithData = (data) => {
+    const { token, ...userData } = data;
+    localStorage.setItem('token', token);
+    setUser(userData);
+    toast.success(`Welcome, ${userData.name || 'User'}! 🎉`);
+  };
+
   const register = async (userData) => {
     try {
       const response = await api.post('/auth/register', userData);
       const { token, ...user } = response.data.data;
       localStorage.setItem('token', token);
       setUser(user);
+      toast.success(`Welcome to VinodiJiju, ${user.name || 'User'}! 🎉`);
       return { success: true };
     } catch (error) {
       return { 
@@ -65,6 +77,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
+    toast.success('Logged out successfully. See you soon!');
   };
 
   const updateProfile = async (data) => {
@@ -119,6 +132,7 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     login,
+    loginWithData,
     register,
     logout,
     updateProfile,

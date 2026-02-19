@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import './animations.css';
 import NavbarNew from './components/NavbarNew';
 import PageTransitionLoader from './components/PageTransitionLoader';
@@ -101,6 +102,24 @@ function App() {
       {!isAuthPage && isAdmin && <AdminBottomNav />}
       {!isAuthPage && !isAdmin && <BottomNav />}
       {!isAuthPage && !isAdmin && <WhatsAppButton />}
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+            fontSize: '14px',
+          },
+          success: {
+            iconTheme: { primary: '#22c55e', secondary: '#fff' },
+          },
+          error: {
+            iconTheme: { primary: '#ef4444', secondary: '#fff' },
+          },
+        }}
+      />
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 
 const MobileLogin = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { loginWithData } = useAuth();
   const [step, setStep] = useState(1); // 1: Phone, 2: OTP
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
@@ -66,10 +66,11 @@ const MobileLogin = () => {
       });
 
       if (response.data.success) {
-        // Store token and login user
-        localStorage.setItem('token', response.data.data.token);
-        login(response.data.data);
-        navigate('/dashboard');
+        // Set user + token via context (also shows success toast)
+        loginWithData(response.data.data);
+        // Scroll to top before navigating home
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        navigate('/');
       }
     } catch (err) {
       const message = err.response?.data?.message || 'Failed to verify OTP';
