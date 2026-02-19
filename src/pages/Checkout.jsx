@@ -109,9 +109,12 @@ const Checkout = () => {
               });
             }
           } catch (verifyError) {
-            // Notify backend of failure
-            await api.post('/payments/payment-failure', { razorpay_order_id: razorpayOrderId }).catch(() => {});
-            setError('Payment verification failed. Please contact support.');
+            // Notify backend of failure — pass both IDs so it can mark the order Failed
+            await api.post('/payments/payment-failure', {
+              razorpay_order_id: razorpayOrderId,
+              internalOrderId
+            }).catch(() => {});
+            setError('Payment verification failed. Please contact support with your order reference.');
             submittingRef.current = false;
           } finally {
             setLoading(false);
@@ -119,9 +122,14 @@ const Checkout = () => {
         },
         modal: {
           ondismiss: () => {
+            // Cancel the pending order so it doesn't pollute admin dashboard
+            api.post('/payments/payment-failure', {
+              razorpay_order_id: razorpayOrderId,
+              internalOrderId,
+            }).catch(() => {});
             submittingRef.current = false;
             setLoading(false);
-            setError('Payment cancelled. Please try again.');
+            setError('Payment was cancelled. Your order has not been placed. Please try again.');
           }
         },
         theme: { color: '#16a34a' }
