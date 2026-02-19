@@ -29,8 +29,9 @@ const Cart = () => {
     );
   }
 
-  const shippingFee = 50;
+  const FREE_DELIVERY_THRESHOLD = 300;
   const total = getCartTotal();
+  const shippingFee = total >= FREE_DELIVERY_THRESHOLD ? 0 : 50;
   const finalTotal = total + shippingFee;
 
   return (
@@ -128,9 +129,23 @@ const Cart = () => {
                   <span className="font-semibold">₹{total.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                  <span>Shipping</span>
-                  <span className="font-semibold">₹{shippingFee}</span>
+                  <span>Delivery</span>
+                  {shippingFee === 0 ? (
+                    <span className="font-semibold text-green-600 dark:text-green-400">FREE</span>
+                  ) : (
+                    <span className="font-semibold">₹{shippingFee}</span>
+                  )}
                 </div>
+                {shippingFee === 0 && (
+                  <p className="text-xs text-green-600 dark:text-green-400 font-medium">
+                    🎉 You've unlocked free delivery!
+                  </p>
+                )}
+                {shippingFee > 0 && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    Add ₹{FREE_DELIVERY_THRESHOLD - total} more for free delivery
+                  </p>
+                )}
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                   <div className="flex justify-between text-xl font-bold text-gray-900 dark:text-white">
                     <span>Total</span>
