@@ -1,17 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import {
-  Container,
-  Grid,
-  Typography,
-  Box,
-  TextField,
-  MenuItem,
-  CircularProgress,
-  Pagination,
-} from '@mui/material';
-import { Star, Edit, Trash2, Plus, X, Upload, ShoppingBag } from 'lucide-react';
+import { Star, Edit, Trash2, Plus, X, Upload, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../utils/api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -256,19 +246,12 @@ const Shop = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: { xs: 2, md: 4 } }}>
+    <div className="max-w-7xl mx-auto px-4 py-4 md:py-8">
       {/* Header with Create Combo Button */}
       <div className="flex items-center justify-between mb-6">
-        <Typography 
-          variant="h4" 
-          sx={{ 
-            mb: 0,
-            fontWeight: 'bold',
-            fontSize: { xs: '1.5rem', md: '2.125rem' }
-          }}
-        >
+        <h1 className="text-2xl md:text-[2.125rem] font-bold text-gray-900 dark:text-white">
           Shop All Products
-        </Typography>
+        </h1>
         
         {user?.role === 'admin' && (
           <button
@@ -282,70 +265,51 @@ const Shop = () => {
       </div>
 
       {/* Filters */}
-      <Grid container spacing={{ xs: 1.5, md: 2 }} sx={{ mb: { xs: 2, md: 4 } }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <TextField
-            fullWidth
-            label="Search"
-            value={filters.search}
-            onChange={(e) => handleFilterChange('search', e.target.value)}
-            size="small"
-          />
-        </Grid>
-        <Grid item xs={6} sm={6} md={3}>
-          <TextField
-            fullWidth
-            select
-            label="Category"
-            value={filters.category}
-            onChange={(e) => handleFilterChange('category', e.target.value)}
-            size="small"
-          >
-            <MenuItem value="">All Categories</MenuItem>
-            {categories.map((cat) => (
-              <MenuItem key={cat._id} value={cat._id}>
-                {cat.name}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-        <Grid item xs={6} sm={6} md={3}>
-          <TextField
-            fullWidth
-            select
-            label="Season"
-            value={filters.season}
-            onChange={(e) => handleFilterChange('season', e.target.value)}
-            size="small"
-          >
-            <MenuItem value="">All Seasons</MenuItem>
-            <MenuItem value="Summer">Summer</MenuItem>
-            <MenuItem value="Winter">Winter</MenuItem>
-            <MenuItem value="All Season">All Season</MenuItem>
-            <MenuItem value="Monsoon">Monsoon</MenuItem>
-          </TextField>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <TextField
-            fullWidth
-            select
-            label="Sort By"
-            value={filters.sort}
-            onChange={(e) => handleFilterChange('sort', e.target.value)}
-            size="small"
-          >
-            <MenuItem value="newest">Newest</MenuItem>
-            <MenuItem value="price-low">Price: Low to High</MenuItem>
-            <MenuItem value="price-high">Price: High to Low</MenuItem>
-          </TextField>
-        </Grid>
-      </Grid>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <input
+          type="text"
+          placeholder="Search products…"
+          value={filters.search}
+          onChange={(e) => handleFilterChange('search', e.target.value)}
+          className="col-span-2 md:col-span-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+        />
+        <select
+          value={filters.category}
+          onChange={(e) => handleFilterChange('category', e.target.value)}
+          className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+        >
+          <option value="">All Categories</option>
+          {categories.map((cat) => (
+            <option key={cat._id} value={cat._id}>{cat.name}</option>
+          ))}
+        </select>
+        <select
+          value={filters.season}
+          onChange={(e) => handleFilterChange('season', e.target.value)}
+          className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+        >
+          <option value="">All Seasons</option>
+          <option value="Summer">Summer</option>
+          <option value="Winter">Winter</option>
+          <option value="All Season">All Season</option>
+          <option value="Monsoon">Monsoon</option>
+        </select>
+        <select
+          value={filters.sort}
+          onChange={(e) => handleFilterChange('sort', e.target.value)}
+          className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+        >
+          <option value="newest">Newest</option>
+          <option value="price-low">Price: Low to High</option>
+          <option value="price-high">Price: High to Low</option>
+        </select>
+      </div>
 
       {/* Products Grid */}
       {loading ? (
-        <Box display="flex" justifyContent="center" py={8}>
-          <CircularProgress />
-        </Box>
+        <div className="flex justify-center py-16">
+          <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+        </div>
       ) : products.length > 0 ? (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -474,23 +438,43 @@ const Shop = () => {
           </div>
 
           {totalPages > 1 && (
-            <Box display="flex" justifyContent="center" mt={{ xs: 3, md: 4 }}>
-              <Pagination
-                count={totalPages}
-                page={page}
-                onChange={(e, value) => setPage(value)}
-                color="primary"
-                size={window.innerWidth < 600 ? 'small' : 'medium'}
-              />
-            </Box>
+            <div className="flex justify-center items-center gap-2 mt-6">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`w-9 h-9 rounded-lg text-sm font-semibold transition-colors ${
+                    p === page
+                      ? 'bg-green-600 text-white'
+                      : 'border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           )}
         </>
       ) : (
-        <Box textAlign="center" py={8}>
-          <Typography variant="h6" color="text.secondary" sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }}>
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <p className="text-base md:text-xl text-gray-500 dark:text-gray-400">
             No products found
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
 
       {/* Create Combo Modal */}
@@ -736,7 +720,7 @@ const Shop = () => {
           </div>
         </div>
       )}
-    </Container>
+    </div>
   );
 };
 

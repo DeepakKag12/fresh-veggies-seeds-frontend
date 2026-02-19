@@ -1,26 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Container,
-  Typography,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Box,
-  Chip,
-  Alert,
-} from '@mui/material';
-import { Edit, Delete, Add } from '@mui/icons-material';
+import { Edit, Trash2, Plus, X, CheckCircle, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
 const AdminCategories = () => {
@@ -95,102 +75,171 @@ const AdminCategories = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this category?')) {
-      try {
-        await api.delete(`/categories/${id}`);
-        fetchCategories();
-        alert('Category deleted successfully!');
-      } catch (error) {
-        alert('Failed to delete category');
-      }
+    if (!window.confirm('Are you sure you want to delete this category?')) return;
+    try {
+      await api.delete(`/categories/${id}`);
+      fetchCategories();
+      toast.success('Category deleted successfully!');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete category');
     }
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+    <div className="max-w-7xl mx-auto px-4 py-6">
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
           Manage Categories
-        </Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>
+        </h1>
+        <button
+          onClick={() => handleOpen()}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors"
+        >
+          <Plus className="w-4 h-4" />
           Add Category
-        </Button>
-      </Box>
+        </button>
+      </div>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Slug</TableCell>
-              <TableCell>Description</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+      {/* Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-900">
+            <tr>
+              {['Name', 'Slug', 'Description', 'Status', 'Actions'].map((h) => (
+                <th
+                  key={h}
+                  className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {categories.map((category) => (
-              <TableRow key={category._id}>
-                <TableCell>{category.name}</TableCell>
-                <TableCell>{category.slug}</TableCell>
-                <TableCell>{category.description || '-'}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={category.isActive ? 'Active' : 'Inactive'}
-                    color={category.isActive ? 'success' : 'default'}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  <IconButton onClick={() => handleOpen(category)} size="small" color="primary">
-                    <Edit />
-                  </IconButton>
-                  <IconButton onClick={() => handleDelete(category._id)} size="small" color="error">
-                    <Delete />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
+              <tr key={category._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+                <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{category.name}</td>
+                <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{category.slug}</td>
+                <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{category.description || '—'}</td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-full ${
+                      category.isActive
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                        : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                    }`}
+                  >
+                    {category.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </td>
+                <td className="px-4 py-3 flex items-center gap-2">
+                  <button
+                    onClick={() => handleOpen(category)}
+                    className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(category._id)}
+                    className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </td>
+              </tr>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </tbody>
+        </table>
+      </div>
 
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-        <form onSubmit={handleSubmit}>
-          <DialogTitle>{editMode ? 'Edit Category' : 'Add New Category'}</DialogTitle>
-          <DialogContent>
-            {message.text && (
-              <Alert severity={message.type} sx={{ mb: 2 }}>
-                {message.text}
-              </Alert>
-            )}
-            <TextField
-              fullWidth
-              label="Category Name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-              sx={{ mb: 2, mt: 1 }}
-            />
-            <TextField
-              fullWidth
-              label="Description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              multiline
-              rows={3}
-              sx={{ mb: 2 }}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleClose}>Cancel</Button>
-            <Button type="submit" variant="contained">
-              {editMode ? 'Update' : 'Create'}
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
-    </Container>
+      {/* Modal */}
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md">
+            <form onSubmit={handleSubmit}>
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                  {editMode ? 'Edit Category' : 'Add New Category'}
+                </h2>
+                <button type="button" onClick={handleClose} className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="px-6 py-4 space-y-4">
+                {/* Alert */}
+                {message.text && (
+                  <div
+                    className={`flex items-center gap-2 p-3 rounded-lg text-sm font-medium ${
+                      message.type === 'success'
+                        ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                        : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                    }`}
+                  >
+                    {message.type === 'success' ? (
+                      <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    )}
+                    {message.text}
+                  </div>
+                )}
+
+                {/* Category Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Category Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+                    placeholder="Enter category name"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition resize-none"
+                    placeholder="Optional description"
+                  />
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex justify-end gap-3 px-6 pb-5">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                >
+                  {editMode ? 'Update' : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

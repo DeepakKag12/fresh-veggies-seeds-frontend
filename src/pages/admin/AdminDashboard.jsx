@@ -15,7 +15,9 @@ import {
   Star,
   ChevronRight,
   RefreshCw,
-  Layers
+  Layers,
+  AlertTriangle,
+  CreditCard
 } from 'lucide-react';
 import api from '../../utils/api';
 
@@ -26,7 +28,11 @@ const AdminDashboard = () => {
     totalProducts: 0,
     totalRevenue: 0,
     pendingOrders: 0,
+    confirmedOrders: 0,
     deliveredOrders: 0,
+    cancelledOrders: 0,
+    cancellationRequests: 0,
+    failedPayments: 0,
     lowStockProducts: 0,
     pendingReviews: 0,
     todayOrders: 0,
@@ -56,6 +62,17 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
+    // Auto-refresh every 30s so alerts disappear as soon as admin resolves them
+    const interval = setInterval(fetchDashboardData, 30000);
+    // Also refetch immediately when admin returns to this tab/page
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchDashboardData();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [fetchDashboardData]);
 
   const getStatusColor = (status) => {
@@ -108,12 +125,12 @@ const AdminDashboard = () => {
           </button>
         </div>
 
-        {/* NEW ORDERS ALERT - Prominent on mobile */}
+        {/* NEW ORDERS ALERT */}
         {stats.pendingOrders > 0 && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-4"
+            className="mb-3"
           >
             <Link to="/admin/orders?status=Pending">
               <div className="bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl p-4 shadow-lg">
@@ -127,8 +144,64 @@ const AdminDashboard = () => {
                         {stats.pendingOrders} New Order{stats.pendingOrders !== 1 ? 's' : ''}!
                       </p>
                       <p className="text-orange-100 text-sm">
-                        Tap to view & process
+                        Tap to view &amp; process
                       </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+        )}
+
+        {/* CANCELLATION REQUESTS ALERT */}
+        {stats.cancellationRequests > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-3"
+          >
+            <Link to="/admin/orders?status=CancellationRequested">
+              <div className="bg-gradient-to-r from-red-500 to-rose-500 rounded-xl p-4 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                      <AlertTriangle className="w-6 h-6 text-white animate-pulse" />
+                    </div>
+                    <div>
+                      <p className="text-white font-bold text-lg">
+                        {stats.cancellationRequests} Cancellation Request{stats.cancellationRequests !== 1 ? 's' : ''}!
+                      </p>
+                      <p className="text-red-100 text-sm">Review &amp; approve or reject</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+        )}
+
+        {/* FAILED PAYMENT ALERT */}
+        {stats.failedPayments > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-3"
+          >
+            <Link to="/admin/orders">
+              <div className="bg-gradient-to-r from-gray-700 to-gray-900 rounded-xl p-4 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                      <CreditCard className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-white font-bold text-lg">
+                        {stats.failedPayments} Failed Payment{stats.failedPayments !== 1 ? 's' : ''}
+                      </p>
+                      <p className="text-gray-300 text-sm">Orders with payment issues</p>
                     </div>
                   </div>
                   <ChevronRight className="w-6 h-6 text-white" />

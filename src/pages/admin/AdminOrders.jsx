@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
   Clock,
   CheckCircle,
@@ -13,7 +14,9 @@ import {
   ChevronDown,
   ChevronUp,
   User,
-  Package
+  Package,
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react';
 import api from '../../utils/api';
 
@@ -23,9 +26,14 @@ const AdminOrders = () => {
   const [expandedOrderId, setExpandedOrderId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('All');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [orderCounts, setOrderCounts] = useState(null);
   const [searchParams] = useSearchParams();
+  const LIMIT = 20;
 
-  const statusOptions = ['All', 'Pending', 'Confirmed', 'Packed', 'Shipped', 'Delivered', 'Cancelled'];
+  const statusOptions = ['All', 'Pending', 'Confirmed', 'Packed', 'Shipped', 'Delivered', 'Cancelled', 'CancellationRequested'];
 
   const filterOrders = useCallback(() => {
     if (statusFilter === 'All') {
@@ -37,12 +45,20 @@ const AdminOrders = () => {
 
   useEffect(() => {
     fetchOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, statusFilter]);
+
+  useEffect(() => {
+    api.get('/admin/stats')
+      .then(r => setOrderCounts(r.data.data))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
     const statusFromUrl = searchParams.get('status');
     if (statusFromUrl) {
       setStatusFilter(statusFromUrl);
+      setPage(1);
     }
   }, [searchParams]);
 
@@ -51,10 +67,15 @@ const AdminOrders = () => {
   }, [filterOrders]);
 
   const fetchOrders = async () => {
+    setLoading(true);
     try {
-      const response = await api.get('/orders?limit=100');
-      const ordersData = response.data?.data || response.data || [];
+      const params = new URLSearchParams({ page, limit: LIMIT });
+      if (statusFilter !== 'All') params.set('status', statusFilter);
+      const response = await api.get(`/orders?${params.toString()}`);
+      const ordersData = response.data?.data || [];
       setOrders(Array.isArray(ordersData) ? ordersData : []);
+      setTotalPages(response.data?.totalPages || 1);
+      setTotal(response.data?.total || ordersData.length);
     } catch (error) {
       console.error('Error fetching orders:', error);
       setOrders([]);
@@ -66,11 +87,31 @@ const AdminOrders = () => {
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
       await api.put(`/orders/${orderId}/status`, { orderStatus: newStatus });
-      alert('Order status updated successfully!');
+      toast.success('Order status updated!');
       fetchOrders();
     } catch (error) {
       console.error('Error updating status:', error);
-      alert('Failed to update order status');
+      toast.error('Failed to update order status');
+    }
+  };
+
+  const handleApproveCancel = async (orderId) => {
+    try {
+      await api.put(`/orders/${orderId}/approve-cancel`);
+      toast.success('Cancellation approved! Refund initiated.');
+      fetchOrders();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to approve cancellation');
+    }
+  };
+
+  const handleRejectCancel = async (orderId, rejectionReason) => {
+    try {
+      await api.put(`/orders/${orderId}/reject-cancel`, { rejectionReason });
+      toast.success('Cancellation request rejected.');
+      fetchOrders();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to reject cancellation');
     }
   };
 
@@ -81,7 +122,8 @@ const AdminOrders = () => {
       Packed: 'bg-blue-100 text-blue-800 border-blue-300',
       Shipped: 'bg-indigo-100 text-indigo-800 border-indigo-300',
       Delivered: 'bg-green-100 text-green-800 border-green-300',
-      Cancelled: 'bg-red-100 text-red-800 border-red-300'
+      Cancelled: 'bg-red-100 text-red-800 border-red-300',
+      CancellationRequested: 'bg-orange-100 text-orange-800 border-orange-300'
     };
     return colors[status] || 'bg-gray-100 text-gray-800 border-gray-300';
   };
@@ -94,7 +136,8 @@ const AdminOrders = () => {
       Packed: <Package {...iconProps} />,
       Shipped: <Truck {...iconProps} />,
       Delivered: <PackageCheck {...iconProps} />,
-      Cancelled: <XCircle {...iconProps} />
+      Cancelled: <XCircle {...iconProps} />,
+      CancellationRequested: <AlertTriangle {...iconProps} />
     };
     return icons[status] || <Package {...iconProps} />;
   };
@@ -104,11 +147,12 @@ const AdminOrders = () => {
   };
 
   const stats = {
-    all: orders.length,
-    pending: orders.filter(o => o.orderStatus === 'Pending').length,
-    confirmed: orders.filter(o => o.orderStatus === 'Confirmed').length,
-    shipped: orders.filter(o => o.orderStatus === 'Shipped').length,
-    delivered: orders.filter(o => o.orderStatus === 'Delivered').length,
+    all:                  orderCounts?.totalOrders          ?? total,
+    pending:              orderCounts?.pendingOrders         ?? orders.filter(o => o.orderStatus === 'Pending').length,
+    confirmed:            orderCounts?.confirmedOrders       ?? orders.filter(o => o.orderStatus === 'Confirmed').length,
+    shipped:              orderCounts?.shippedOrders         ?? orders.filter(o => o.orderStatus === 'Shipped').length,
+    delivered:            orderCounts?.deliveredOrders       ?? orders.filter(o => o.orderStatus === 'Delivered').length,
+    cancellationRequests: orderCounts?.cancellationRequests  ?? orders.filter(o => o.orderStatus === 'CancellationRequested').length,
   };
 
   if (loading) {
@@ -140,7 +184,7 @@ const AdminOrders = () => {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6">
           <div
-            onClick={() => setStatusFilter('All')}
+            onClick={() => { setStatusFilter('All'); setPage(1); }}
             className={`p-3 md:p-4 rounded-lg md:rounded-xl cursor-pointer transition-all ${
               statusFilter === 'All'
                 ? 'bg-green-600 text-white shadow-lg'
@@ -151,7 +195,7 @@ const AdminOrders = () => {
             <p className="text-xl md:text-2xl font-bold">{stats.all}</p>
           </div>
           <div
-            onClick={() => setStatusFilter('Pending')}
+            onClick={() => { setStatusFilter('Pending'); setPage(1); }}
             className={`p-3 md:p-4 rounded-lg md:rounded-xl cursor-pointer transition-all ${
               statusFilter === 'Pending'
                 ? 'bg-yellow-600 text-white shadow-lg'
@@ -162,7 +206,7 @@ const AdminOrders = () => {
             <p className="text-xl md:text-2xl font-bold">{stats.pending}</p>
           </div>
           <div
-            onClick={() => setStatusFilter('Confirmed')}
+            onClick={() => { setStatusFilter('Confirmed'); setPage(1); }}
             className={`p-3 md:p-4 rounded-lg md:rounded-xl cursor-pointer transition-all ${
               statusFilter === 'Confirmed'
                 ? 'bg-green-600 text-white shadow-lg'
@@ -173,7 +217,7 @@ const AdminOrders = () => {
             <p className="text-xl md:text-2xl font-bold">{stats.confirmed}</p>
           </div>
           <div
-            onClick={() => setStatusFilter('Shipped')}
+            onClick={() => { setStatusFilter('Shipped'); setPage(1); }}
             className={`p-3 md:p-4 rounded-lg md:rounded-xl cursor-pointer transition-all ${
               statusFilter === 'Shipped'
                 ? 'bg-indigo-600 text-white shadow-lg'
@@ -184,7 +228,7 @@ const AdminOrders = () => {
             <p className="text-xl md:text-2xl font-bold">{stats.shipped}</p>
           </div>
           <div
-            onClick={() => setStatusFilter('Delivered')}
+            onClick={() => { setStatusFilter('Delivered'); setPage(1); }}
             className={`p-3 md:p-4 rounded-lg md:rounded-xl cursor-pointer transition-all ${
               statusFilter === 'Delivered'
                 ? 'bg-green-600 text-white shadow-lg'
@@ -193,6 +237,17 @@ const AdminOrders = () => {
           >
             <p className="text-xs md:text-sm opacity-90 mb-1">Delivered</p>
             <p className="text-xl md:text-2xl font-bold">{stats.delivered}</p>
+          </div>
+          <div
+            onClick={() => { setStatusFilter('CancellationRequested'); setPage(1); }}
+            className={`p-3 md:p-4 rounded-lg md:rounded-xl cursor-pointer transition-all ${
+              statusFilter === 'CancellationRequested'
+                ? 'bg-orange-500 text-white shadow-lg'
+                : 'bg-orange-50 text-orange-900 shadow-md hover:shadow-lg'
+            }`}
+          >
+            <p className="text-xs md:text-sm opacity-90 mb-1">Cancel Requests</p>
+            <p className="text-xl md:text-2xl font-bold">{stats.cancellationRequests}</p>
           </div>
         </div>
 
@@ -211,6 +266,8 @@ const AdminOrders = () => {
                 isExpanded={expandedOrderId === order._id}
                 onToggleExpand={() => toggleOrderExpansion(order._id)}
                 onUpdateStatus={handleUpdateStatus}
+                onApproveCancel={handleApproveCancel}
+                onRejectCancel={handleRejectCancel}
                 getStatusColor={getStatusColor}
                 getStatusIcon={getStatusIcon}
                 statusOptions={statusOptions}
@@ -218,21 +275,64 @@ const AdminOrders = () => {
             ))
           )}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-6">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-40 transition-colors"
+            >
+              ← Prev
+            </button>
+            <span className="text-sm text-gray-600 px-2">
+              Page {page} of {totalPages} &bull; {total} orders
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-40 transition-colors"
+            >
+              Next →
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 // Order Card Component
-const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, getStatusColor, getStatusIcon, statusOptions }) => {
+const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, onApproveCancel, onRejectCancel, getStatusColor, getStatusIcon, statusOptions }) => {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showRejectInput, setShowRejectInput] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [processing, setProcessing] = useState(false);
 
   const handleStatusChange = async (newStatus) => {
     if (newStatus === order.orderStatus) return;
-    
     setIsUpdating(true);
     await onUpdateStatus(order._id, newStatus);
     setIsUpdating(false);
+  };
+
+  const handleApprove = async () => {
+    setProcessing(true);
+    await onApproveCancel(order._id);
+    setProcessing(false);
+  };
+
+  const handleReject = async () => {
+    if (!rejectionReason.trim()) {
+      toast.error('Please enter a rejection reason');
+      return;
+    }
+    setProcessing(true);
+    await onRejectCancel(order._id, rejectionReason);
+    setShowRejectInput(false);
+    setRejectionReason('');
+    setProcessing(false);
   };
 
   return (
@@ -422,13 +522,95 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, getStatu
                 </div>
               </div>
 
+              {/* Cancellation Request Banner */}
+              {order.orderStatus === 'CancellationRequested' && (
+                <div className="bg-orange-50 border border-orange-300 rounded-lg p-4">
+                  <div className="flex items-start gap-3 mb-3">
+                    <AlertTriangle className="w-5 h-5 text-orange-500 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h3 className="text-sm font-bold text-orange-800 mb-1">Cancellation Request</h3>
+                      {order.cancellationRequest?.reason && (
+                        <p className="text-sm text-orange-700 mb-1">
+                          <span className="font-medium">Customer reason:</span> "{order.cancellationRequest.reason}"
+                        </p>
+                      )}
+                      {order.cancellationRequest?.requestedAt && (
+                        <p className="text-xs text-orange-600">
+                          Requested: {new Date(order.cancellationRequest.requestedAt).toLocaleString('en-IN')}
+                        </p>
+                      )}
+                      {order.paymentMode === 'Online' && order.paymentStatus === 'Paid' && (
+                        <div className="mt-2 flex items-center gap-1 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-1">
+                          <RefreshCw className="w-3 h-3" />
+                          Approving will auto-refund ₹{order.totalAmount} to customer's bank account
+                        </div>
+                      )}
+                      {order.paymentMode === 'COD' && (
+                        <div className="mt-2 flex items-center gap-1 text-xs text-gray-600 bg-gray-100 border border-gray-200 rounded px-2 py-1">
+                          💵 COD order — customer hasn't paid yet, no refund required
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {!showRejectInput ? (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleApprove}
+                        disabled={processing}
+                        className="flex-1 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+                      >
+                        {processing
+                          ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          : order.paymentMode === 'Online' && order.paymentStatus === 'Paid'
+                            ? '✅ Approve & Refund'
+                            : '✅ Approve Cancellation'
+                        }
+                      </button>
+                      <button
+                        onClick={() => setShowRejectInput(true)}
+                        disabled={processing}
+                        className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        ❌ Reject
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <textarea
+                        value={rejectionReason}
+                        onChange={(e) => setRejectionReason(e.target.value)}
+                        placeholder="Enter rejection reason for the customer..."
+                        rows={2}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg mb-2 focus:ring-2 focus:ring-red-400 focus:border-transparent resize-none"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => { setShowRejectInput(false); setRejectionReason(''); }}
+                          className="flex-1 py-2 border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50"
+                        >
+                          Back
+                        </button>
+                        <button
+                          onClick={handleReject}
+                          disabled={processing}
+                          className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-lg disabled:opacity-50 flex items-center justify-center gap-1"
+                        >
+                          {processing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Confirm Reject'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Status Update Section */}
               <div className="bg-gray-50 rounded-lg p-4">
                 <h3 className="text-sm md:text-base font-semibold text-gray-900 mb-3">
                   Update Order Status
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-                  {statusOptions.filter(s => s !== 'All').map((status) => (
+                  {statusOptions.filter(s => s !== 'All' && s !== 'CancellationRequested').map((status) => (
                     <button
                       key={status}
                       onClick={() => handleStatusChange(status)}

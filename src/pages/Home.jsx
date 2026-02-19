@@ -1,29 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import {
-  Container,
-  Box,
-  Typography,
-  Button,
-  Grid,
-  Paper,
-  Card,
-  CardContent,
-  CardMedia,
-  Chip,
-} from '@mui/material';
-import {
-  LocalShipping,
-  Nature,
-  VerifiedUser,
-  LocalOffer,
-  Spa,
-  LocalFlorist,
-  ShoppingBag,
-  Grass,
-  Build,
-  ArrowForward,
-} from '@mui/icons-material';
+import { Truck, Leaf, ShieldCheck, Tag, Sprout, Flower2, ShoppingBag, Wrench, ArrowRight } from 'lucide-react';
 import api from '../utils/api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -157,754 +134,227 @@ const Home = () => {
     addToCart(product, 1);
   };
 
+
   return (
     <>
-      {/* Hero Section */}
-      <Box
-        sx={{
-          background: 'linear-gradient(135deg, #66bb6a 0%, #43a047 100%)',
-          py: { xs: 6, md: 10 },
-          position: 'relative',
-          overflow: 'hidden',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,.1) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(255,255,255,.1) 0%, transparent 50%)',
-            pointerEvents: 'none'
-          }
-        }}
-      >
-        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
-          <Grid container spacing={{ xs: 3, md: 6 }} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <Box sx={{ animation: 'fadeInLeft 0.8s ease-out' }}>
-                <Typography 
-                  variant="h1" 
-                  gutterBottom 
-                  sx={{ 
-                    color: 'white', 
-                    fontWeight: 800,
-                    fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' },
-                    lineHeight: 1.2,
-                    textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
-                  }}
+      {/* ── Hero Section ────────────────────────────────── */}
+      <section className="relative bg-gradient-to-br from-green-500 to-green-700 py-16 md:py-24 overflow-hidden">
+        {/* decorative blobs */}
+        <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
+          <div className="absolute top-10 left-10 w-48 h-48 bg-white rounded-full blur-3xl" />
+          <div className="absolute bottom-10 right-10 w-64 h-64 bg-white rounded-full blur-3xl" />
+        </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center gap-10">
+            {/* Text + CTAs */}
+            <div className="flex-1">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-tight drop-shadow-md mb-4">
+                Fresh Veggies
+              </h1>
+              <h2 className="text-2xl md:text-3xl font-medium text-white mb-4 drop-shadow-sm">
+                Treat Yourself Organic 🌱
+              </h2>
+              <p className="text-white/90 text-base md:text-lg leading-relaxed max-w-xl mb-8">
+                Premium quality organic seeds, fertilizers, and gardening supplies for your home garden.
+                Start your organic journey today with expert guidance!
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link
+                  to="/shop"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-white text-green-700 font-semibold text-lg rounded-xl shadow-lg hover:bg-gray-50 hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300"
                 >
-                  Fresh Veggies
-                </Typography>
-                <Typography 
-                  variant="h4" 
-                  gutterBottom 
-                  sx={{ 
-                    color: 'white', 
-                    fontWeight: 500,
-                    fontSize: { xs: '1.5rem', md: '2rem' },
-                    mb: 2,
-                    textShadow: '1px 1px 2px rgba(0,0,0,0.2)'
-                  }}
+                  Shop Now <ArrowRight className="w-5 h-5" />
+                </Link>
+                <Link
+                  to="/combos"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-3 border-2 border-white text-white font-semibold text-lg rounded-xl hover:bg-white/15 hover:-translate-y-0.5 transition-all duration-300"
                 >
-                  Treat Yourself Organic 🌱
-                </Typography>
-                <Typography 
-                  variant="body1" 
-                  paragraph 
-                  sx={{ 
-                    color: 'rgba(255,255,255,0.95)', 
-                    mb: 4,
-                    fontSize: { xs: '1rem', md: '1.125rem' },
-                    lineHeight: 1.7,
-                    maxWidth: 520
-                  }}
-                >
-                  Premium quality organic seeds, fertilizers, and gardening supplies for your home garden. Start your organic journey today with expert guidance!
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
-                  <Button
-                    variant="contained"
-                    size="large"
-                    component={Link}
-                    to="/shop"
-                    endIcon={<ArrowForward />}
-                    sx={{ 
-                      bgcolor: 'white', 
-                      color: '#43a047', 
-                      px: 4,
-                      py: 1.5,
-                      fontSize: '1.125rem',
-                      fontWeight: 600,
-                      borderRadius: 2,
-                      boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
-                      '&:hover': { 
-                        bgcolor: '#f5f5f5',
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 6px 20px rgba(0,0,0,0.3)'
-                      },
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    Shop Now
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    size="large"
-                    component={Link}
-                    to="/combos"
-                    endIcon={<LocalOffer />}
-                    sx={{ 
-                      borderColor: 'white',
-                      borderWidth: 2,
-                      color: 'white', 
-                      px: 4,
-                      py: 1.5,
-                      fontSize: '1.125rem',
-                      fontWeight: 600,
-                      borderRadius: 2,
-                      '&:hover': { 
-                        borderColor: 'white',
-                        borderWidth: 2,
-                        bgcolor: 'rgba(255,255,255,0.15)',
-                        transform: 'translateY(-2px)'
-                      },
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    View Offers
-                  </Button>
-                </Box>
-              </Box>
-            </Grid>
-            <Grid item xs={12} md={6} sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'center' }}>
-              <Box
-                component="img"
+                  View Offers <Tag className="w-5 h-5" />
+                </Link>
+              </div>
+            </div>
+            {/* Hero image – desktop only */}
+            <div className="hidden md:flex flex-1 justify-center">
+              <img
                 src="https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?w=600"
                 alt="Organic Gardening"
-                sx={{ 
-                  width: '100%',
-                  maxWidth: 500,
-                  borderRadius: 4,
-                  boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-                  transform: 'perspective(1000px) rotateY(-5deg)',
-                  transition: 'transform 0.3s ease',
-                  '&:hover': {
-                    transform: 'perspective(1000px) rotateY(0deg) scale(1.02)'
-                  }
-                }}
+                className="w-full max-w-md rounded-3xl shadow-2xl hover:scale-105 transition-transform duration-500"
               />
-            </Grid>
-          </Grid>
-        </Container>
-      </Box>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      {/* Categories Section */}
-      <Container maxWidth="lg" sx={{ my: { xs: 6, md: 10 } }}>
-        <Box sx={{ textAlign: 'center', mb: { xs: 4, md: 6 } }}>
-          <Typography 
-            variant="h3" 
-            gutterBottom 
-            sx={{ 
-              fontWeight: 700,
-              fontSize: { xs: '1.75rem', md: '2.5rem' },
-              color: '#2e7d32',
-              mb: 2
-            }}
-          >
-            Shop by Category
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto', fontSize: '1.125rem' }}>
+      {/* ── Categories Section ───────────────────────────── */}
+      <section className="max-w-7xl mx-auto px-4 py-14 md:py-20">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl md:text-4xl font-bold text-green-800 mb-3">Shop by Category</h2>
+          <p className="text-gray-500 text-base md:text-lg max-w-xl mx-auto">
             Everything you need for a thriving organic garden
-          </Typography>
-        </Box>
-        <Grid container spacing={3}>
+          </p>
+        </div>
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
           {[
-            { 
-              icon: <Spa sx={{ fontSize: 48 }} />, 
-              title: 'Vegetable Seeds', 
-              desc: 'Organic vegetable seeds for healthy harvest',
-              color: '#66bb6a',
-              bgColor: '#e8f5e9',
-              link: '/shop?category=vegetable'
-            },
-            { 
-              icon: <LocalFlorist sx={{ fontSize: 48 }} />, 
-              title: 'Flower Seeds', 
-              desc: 'Beautiful blooms for your garden',
-              color: '#ec407a',
-              bgColor: '#fce4ec',
-              link: '/shop?category=flower'
-            },
-            { 
-              icon: <ShoppingBag sx={{ fontSize: 48 }} />, 
-              title: 'Grow Bags', 
-              desc: 'Durable bags for container gardening',
-              color: '#8d6e63',
-              bgColor: '#efebe9',
-              link: '/shop?category=growbags'
-            },
-            { 
-              icon: <Grass sx={{ fontSize: 48 }} />, 
-              title: 'Soil & Fertilizer', 
-              desc: 'Nutrient-rich soil and organic fertilizers',
-              color: '#795548',
-              bgColor: '#d7ccc8',
-              link: '/shop?category=fertilizer'
-            },
-            { 
-              icon: <Build sx={{ fontSize: 48 }} />, 
-              title: 'Gardening Tools', 
-              desc: 'Essential tools for easy gardening',
-              color: '#607d8b',
-              bgColor: '#cfd8dc',
-              link: '/shop?category=tools'
-            },
-            { 
-              icon: <LocalOffer sx={{ fontSize: 48 }} />, 
-              title: 'Combo Packs', 
-              desc: 'Special bundles at great prices',
-              color: '#43a047',
-              bgColor: '#e8f5e9',
-              link: '/combos'
-            },
-          ].map((category, index) => (
-            <Grid item xs={6} sm={4} md={2} key={index}>
-              <Paper
-                component={Link}
-                to={category.link}
-                elevation={0}
-                sx={{
-                  p: 3,
-                  textAlign: 'center',
-                  height: '100%',
-                  textDecoration: 'none',
-                  bgcolor: category.bgColor,
-                  borderRadius: 3,
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  cursor: 'pointer',
-                  '&:hover': {
-                    transform: 'translateY(-8px) scale(1.02)',
-                    boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
-                    bgcolor: category.color,
-                    '& .category-icon': {
-                      color: 'white',
-                      transform: 'scale(1.1)'
-                    },
-                    '& .category-title': {
-                      color: 'white'
-                    },
-                    '& .category-desc': {
-                      color: 'rgba(255,255,255,0.9)'
-                    }
-                  }
-                }}
-              >
-                <Box 
-                  className="category-icon"
-                  sx={{ 
-                    color: category.color,
-                    mb: 2,
-                    display: 'flex',
-                    justifyContent: 'center',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  {category.icon}
-                </Box>
-                <Typography 
-                  className="category-title"
-                  variant="h6" 
-                  gutterBottom 
-                  sx={{ 
-                    fontSize: { xs: '0.875rem', md: '1rem' },
-                    fontWeight: 700,
-                    color: category.color,
-                    mb: 1,
-                    transition: 'color 0.3s ease'
-                  }}
-                >
-                  {category.title}
-                </Typography>
-                <Typography 
-                  className="category-desc"
-                  variant="body2" 
-                  color="text.secondary" 
-                  sx={{ 
-                    fontSize: { xs: '0.75rem', md: '0.813rem' },
-                    lineHeight: 1.4,
-                    transition: 'color 0.3s ease'
-                  }}
-                >
-                  {category.desc}
-                </Typography>
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-
-      {/* Features Section */}
-      <Box sx={{ bgcolor: '#f5f5f5', py: { xs: 6, md: 10 } }}>
-        <Container maxWidth="lg">
-          <Box sx={{ textAlign: 'center', mb: { xs: 4, md: 6 } }}>
-            <Typography 
-              variant="h3" 
-              gutterBottom 
-              sx={{ 
-                fontWeight: 700,
-                fontSize: { xs: '1.75rem', md: '2.5rem' },
-                color: '#2e7d32'
-              }}
+            { icon: Sprout,   title: 'Vegetable Seeds', desc: 'Organic seeds for healthy harvest',  bg: 'bg-green-50',   icon_color: 'text-green-600',   link: '/shop?category=vegetable' },
+            { icon: Flower2,  title: 'Flower Seeds',    desc: 'Beautiful blooms for your garden',   bg: 'bg-pink-50',    icon_color: 'text-pink-500',    link: '/shop?category=flower' },
+            { icon: ShoppingBag, title: 'Grow Bags',   desc: 'Durable container gardening bags',   bg: 'bg-amber-50',   icon_color: 'text-amber-700',   link: '/shop?category=growbags' },
+            { icon: Leaf,     title: 'Soil & Fertilizer', desc: 'Nutrient-rich organic fertilizers', bg: 'bg-lime-50', icon_color: 'text-lime-700',    link: '/shop?category=fertilizer' },
+            { icon: Wrench,   title: 'Gardening Tools', desc: 'Essential tools for easy gardening', bg: 'bg-slate-50',   icon_color: 'text-slate-600',   link: '/shop?category=tools' },
+            { icon: Tag,      title: 'Combo Packs',     desc: 'Special bundles at great prices',    bg: 'bg-emerald-50', icon_color: 'text-emerald-600', link: '/combos' },
+          ].map(({ icon: Icon, title, desc, bg, icon_color, link }) => (
+            <Link
+              key={title}
+              to={link}
+              className={`group flex flex-col items-center text-center p-4 rounded-2xl ${bg} hover:bg-green-600 hover:shadow-xl hover:-translate-y-2 transition-all duration-300`}
             >
-              Why Choose Us?
-            </Typography>
-          </Box>
-          <Grid container spacing={4}>
+              <Icon className={`w-10 h-10 mb-3 ${icon_color} group-hover:text-white transition-colors`} />
+              <p className={`text-xs md:text-sm font-bold mb-1 ${icon_color} group-hover:text-white transition-colors`}>{title}</p>
+              <p className="text-xs text-gray-500 group-hover:text-white/80 transition-colors hidden sm:block leading-tight">{desc}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Why Choose Us ────────────────────────────────── */}
+      <section className="bg-gray-50 py-14 md:py-20">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-green-800">Why Choose Us?</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { 
-                icon: <Nature sx={{ fontSize: 56 }} />, 
-                title: '100% Organic', 
-                desc: 'Certified organic seeds with no chemicals or pesticides',
-                color: '#66bb6a'
-              },
-              { 
-                icon: <VerifiedUser sx={{ fontSize: 56 }} />, 
-                title: 'Quality Guaranteed', 
-                desc: 'High germination rate with quality assurance',
-                color: '#42a5f5'
-              },
-              { 
-                icon: <LocalShipping sx={{ fontSize: 56 }} />, 
-                title: 'Fast Delivery', 
-                desc: 'Quick and safe delivery across India',
-                color: '#ff7043'
-              },
-              { 
-                icon: <LocalOffer sx={{ fontSize: 56 }} />, 
-                title: 'Best Prices', 
-                desc: 'Competitive prices with amazing combo offers',
-                color: '#ffa726'
-              },
-            ].map((feature, index) => (
-              <Grid item xs={12} sm={6} md={3} key={index}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 4,
-                    textAlign: 'center',
-                    height: '100%',
-                    bgcolor: 'white',
-                    borderRadius: 3,
-                    transition: 'all 0.3s ease',
-                    border: '2px solid transparent',
-                    '&:hover': {
-                      borderColor: feature.color,
-                      transform: 'translateY(-8px)',
-                      boxShadow: '0 12px 28px rgba(0,0,0,0.12)'
-                    }
-                  }}
-                >
-                  <Box sx={{ 
-                    color: feature.color,
-                    mb: 2,
-                    display: 'flex',
-                    justifyContent: 'center'
-                  }}>
-                    {feature.icon}
-                  </Box>
-                  <Typography 
-                    variant="h6" 
-                    gutterBottom 
-                    sx={{ 
-                      fontSize: '1.125rem',
-                      fontWeight: 700,
-                      mb: 1,
-                      color: '#333'
-                    }}
-                  >
-                    {feature.title}
-                  </Typography>
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary" 
-                    sx={{ 
-                      fontSize: '0.938rem',
-                      lineHeight: 1.6
-                    }}
-                  >
-                    {feature.desc}
-                  </Typography>
-                </Paper>
-              </Grid>
+              { icon: Leaf,        title: '100% Organic',       desc: 'Certified organic seeds with no chemicals or pesticides',  color: 'text-green-500',  border: 'hover:border-green-500' },
+              { icon: ShieldCheck, title: 'Quality Guaranteed', desc: 'High germination rate with quality assurance',              color: 'text-blue-400',   border: 'hover:border-blue-400' },
+              { icon: Truck,       title: 'Fast Delivery',      desc: 'Quick and safe delivery across India',                     color: 'text-orange-400', border: 'hover:border-orange-400' },
+              { icon: Tag,         title: 'Best Prices',        desc: 'Competitive prices with amazing combo offers',             color: 'text-amber-500', border: 'hover:border-amber-500' },
+            ].map(({ icon: Icon, title, desc, color, border }) => (
+              <div
+                key={title}
+                className={`bg-white rounded-2xl p-6 text-center border-2 border-transparent ${border} hover:-translate-y-2 hover:shadow-xl transition-all duration-300`}
+              >
+                <Icon className={`w-12 h-12 mx-auto mb-4 ${color}`} />
+                <h3 className="text-base md:text-lg font-bold text-gray-800 mb-2">{title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{desc}</p>
+              </div>
             ))}
-          </Grid>
-        </Container>
-      </Box>
-                >
-                  {feature.title}
-                </Typography>
-                <Typography 
-                  variant="body2" 
-                  color="text.secondary" 
-                  sx={{ fontSize: { xs: '0.75rem', md: '0.875rem' } }}
-                >
-                  {feature.desc}
-                </Typography>
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
+          </div>
+        </div>
+      </section>
 
-      {/* Featured Products */}
-      <Container maxWidth="lg" sx={{ my: { xs: 6, md: 10 } }}>
-        <Box sx={{ textAlign: 'center', mb: { xs: 4, md: 6 } }}>
-          <Typography 
-            variant="h3" 
-            gutterBottom 
-            sx={{ 
-              fontWeight: 700,
-              fontSize: { xs: '1.75rem', md: '2.5rem' },
-              color: '#2e7d32',
-              mb: 2
-            }}
-          >
-            🌿 Featured Products
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto', fontSize: '1.125rem' }}>
+      {/* ── Featured Products ─────────────────────────────── */}
+      <section className="max-w-7xl mx-auto px-4 py-14 md:py-20">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl md:text-4xl font-bold text-green-800 mb-3">🌿 Featured Products</h2>
+          <p className="text-gray-500 text-base md:text-lg max-w-xl mx-auto">
             Handpicked organic seeds and supplies for your garden
-          </Typography>
-        </Box>
-        <Grid container spacing={3}>
+          </p>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6">
           {featuredProducts.map((product) => (
-            <Grid item xs={6} sm={4} md={3} key={product._id}>
-              <Card 
-                sx={{ 
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  borderRadius: 3,
-                  overflow: 'hidden',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  border: '1px solid #e0e0e0',
-                  '&:hover': {
-                    transform: 'translateY(-12px)',
-                    boxShadow: '0 16px 40px rgba(0,0,0,0.15)',
-                    borderColor: '#66bb6a'
-                  }
-                }}
-              >
-                <Box sx={{ position: 'relative', overflow: 'hidden' }}>
-                  <CardMedia
-                    component="img"
-                    height="200"
-                    image={product.image || product.images?.[0] || 'https://via.placeholder.com/200'}
-                    alt={product.name}
-                    sx={{ 
-                      objectFit: 'cover',
-                      transition: 'transform 0.3s ease',
-                      '&:hover': {
-                        transform: 'scale(1.1)'
-                      }
-                    }}
-                  />
-                  {product.featured && (
-                    <Chip
-                      label="Featured"
-                      size="small"
-                      sx={{
-                        position: 'absolute',
-                        top: 10,
-                        right: 10,
-                        bgcolor: '#66bb6a',
-                        color: 'white',
-                        fontWeight: 600
-                      }}
-                    />
-                  )}
-                </Box>
-                <CardContent sx={{ flexGrow: 1, p: 2.5 }}>
-                  <Typography 
-                    gutterBottom 
-                    variant="h6" 
-                    component="div"
-                    sx={{ 
-                      fontSize: '1rem',
-                      fontWeight: 600,
-                      minHeight: 48,
-                      mb: 1.5,
-                      color: '#333',
-                      lineHeight: 1.4
-                    }}
-                  >
-                    {product.name}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <Typography 
-                      variant="h5" 
-                      sx={{ 
-                        fontWeight: 700,
-                        color: '#2e7d32',
-                        fontSize: '1.5rem'
-                      }}
-                    >
-                      ₹{product.price}
-                    </Typography>
-                    <Chip
-                      label="In Stock"
-                      size="small"
-                      sx={{
-                        bgcolor: '#e8f5e9',
-                        color: '#2e7d32',
-                        fontWeight: 600,
-                        fontSize: '0.75rem'
-                      }}
-                    />
-                  </Box>
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    component={Link}
-                    to={`/product/${product._id}`}
-                    sx={{
-                      bgcolor: '#66bb6a',
-                      color: 'white',
-                      py: 1,
-                      fontSize: '0.938rem',
-                      fontWeight: 600,
-                      borderRadius: 2,
-                      textTransform: 'none',
-                      boxShadow: 'none',
-                      '&:hover': { 
-                        bgcolor: '#43a047',
-                        boxShadow: '0 4px 12px rgba(102,187,106,0.4)'
-                      }
-                    }}
-                  >
-                    View Details
-                  </Button>
-                </CardContent>
-              </Card>
-            </Grid>
+            <div
+              key={product._id}
+              className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:-translate-y-3 hover:shadow-2xl hover:border-green-400 transition-all duration-300 flex flex-col"
+            >
+              <div className="relative overflow-hidden">
+                <img
+                  src={product.image || product.images?.[0] || 'https://via.placeholder.com/200'}
+                  alt={product.name}
+                  className="w-full h-44 object-cover hover:scale-110 transition-transform duration-300"
+                />
+                {product.featured && (
+                  <span className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    Featured
+                  </span>
+                )}
+              </div>
+              <div className="p-3 flex flex-col flex-1">
+                <h3 className="text-sm md:text-base font-semibold text-gray-900 dark:text-white mb-2 min-h-[2.5rem] leading-tight">
+                  {product.name}
+                </h3>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl font-bold text-green-700">₹{product.price}</span>
+                  <span className="text-xs font-semibold bg-green-50 text-green-700 px-2 py-0.5 rounded-full">In Stock</span>
+                </div>
+                <Link
+                  to={`/product/${product._id}`}
+                  className="mt-auto block text-center py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow-md transition-all"
+                >
+                  View Details
+                </Link>
+              </div>
+            </div>
           ))}
-        </Grid>
-        <Box sx={{ textAlign: 'center', mt: { xs: 4, md: 6 } }}>
-          <Button 
-            variant="contained" 
-            size="large" 
-            component={Link} 
+        </div>
+        <div className="text-center mt-10">
+          <Link
             to="/shop"
-            endIcon={<ArrowForward />}
-            sx={{ 
-              minWidth: 240,
-              py: 1.5,
-              px: 4,
-              fontSize: '1.063rem',
-              fontWeight: 600,
-              borderRadius: 2,
-              bgcolor: '#66bb6a',
-              textTransform: 'none',
-              boxShadow: '0 4px 14px rgba(102,187,106,0.4)',
-              '&:hover': { 
-                bgcolor: '#43a047',
-                transform: 'translateY(-2px)',
-                boxShadow: '0 6px 20px rgba(102,187,106,0.5)'
-              },
-              transition: 'all 0.3s ease'
-            }}
+            className="inline-flex items-center gap-2 px-10 py-3 bg-green-500 hover:bg-green-600 text-white text-lg font-semibold rounded-xl shadow-lg hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300"
           >
-            View All Products
-          </Button>
-        </Box>
-      </Container>
+            View All Products <ArrowRight className="w-5 h-5" />
+          </Link>
+        </div>
+      </section>
 
-      {/* Combo Packs */}
+      {/* ── Combo Packs (conditional) ─────────────────────── */}
       {combos.length > 0 && (
-        <Box sx={{ bgcolor: 'linear-gradient(135deg, #f5f5f5 0%, #e8f5e9 100%)', py: { xs: 6, md: 10 } }}>
-          <Container maxWidth="lg">
-            <Box sx={{ textAlign: 'center', mb: { xs: 4, md: 6 } }}>
-              <Typography 
-                variant="h3" 
-                gutterBottom 
-                sx={{ 
-                  fontWeight: 700,
-                  fontSize: { xs: '1.75rem', md: '2.5rem' },
-                  color: '#2e7d32',
-                  mb: 2
-                }}
-              >
-                🌱 Special Combo Offers
-              </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto', fontSize: '1.125rem' }}>
+        <section className="bg-gradient-to-br from-gray-50 to-green-50 py-14 md:py-20">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="text-center mb-10">
+              <h2 className="text-3xl md:text-4xl font-bold text-green-800 mb-3">🌱 Special Combo Offers</h2>
+              <p className="text-gray-500 text-base md:text-lg max-w-xl mx-auto">
                 Save more with our specially curated combo packages
-              </Typography>
-            </Box>
-            <Grid container spacing={4}>
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
               {combos.map((combo) => (
-                <Grid item xs={12} sm={6} md={4} key={combo._id}>
-                  <Card 
-                    sx={{ 
-                      height: '100%',
-                      borderRadius: 3,
-                      overflow: 'hidden',
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      border: '2px solid #e0e0e0',
-                      '&:hover': {
-                        transform: 'translateY(-12px) scale(1.02)',
-                        boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
-                        borderColor: '#ff9800'
-                      }
-                    }}
-                  >
-                    <Box sx={{ position: 'relative', overflow: 'hidden' }}>
-                      <CardMedia
-                        component="img"
-                        height="240"
-                        image={combo.images?.[0] || 'https://via.placeholder.com/400x200?text=Combo+Pack'}
-                        alt={combo.name}
-                        sx={{
-                          transition: 'transform 0.3s ease',
-                          '&:hover': {
-                            transform: 'scale(1.1)'
-                          }
-                        }}
-                      />
-                      <Chip
-                        label="COMBO OFFER"
-                        sx={{
-                          position: 'absolute',
-                          top: 12,
-                          right: 12,
-                          bgcolor: '#ff5722',
-                          color: 'white',
-                          fontWeight: 700,
-                          fontSize: '0.75rem',
-                          px: 1,
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-                        }}
-                      />
-                    </Box>
-                    <CardContent sx={{ p: 3 }}>
-                      <Typography 
-                        variant="h5" 
-                        gutterBottom 
-                        sx={{ 
-                          fontSize: '1.25rem',
-                          fontWeight: 700,
-                          mb: 1.5,
-                          color: '#333',
-                          lineHeight: 1.3
-                        }}
-                      >
-                        {combo.name}
-                      </Typography>
-                      <Typography 
-                        variant="body2" 
-                        color="text.secondary" 
-                        paragraph 
-                        sx={{ 
-                          fontSize: '0.938rem',
-                          minHeight: 44,
-                          mb: 2,
-                          lineHeight: 1.6
-                        }}
-                      >
-                        {combo.description}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                        <Typography 
-                          variant="h4" 
-                          sx={{ 
-                            fontSize: '2rem',
-                            fontWeight: 800,
-                            color: '#2e7d32'
-                          }}
-                        >
-                          ₹{combo.price}
-                        </Typography>
-                        {combo.originalPrice && (
-                          <Box>
-                            <Typography 
-                              variant="body1" 
-                              sx={{ 
-                                textDecoration: 'line-through',
-                                color: 'text.secondary',
-                                fontSize: '1.125rem'
-                              }}
-                            >
-                              ₹{combo.originalPrice}
-                            </Typography>
-                            <Chip
-                              label={`${Math.round(((combo.originalPrice - combo.price) / combo.originalPrice) * 100)}% OFF`}
-                              size="small"
-                              sx={{
-                                bgcolor: '#ff5722',
-                                color: 'white',
-                                fontWeight: 700,
-                                fontSize: '0.688rem'
-                              }}
-                            />
-                          </Box>
-                        )}
-                      </Box>
-                      <Button
-                        variant="contained"
-                        fullWidth
-                        size="large"
-                        component={Link}
-                        to="/combos"
-                        sx={{
-                          bgcolor: '#66bb6a',
-                          color: 'white',
-                          py: 1.25,
-                          fontSize: '1rem',
-                          fontWeight: 600,
-                          borderRadius: 2,
-                          textTransform: 'none',
-                          boxShadow: '0 4px 14px rgba(102,187,106,0.4)',
-                          '&:hover': { 
-                            bgcolor: '#43a047',
-                            boxShadow: '0 6px 20px rgba(102,187,106,0.5)'
-                          }
-                        }}
-                      >
-                        View Details
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                <div
+                  key={combo._id}
+                  className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden hover:-translate-y-3 hover:scale-[1.02] hover:shadow-2xl hover:border-orange-400 transition-all duration-300 flex flex-col"
+                >
+                  <div className="relative overflow-hidden">
+                    <img
+                      src={combo.images?.[0] || 'https://via.placeholder.com/400x200?text=Combo+Pack'}
+                      alt={combo.name}
+                      className="w-full h-52 object-cover hover:scale-110 transition-transform duration-300"
+                    />
+                    <span className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow">
+                      COMBO OFFER
+                    </span>
+                  </div>
+                  <div className="p-5 flex flex-col flex-1">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">{combo.name}</h3>
+                    <p className="text-gray-500 text-sm mb-4 min-h-[2.75rem] leading-relaxed">{combo.description}</p>
+                    <div className="flex items-end gap-3 mb-5">
+                      <span className="text-3xl font-extrabold text-green-700">₹{combo.price}</span>
+                      {combo.originalPrice && (
+                        <div>
+                          <span className="line-through text-gray-400 text-base">₹{combo.originalPrice}</span>
+                          <span className="ml-2 bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                            {Math.round(((combo.originalPrice - combo.price) / combo.originalPrice) * 100)}% OFF
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <Link
+                      to="/combos"
+                      className="mt-auto block text-center py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl shadow hover:shadow-md transition-all"
+                    >
+                      View Details
+                    </Link>
+                  </div>
+                </div>
               ))}
-            </Grid>
-            <Box sx={{ textAlign: 'center', mt: { xs: 4, md: 6 } }}>
-              <Button 
-                variant="contained" 
-                size="large" 
-                component={Link} 
+            </div>
+            <div className="text-center mt-10">
+              <Link
                 to="/combos"
-                endIcon={<ArrowForward />}
-                sx={{ 
-                  minWidth: 240,
-                  py: 1.5,
-                  px: 4,
-                  fontSize: '1.063rem',
-                  fontWeight: 600,
-                  borderRadius: 2,
-                  bgcolor: '#66bb6a',
-                  textTransform: 'none',
-                  boxShadow: '0 4px 14px rgba(102,187,106,0.4)',
-                  '&:hover': { 
-                    bgcolor: '#43a047',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 6px 20px rgba(102,187,106,0.5)'
-                  },
-                  transition: 'all 0.3s ease'
-                }}
+                className="inline-flex items-center gap-2 px-10 py-3 bg-green-500 hover:bg-green-600 text-white text-lg font-semibold rounded-xl shadow-lg hover:-translate-y-0.5 hover:shadow-xl transition-all"
               >
-                View All Combos
-              </Button>
-            </Box>
-          </Container>
-        </Box>
+                View All Combos <ArrowRight className="w-5 h-5" />
+              </Link>
+            </div>
+          </div>
+        </section>
       )}
     </>
   );

@@ -27,7 +27,6 @@ const ComboOffers = () => {
 
   const handleAddToCart = (combo) => {
     addToCart(combo, 1, true);
-    alert('Combo added to cart!');
   };
 
   // Calculate actual original price from included products

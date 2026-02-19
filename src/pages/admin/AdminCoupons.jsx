@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Edit, Trash2, Tag, Calendar, Percent } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
 const AdminCoupons = () => {
@@ -79,21 +80,20 @@ const AdminCoupons = () => {
       }
       fetchCoupons();
       setShowDialog(false);
-      alert(`Coupon ${editMode ? 'updated' : 'created'} successfully!`);
+      toast.success(`Coupon ${editMode ? 'updated' : 'created'} successfully!`);
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to save coupon');
+      toast.error(error.response?.data?.message || 'Failed to save coupon');
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this coupon?')) {
-      try {
-        await api.delete(`/coupons/${id}`);
-        fetchCoupons();
-        alert('Coupon deleted successfully!');
-      } catch (error) {
-        alert('Failed to delete coupon');
-      }
+    if (!window.confirm('Are you sure you want to delete this coupon?')) return;
+    try {
+      await api.delete(`/coupons/${id}`);
+      fetchCoupons();
+      toast.success('Coupon deleted successfully!');
+    } catch (error) {
+      toast.error('Failed to delete coupon');
     }
   };
 

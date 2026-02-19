@@ -1,128 +1,106 @@
 import React from 'react';
-import {
-  Container,
-  Typography,
-  Box,
-  Grid,
-  Paper,
-} from '@mui/material';
-import { Nature, VerifiedUser, LocalShipping, Support } from '@mui/icons-material';
+import { Leaf, ShieldCheck, Truck, Headphones } from 'lucide-react';
+
+const features = [
+  {
+    icon: Leaf,
+    title: '100% Organic',
+    desc: 'All our seeds are organic and non-GMO, perfect for healthy home gardening.',
+    color: 'text-green-600 bg-green-100',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Quality Assured',
+    desc: 'High germination rate guaranteed with proper growing instructions.',
+    color: 'text-blue-600 bg-blue-100',
+  },
+  {
+    icon: Truck,
+    title: 'Fast Delivery',
+    desc: 'Quick and safe delivery across India to your doorstep.',
+    color: 'text-indigo-600 bg-indigo-100',
+  },
+  {
+    icon: Headphones,
+    title: 'Expert Support',
+    desc: 'WhatsApp support for all your gardening queries and doubts.',
+    color: 'text-orange-600 bg-orange-100',
+  },
+];
+
+const gardenTypes = [
+  { emoji: '🌱', title: 'Beginners', desc: 'Easy-to-grow seeds with detailed growing instructions.' },
+  { emoji: '🏠', title: 'Terrace Gardeners', desc: 'Specially curated combos for terrace and balcony gardens.' },
+  { emoji: '👨‍🍳', title: 'Kitchen Gardens', desc: 'Fresh herbs and vegetables for your cooking needs.' },
+];
 
 const About = () => {
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: 'bold' }}>
-        About Fresh Veggies
-      </Typography>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 pb-24">
+      <div className="max-w-5xl mx-auto px-4">
 
-      <Paper elevation={0} sx={{ p: 4, mb: 4, bgcolor: 'primary.light', color: 'white' }}>
-        <Typography variant="h5" gutterBottom>
-          🌱 Treat Your Self Organic
-        </Typography>
-        <Typography variant="body1">
-          Welcome to Fresh Veggies - your trusted partner in organic home gardening! We specialize in 
-          providing premium quality organic seeds, combo packs, and complete gardening solutions for 
-          beginners and enthusiasts alike.
-        </Typography>
-      </Paper>
+        {/* Hero Banner */}
+        <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-6 md:p-10 mb-8 text-white">
+          <h1 className="text-2xl md:text-4xl font-bold mb-3">🌱 Treat Your Self Organic</h1>
+          <p className="text-green-100 text-sm md:text-base leading-relaxed max-w-3xl">
+            Welcome to Fresh Veggies — your trusted partner in organic home gardening. We specialise in providing
+            premium quality organic seeds, combo packs, and complete gardening solutions for beginners and
+            enthusiasts alike.
+          </p>
+        </div>
 
-      <Grid container spacing={4} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={6}>
-          <Typography variant="h5" gutterBottom>
-            Our Mission
-          </Typography>
-          <Typography variant="body1" paragraph>
-            To make organic home gardening accessible and easy for everyone. We believe that growing your 
-            own vegetables is not just a hobby, but a step towards a healthier lifestyle and a sustainable 
-            future.
-          </Typography>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Typography variant="h5" gutterBottom>
-            Why Choose Us?
-          </Typography>
-          <Typography variant="body1" paragraph>
-            We carefully select and test all our seeds to ensure high germination rates. Our combo packs 
-            are designed specifically for Indian homes - whether you have a terrace, balcony, or kitchen 
-            garden.
-          </Typography>
-        </Grid>
-      </Grid>
+        {/* Mission + Why Us */}
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Our Mission</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+              To make organic home gardening accessible and easy for everyone. We believe that growing your own
+              vegetables is not just a hobby, but a step towards a healthier lifestyle and a sustainable future.
+            </p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Why Choose Us?</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+              We carefully select and test all our seeds to ensure high germination rates. Our combo packs are
+              designed specifically for Indian homes — whether you have a terrace, balcony, or kitchen garden.
+            </p>
+          </div>
+        </div>
 
-      <Grid container spacing={3}>
-        {[
-          {
-            icon: <Nature sx={{ fontSize: 48 }} />,
-            title: '100% Organic',
-            desc: 'All our seeds are organic and non-GMO, perfect for healthy home gardening',
-          },
-          {
-            icon: <VerifiedUser sx={{ fontSize: 48 }} />,
-            title: 'Quality Assured',
-            desc: 'High germination rate guaranteed with proper growing instructions',
-          },
-          {
-            icon: <LocalShipping sx={{ fontSize: 48 }} />,
-            title: 'Fast Delivery',
-            desc: 'Quick and safe delivery across India to your doorstep',
-          },
-          {
-            icon: <Support sx={{ fontSize: 48 }} />,
-            title: 'Expert Support',
-            desc: 'WhatsApp support for all your gardening queries and doubts',
-          },
-        ].map((item, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: 3,
-                textAlign: 'center',
-                height: '100%',
-                border: '1px solid',
-                borderColor: 'grey.200',
-              }}
+        {/* Feature Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {features.map(({ icon: Icon, title, desc, color }) => (
+            <div
+              key={title}
+              className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col items-center text-center"
             >
-              <Box sx={{ color: 'primary.main', mb: 2 }}>
-                {item.icon}
-              </Box>
-              <Typography variant="h6" gutterBottom>
-                {item.title}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {item.desc}
-              </Typography>
-            </Paper>
-          </Grid>
-        ))}
-      </Grid>
+              <div className={`w-12 h-12 rounded-full ${color} flex items-center justify-center mb-3`}>
+                <Icon className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">{title}</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{desc}</p>
+            </div>
+          ))}
+        </div>
 
-      <Paper elevation={0} sx={{ p: 4, mt: 4, bgcolor: 'grey.50' }}>
-        <Typography variant="h5" gutterBottom>
-          Perfect For
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
-            <Typography variant="h6" gutterBottom>🌱 Beginners</Typography>
-            <Typography variant="body2" color="text.secondary">
-              Easy-to-grow seeds with detailed growing instructions
-            </Typography>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Typography variant="h6" gutterBottom>🏠 Terrace Gardeners</Typography>
-            <Typography variant="body2" color="text.secondary">
-              Specially curated combos for terrace and balcony gardens
-            </Typography>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Typography variant="h6" gutterBottom>👨‍🍳 Kitchen Gardens</Typography>
-            <Typography variant="body2" color="text.secondary">
-              Fresh herbs and vegetables for your cooking needs
-            </Typography>
-          </Grid>
-        </Grid>
-      </Paper>
-    </Container>
+        {/* Perfect For */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Perfect For</h2>
+          <div className="grid md:grid-cols-3 gap-4">
+            {gardenTypes.map(({ emoji, title, desc }) => (
+              <div key={title} className="flex gap-3">
+                <span className="text-2xl flex-shrink-0">{emoji}</span>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{title}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </div>
   );
 };
 

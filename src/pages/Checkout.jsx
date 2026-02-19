@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CreditCard, MapPin, Package, AlertCircle, CheckCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -12,6 +12,8 @@ const Checkout = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+  // Ref-based guard: prevents double-submit in the tiny window before loading state propagates
+  const submittingRef = useRef(false);
 
   const [shippingAddress, setShippingAddress] = useState({
     name: user?.name || '',
@@ -23,6 +25,13 @@ const Checkout = () => {
   });
 
   const [paymentMode, setPaymentMode] = useState('COD');
+
+  // Redirect to cart if empty — prevents broken checkout session
+  useEffect(() => {
+    if (cartItems.length === 0) {
+      navigate('/cart', { replace: true });
+    }
+  }, [cartItems, navigate]);
 
   // Load Razorpay script
   useEffect(() => {
@@ -42,6 +51,8 @@ const Checkout = () => {
   // Razorpay Payment Handler
   const handleRazorpayPayment = async (e) => {
     e.preventDefault();
+    if (submittingRef.current) return; // prevent double-submit
+    submittingRef.current = true;
     setError('');
     setLoading(true);
 
@@ -53,36 +64,29 @@ const Checkout = () => {
         quantity: item.quantity,
         price: item.price,
         image: item.images?.[0] || '',
+        ...(item.packageId ? { packageId: item.packageId } : {}),
       }));
 
-      const itemsPrice = getCartTotal();
-      const shippingPrice = 50;
-      const totalAmount = itemsPrice + shippingPrice;
-
+      // Send only what server needs — server computes prices
       const orderData = {
-        amount: totalAmount,
         orderItems,
-        shippingAddress: {
-          ...shippingAddress,
-          country: 'India',
-        },
-        itemsPrice,
-        shippingPrice,
-        totalAmount,
+        shippingAddress: { ...shippingAddress, country: 'India' },
+        discountAmount: 0,
+        couponUsed: null,
       };
 
-      // Step 1: Create Razorpay Order
+      // Step 1: Create Razorpay Order (server computes total)
       const createOrderResponse = await api.post('/payments/create-order', orderData);
-      const { razorpayOrderId, key } = createOrderResponse.data.data;
+      const { razorpayOrderId, internalOrderId, key, amount } = createOrderResponse.data.data;
 
       // Step 2: Open Razorpay Checkout Modal
       const options = {
         key: key,
-        amount: totalAmount * 100, // Convert to paise
+        amount: amount, // server-authoritative paise amount
         currency: 'INR',
         order_id: razorpayOrderId,
         name: 'Fresh Veggies',
-        image: '/logo.png', // Add your logo path
+        image: '/logo.png',
         prefill: {
           name: shippingAddress.name,
           email: user?.email,
@@ -90,52 +94,44 @@ const Checkout = () => {
         },
         handler: async (response) => {
           try {
-            // Step 3: Verify Payment on Backend
+            // Step 3: Verify Payment — pass internalOrderId (no price data)
             const verifyResponse = await api.post('/payments/verify-payment', {
-              razorpay_order_id: razorpayOrderId,
+              razorpay_order_id:  razorpayOrderId,
               razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              orderData: {
-                orderItems,
-                shippingAddress: {
-                  ...shippingAddress,
-                  country: 'India',
-                },
-                itemsPrice,
-                shippingPrice,
-                totalAmount,
-              },
+              razorpay_signature:  response.razorpay_signature,
+              internalOrderId,     // links to the pending order on server
             });
 
             if (verifyResponse.data.success) {
-              // Step 4: Order Created Successfully
               clearCart();
               navigate(`/orders/${verifyResponse.data.data._id}`, {
                 state: { success: true, message: 'Payment successful! Order confirmed.' }
               });
             }
           } catch (verifyError) {
+            // Notify backend of failure
+            await api.post('/payments/payment-failure', { razorpay_order_id: razorpayOrderId }).catch(() => {});
             setError('Payment verification failed. Please contact support.');
-            console.error('Verification Error:', verifyError);
+            submittingRef.current = false;
           } finally {
             setLoading(false);
           }
         },
         modal: {
           ondismiss: () => {
+            submittingRef.current = false;
             setLoading(false);
             setError('Payment cancelled. Please try again.');
           }
         },
-        theme: {
-          color: '#16a34a' // Green color to match your theme
-        }
+        theme: { color: '#16a34a' }
       };
 
       const razorpay = new window.Razorpay(options);
       razorpay.open();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to initiate payment');
+      submittingRef.current = false;
       setLoading(false);
     }
   };
@@ -143,6 +139,8 @@ const Checkout = () => {
   // COD Payment Handler
   const handleCODPayment = async (e) => {
     e.preventDefault();
+    if (submittingRef.current) return; // prevent double-submit
+    submittingRef.current = true;
     setError('');
     setLoading(true);
 
@@ -154,31 +152,27 @@ const Checkout = () => {
         quantity: item.quantity,
         price: item.price,
         image: item.images?.[0] || '',
+        ...(item.packageId ? { packageId: item.packageId } : {}),
       }));
 
-      const itemsPrice = getCartTotal();
-      const shippingPrice = 50;
-      const totalAmount = itemsPrice + shippingPrice;
-
+      // Server computes prices — only send items + address
       const orderData = {
         orderItems,
-        shippingAddress: {
-          ...shippingAddress,
-          country: 'India',
-        },
+        shippingAddress: { ...shippingAddress, country: 'India' },
         paymentMode: 'COD',
-        itemsPrice,
-        shippingPrice,
-        totalAmount,
+        discountAmount: 0,
+        couponUsed: null,
       };
 
       const response = await api.post('/orders', orderData);
       clearCart();
+      submittingRef.current = false;
       navigate(`/orders/${response.data.data._id}`, {
         state: { success: true, message: 'Order placed successfully! Pay on delivery.' }
       });
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to place order');
+      submittingRef.current = false;
     }
     setLoading(false);
   };
@@ -195,14 +189,15 @@ const Checkout = () => {
     }
   };
 
+  const FREE_DELIVERY_THRESHOLD = 300;
   const itemsPrice = getCartTotal();
-  const shippingPrice = 50;
+  const shippingPrice = itemsPrice >= FREE_DELIVERY_THRESHOLD ? 0 : 50;
   const totalAmount = itemsPrice + shippingPrice;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-24 pb-12">
-      <div className="container mx-auto px-4">
-        <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 pb-24">
+      <div className="container mx-auto px-4 max-w-5xl">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-6">
           Checkout
         </h1>
 
@@ -401,8 +396,24 @@ const Checkout = () => {
                   </div>
                   <div className="flex justify-between text-gray-600 dark:text-gray-400">
                     <span>Shipping</span>
-                    <span className="font-semibold">₹{shippingPrice}</span>
+                    <span className="font-semibold">
+                      {shippingPrice === 0 ? (
+                        <span className="text-green-600 dark:text-green-400">FREE</span>
+                      ) : (
+                        `₹${shippingPrice}`
+                      )}
+                    </span>
                   </div>
+                  {shippingPrice === 0 && (
+                    <p className="text-xs text-green-600 dark:text-green-400">
+                      🎉 You qualify for free delivery!
+                    </p>
+                  )}
+                  {shippingPrice > 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Add ₹{FREE_DELIVERY_THRESHOLD - itemsPrice} more for free delivery
+                    </p>
+                  )}
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
                     <div className="flex justify-between text-xl font-bold">
                       <span className="text-gray-900 dark:text-white">Total</span>

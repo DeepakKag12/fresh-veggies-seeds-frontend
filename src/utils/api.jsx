@@ -9,7 +9,7 @@ const api = axios.create({
   },
 });
 
-// Add token to requests
+// Attach JWT to every request
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -18,7 +18,21 @@ api.interceptors.request.use(
     }
     return config;
   },
+  (error) => Promise.reject(error)
+);
+
+// Auto-logout on 401 (expired / invalid token)
+api.interceptors.response.use(
+  (response) => response,
   (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      // Redirect to login without losing the current path
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/login' && currentPath !== '/mobile-login') {
+        window.location.href = '/login';
+      }
+    }
     return Promise.reject(error);
   }
 );

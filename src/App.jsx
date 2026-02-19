@@ -10,6 +10,7 @@ import BottomNav from './components/BottomNav';
 import AdminBottomNav from './components/AdminBottomNav';
 import WhatsAppButton from './components/WhatsAppButton';
 import { useAuth } from './context/AuthContext';
+import { useCart } from './context/CartContext';
 import HomePage from './features/landing/pages/HomePage';
 import Shop from './pages/Shop';
 import ProductDetailNew from './pages/ProductDetailNew';
@@ -53,9 +54,16 @@ function ScrollToTop() {
 function App() {
   const location = useLocation();
   const { user } = useAuth();
+  const { hideCartPopup } = useCart();
   const isAdminPage = location.pathname.startsWith('/admin');
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/forgot-password' || location.pathname === '/mobile-login' || location.pathname.startsWith('/reset-password/');
   const isAdmin = user?.role === 'admin';
+
+  // Hide cart popup whenever the user navigates to a new page
+  useEffect(() => {
+    hideCartPopup();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">

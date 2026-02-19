@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
 const CartContext = createContext();
 
@@ -13,6 +13,8 @@ export const useCart = () => {
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
   const [cartPopup, setCartPopup] = useState({ show: false, product: null });
+  // Ref to track the auto-hide timer — prevents stacked setTimeout calls
+  const popupTimerRef = useRef(null);
 
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
@@ -49,9 +51,13 @@ export const CartProvider = ({ children }) => {
       ]);
     }
     
-    // Show popup notification
+    // Show popup notification — clear any existing timer first to prevent stacking
+    if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
     setCartPopup({ show: true, product });
-    setTimeout(() => setCartPopup({ show: false, product: null }), 3000);
+    popupTimerRef.current = setTimeout(() => {
+      setCartPopup({ show: false, product: null });
+      popupTimerRef.current = null;
+    }, 3000);
   };
 
   const removeFromCart = (productId, isCombo) => {
@@ -88,7 +94,14 @@ export const CartProvider = ({ children }) => {
     return cartItems.reduce((count, item) => count + item.quantity, 0);
   };
 
-  const hideCartPopup = () => setCartPopup({ show: false, product: null });
+  // Clear timer and hide popup immediately (used on route changes and manual close)
+  const hideCartPopup = () => {
+    if (popupTimerRef.current) {
+      clearTimeout(popupTimerRef.current);
+      popupTimerRef.current = null;
+    }
+    setCartPopup({ show: false, product: null });
+  };
 
   const value = {
     cartItems,

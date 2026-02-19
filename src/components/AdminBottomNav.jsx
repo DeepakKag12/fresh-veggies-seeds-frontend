@@ -15,6 +15,7 @@ import {
   Home
 } from 'lucide-react';
 import api from '../utils/api';
+import AdminNotificationBell from './AdminNotificationBell';
 
 const AdminBottomNav = () => {
   const navigate = useNavigate();
@@ -25,7 +26,10 @@ const AdminBottomNav = () => {
   const fetchPendingOrders = useCallback(async () => {
     try {
       const response = await api.get('/admin/stats');
-      setPendingCount(response.data.data.pendingOrders || 0);
+      const data = response.data.data;
+      // badge = new orders + cancellation requests
+      const combined = (data.pendingOrders || 0) + (data.cancellationRequests || 0);
+      setPendingCount(combined);
     } catch (error) {
       console.error('Error fetching pending orders:', error);
     }
@@ -40,11 +44,11 @@ const AdminBottomNav = () => {
   const mainNavItems = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/admin/orders', label: 'Orders', icon: ClipboardList, badge: pendingCount },
-    { path: '/admin/products', label: 'Products', icon: Package },
     { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   ];
 
   const moreNavItems = [
+    { path: '/admin/products', label: 'Products', icon: Package },
     { path: '/admin/categories', label: 'Categories', icon: Layers },
     { path: '/admin/users', label: 'Users', icon: Users },
     { path: '/admin/combos', label: 'Combos', icon: Tag },
@@ -137,6 +141,9 @@ const AdminBottomNav = () => {
               </button>
             );
           })}
+
+          {/* Notification Bell */}
+          <AdminNotificationBell />
           
           {/* More Button */}
           <button

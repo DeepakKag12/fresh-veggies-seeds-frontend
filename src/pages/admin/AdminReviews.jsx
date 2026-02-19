@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Star, CheckCircle, XCircle, Trash2, MessageSquare, ShoppingBag } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
 function AdminReviews() {
@@ -40,7 +41,7 @@ function AdminReviews() {
       setReviews(response.data.data);
     } catch (error) {
       console.error('Error fetching reviews:', error);
-      alert('Failed to load reviews');
+      toast.error('Failed to load reviews');
     } finally {
       setLoading(false);
     }
@@ -68,14 +69,14 @@ function AdminReviews() {
         isApproved: actionType === 'approve',
         adminResponse: adminResponse.trim() || undefined
       });
-      alert(`Review ${actionType === 'approve' ? 'approved' : 'rejected'} successfully!`);
+      toast.success(`Review ${actionType === 'approve' ? 'approved' : 'rejected'} successfully!`);
       setShowResponseDialog(false);
       setSelectedReview(null);
       setAdminResponse('');
       fetchReviews();
     } catch (error) {
       console.error('Error updating review:', error);
-      alert(error.response?.data?.message || 'Failed to update review');
+      toast.error(error.response?.data?.message || 'Failed to update review');
     }
   };
 
@@ -86,11 +87,11 @@ function AdminReviews() {
 
     try {
       await api.delete(`/reviews/${reviewId}`);
-      alert('Review deleted successfully!');
+      toast.success('Review deleted successfully!');
       fetchReviews();
     } catch (error) {
       console.error('Error deleting review:', error);
-      alert('Failed to delete review');
+      toast.error('Failed to delete review');
     }
   };
 

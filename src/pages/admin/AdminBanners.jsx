@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Edit2, Trash2, Eye, MousePointer, Calendar, Image, Link as LinkIcon } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
 function AdminBanners() {
@@ -33,7 +34,7 @@ function AdminBanners() {
       setBanners(response.data.data);
     } catch (error) {
       console.error('Error fetching banners:', error);
-      alert('Failed to load banners');
+      toast.error('Failed to load banners');
     } finally {
       setLoading(false);
     }
@@ -91,7 +92,7 @@ function AdminBanners() {
     e.preventDefault();
 
     if (!formData.title.trim() || !formData.imageUrl.trim()) {
-      alert('Please fill in all required fields');
+      toast.error('Please fill in title and image URL');
       return;
     }
 
@@ -105,17 +106,17 @@ function AdminBanners() {
 
       if (editingBanner) {
         await api.put(`/banners/${editingBanner._id}`, dataToSend);
-        alert('Banner updated successfully!');
+        toast.success('Banner updated successfully!');
       } else {
         await api.post('/banners', dataToSend);
-        alert('Banner created successfully!');
+        toast.success('Banner created successfully!');
       }
 
       handleCloseDialog();
       fetchBanners();
     } catch (error) {
       console.error('Error saving banner:', error);
-      alert(error.response?.data?.message || 'Failed to save banner');
+      toast.error(error.response?.data?.message || 'Failed to save banner');
     }
   };
 
@@ -126,11 +127,11 @@ function AdminBanners() {
 
     try {
       await api.delete(`/banners/${bannerId}`);
-      alert('Banner deleted successfully!');
+      toast.success('Banner deleted successfully!');
       fetchBanners();
     } catch (error) {
       console.error('Error deleting banner:', error);
-      alert('Failed to delete banner');
+      toast.error('Failed to delete banner');
     }
   };
 
