@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Loader2, Sprout } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
@@ -16,7 +16,9 @@ const LoginPage = () => {
   const [globalError, setGlobalError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
+  const [notice] = useState(location.state?.message || '');
 
   const validateForm = () => {
     const newErrors = {};
@@ -111,6 +113,11 @@ const LoginPage = () => {
             onSubmit={handleSubmit}
             className="space-y-6"
           >
+            {notice && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+                {notice}
+              </div>
+            )}
             {globalError && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}

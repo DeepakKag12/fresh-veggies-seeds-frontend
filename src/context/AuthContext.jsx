@@ -61,11 +61,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await api.post('/auth/register', userData);
-      const { token, ...user } = response.data.data;
-      localStorage.setItem('token', token);
-      setUser(user);
-      toast.success(`Welcome to VinodiJiju, ${user.name || 'User'}! 🎉`);
-      return { success: true };
+      return { success: true, message: response.data.message };
     } catch (error) {
       return { 
         success: false, 

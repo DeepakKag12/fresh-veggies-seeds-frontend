@@ -20,6 +20,7 @@ import LoginPage from './features/auth/pages/LoginPage';
 import RegisterPage from './features/auth/pages/RegisterPage';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import VerifyEmail from './pages/VerifyEmail';
 import MobileLogin from './pages/MobileLogin';
 import MyOrders from './pages/MyOrders';
 import OrderDetail from './pages/OrderDetail';
@@ -56,7 +57,7 @@ function App() {
   const { user } = useAuth();
   const { hideCartPopup } = useCart();
   const isAdminPage = location.pathname.startsWith('/admin');
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/forgot-password' || location.pathname === '/mobile-login' || location.pathname.startsWith('/reset-password/');
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/forgot-password' || location.pathname === '/mobile-login' || location.pathname.startsWith('/reset-password/') || location.pathname.startsWith('/verify-email/');
   const isAdmin = user?.role === 'admin';
 
   // Hide cart popup whenever the user navigates to a new page
@@ -83,6 +84,7 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
+          <Route path="/verify-email/:token" element={<VerifyEmail />} />
           <Route path="/mobile-login" element={<MobileLogin />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />

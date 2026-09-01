@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { useAuth } from './AuthContext';
+import api from '../utils/api';
 
 const CartContext = createContext();
 
@@ -11,21 +13,75 @@ export const useCart = () => {
 };
 
 export const CartProvider = ({ children }) => {
+  const { user, loading: authLoading } = useAuth();
   const [cartItems, setCartItems] = useState([]);
   const [cartPopup, setCartPopup] = useState({ show: false, product: null });
+  const [cartReady, setCartReady] = useState(false);
+  const cartOwnerId = user?._id || null;
   // Ref to track the auto-hide timer — prevents stacked setTimeout calls
   const popupTimerRef = useRef(null);
 
   useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
-    }
-  }, []);
+    if (authLoading) return undefined;
+
+    let cancelled = false;
+    const hydrateCart = async () => {
+      const storageKey = cartOwnerId ? `cart:${cartOwnerId}` : 'cart';
+      let guestCart = [];
+      let cachedAccountCart = [];
+      try {
+        guestCart = JSON.parse(localStorage.getItem('cart') || '[]');
+        cachedAccountCart = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      } catch {
+        localStorage.removeItem('cart');
+        localStorage.removeItem(storageKey);
+      }
+
+      if (!cartOwnerId) {
+        if (!cancelled) {
+          setCartItems(Array.isArray(guestCart) ? guestCart : []);
+          setCartReady(true);
+        }
+        return;
+      }
+
+      try {
+        const response = await api.get('/auth/cart');
+        const accountCart = Array.isArray(response.data.data) ? response.data.data : [];
+        const mergedCart = [...accountCart];
+        (Array.isArray(guestCart) ? guestCart : []).forEach((savedItem) => {
+          const existingItem = mergedCart.find(
+            (item) => item._id === savedItem._id && item.isCombo === savedItem.isCombo
+          );
+          if (existingItem) existingItem.quantity += savedItem.quantity;
+          else mergedCart.push(savedItem);
+        });
+        if (!cancelled) {
+          setCartItems(mergedCart);
+          setCartReady(true);
+          localStorage.removeItem('cart');
+          localStorage.setItem(storageKey, JSON.stringify(mergedCart));
+          if (guestCart.length > 0) await api.put('/auth/cart', { cart: mergedCart });
+        }
+      } catch {
+        if (!cancelled) {
+          setCartItems(Array.isArray(cachedAccountCart) ? cachedAccountCart : []);
+          setCartReady(true);
+        }
+      }
+    };
+
+    setCartReady(false);
+    hydrateCart();
+    return () => { cancelled = true; };
+  }, [authLoading, cartOwnerId]);
 
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cartItems));
-  }, [cartItems]);
+    if (!cartReady) return;
+    const storageKey = cartOwnerId ? `cart:${cartOwnerId}` : 'cart';
+    localStorage.setItem(storageKey, JSON.stringify(cartItems));
+    if (cartOwnerId) api.put('/auth/cart', { cart: cartItems }).catch(() => {});
+  }, [cartItems, cartOwnerId, cartReady]);
 
   const addToCart = (product, quantity = 1, isCombo = false) => {
     const existingItem = cartItems.find(

@@ -87,7 +87,7 @@ const RegisterPage = () => {
       });
       
       if (result.success) {
-        navigate('/');
+        navigate('/login', { state: { message: result.message } });
       } else {
         setGlobalError(result.message || 'Registration failed. Please try again.');
       }
