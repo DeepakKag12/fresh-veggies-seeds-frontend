@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { validatePassword, PASSWORD_RULE_TEXT } from '../../../utils/passwordPolicy';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Loader2, Sprout, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Sprout, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import Input from '../../../components/ui/Input';
 import PasswordInput from '../../../components/ui/PasswordInput';
@@ -21,6 +22,7 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const validateForm = () => {
     const newErrors = {};
@@ -43,8 +45,8 @@ const RegisterPage = () => {
 
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters long';
+    } else if (!validatePassword(formData.password).valid) {
+      newErrors.password = validatePassword(formData.password).message;
     }
 
     if (formData.password !== formData.confirmPassword) {
@@ -87,7 +89,7 @@ const RegisterPage = () => {
       });
       
       if (result.success) {
-        navigate('/login', { state: { message: result.message } });
+        navigate('/login', { state: { message: result.message, from: location.state?.from } });
       } else {
         setGlobalError(result.message || 'Registration failed. Please try again.');
       }
@@ -99,13 +101,39 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex overflow-hidden">
+    <div className="min-h-screen bg-fv-page px-4 py-10 sm:px-6 lg:px-10">
+      {/* Auth pages hide the site chrome, so without this there is no way back
+          to the store — people who reached sign-in from checkout were stranded. */}
+      <div className="mx-auto mb-4 max-w-[1100px]">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Two ways out: back to wherever they came from, or into the store. */}
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 rounded-[50px] px-3 py-2 text-[14px] font-medium
+                       text-fv-primary hover:bg-white focus-visible:outline-none focus-visible:ring-2
+                       focus-visible:ring-fv-primary"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Go back
+          </button>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 rounded-[50px] px-3 py-2 text-[14px] font-medium
+                       text-fv-primary hover:bg-white focus-visible:outline-none focus-visible:ring-2
+                       focus-visible:ring-fv-primary"
+          >
+            Continue shopping
+          </Link>
+        </div>
+      </div>
+      <div className="mx-auto flex max-w-[1100px] overflow-hidden rounded-[18px] shadow-[0_18px_50px_rgba(10,76,54,0.10)]">
       {/* Left Side - Form */}
       <motion.div 
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: [0.6, -0.05, 0.01, 0.99] }}
-        className="flex-1 flex items-center justify-center p-8 bg-white dark:bg-gray-900 overflow-y-auto"
+        className="flex-1 flex items-center justify-center bg-white p-8"
       >
         <div className="w-full max-w-md py-8">
           {/* Logo */}
@@ -129,8 +157,8 @@ const RegisterPage = () => {
             transition={{ delay: 0.4, duration: 0.6 }}
             className="text-center mb-6"
           >
-            <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent">Create Account</h1>
-            <p className="text-gray-600 dark:text-gray-400 text-lg">
+            <h1 className="font-serif text-[34px] font-semibold mb-3 text-fv-heading">Create Account</h1>
+            <p className="text-fv-muted text-[16px]">
               Join us and start your organic journey today
             </p>
           </motion.div>
@@ -186,16 +214,22 @@ const RegisterPage = () => {
               required
             />
 
-            <PasswordInput
-              label="Password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              error={errors.password}
-              placeholder="Create a strong password"
-              showStrengthIndicator
-              required
-            />
+            <div>
+              <PasswordInput
+                label="Password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                error={errors.password}
+                placeholder="Create a strong password"
+                showStrengthIndicator
+                required
+              />
+              {/* State the rule up front rather than only rejecting on submit. */}
+              {!errors.password && (
+                <p className="mt-1.5 text-xs text-gray-500">{PASSWORD_RULE_TEXT}</p>
+              )}
+            </div>
 
             <PasswordInput
               label="Confirm Password"
@@ -214,20 +248,20 @@ const RegisterPage = () => {
                   name="agreeToTerms"
                   checked={formData.agreeToTerms}
                   onChange={handleChange}
-                  className="w-4 h-4 mt-1 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                  className="w-4 h-4 mt-1 rounded border-gray-300 text-fv-primary focus:ring-fv-primary"
                 />
                 <span className="text-sm text-gray-600 dark:text-gray-400">
                   I agree to the{' '}
                   <Link
                     to="/terms"
-                    className="text-green-600 hover:text-green-700 font-medium"
+                    className="text-fv-primary hover:text-fv-primary-dark font-medium"
                   >
                     Terms & Conditions
                   </Link>{' '}
                   and{' '}
                   <Link
                     to="/privacy"
-                    className="text-green-600 hover:text-green-700 font-medium"
+                    className="text-fv-primary hover:text-fv-primary-dark font-medium"
                   >
                     Privacy Policy
                   </Link>
@@ -240,7 +274,7 @@ const RegisterPage = () => {
 
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+              className="w-full bg-fv-primary hover:bg-fv-primary-dark"
               disabled={loading}
             >
               {loading ? (
@@ -260,7 +294,7 @@ const RegisterPage = () => {
               Already have an account?{' '}
               <Link
                 to="/login"
-                className="text-green-600 hover:text-green-700 font-semibold"
+                className="text-fv-primary hover:text-fv-primary-dark font-semibold"
               >
                 Sign in here
               </Link>
@@ -274,7 +308,7 @@ const RegisterPage = () => {
         initial={{ x: 100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: [0.6, -0.05, 0.01, 0.99] }}
-        className="hidden lg:flex flex-1 bg-gradient-to-br from-emerald-600 via-green-600 to-teal-600 items-center justify-center p-12 relative overflow-hidden"
+        className="hidden lg:flex flex-1 bg-fv-primary items-center justify-center p-12 relative overflow-hidden"
       >
         {/* Background Pattern */}
         <motion.div 
@@ -298,10 +332,10 @@ const RegisterPage = () => {
             <div className="w-32 h-32 mx-auto bg-white/20 backdrop-blur-lg rounded-3xl flex items-center justify-center mb-6">
               <Sprout className="w-20 h-20" />
             </div>
-            <h2 className="text-4xl font-bold mb-4">
+            <h2 className="font-serif text-[34px] font-semibold mb-4">
               Start Your Green Journey
             </h2>
-            <p className="text-xl text-green-100 leading-relaxed mb-8">
+            <p className="text-xl text-white/80 leading-relaxed mb-8">
               Join our community of organic farmers and home gardeners. Get access to premium seeds and expert guidance.
             </p>
 
@@ -328,6 +362,7 @@ const RegisterPage = () => {
           </motion.div>
         </div>
       </motion.div>
+      </div>
     </div>
   );
 };

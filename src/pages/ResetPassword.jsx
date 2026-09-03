@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { validatePassword, PASSWORD_RULE_TEXT } from '../utils/passwordPolicy';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { AlertCircle, CheckCircle, Lock } from 'lucide-react';
 import api from '../utils/api';
@@ -34,8 +35,9 @@ const ResetPassword = () => {
         return;
       }
 
-      if (passwords.newPassword.length < 6) {
-        setError('Password must be at least 6 characters');
+      const pwCheck = validatePassword(passwords.newPassword);
+      if (!pwCheck.valid) {
+        setError(pwCheck.message);
         setLoading(false);
         return;
       }
@@ -124,7 +126,7 @@ const ResetPassword = () => {
               </button>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Minimum 6 characters
+              {PASSWORD_RULE_TEXT}
             </p>
           </div>
 

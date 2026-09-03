@@ -100,7 +100,7 @@ function AdminReviews() {
       <Star
         key={index}
         className={`w-4 h-4 ${
-          index < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+          index < rating ? 'fill-fv-star text-fv-star' : 'text-gray-300'
         }`}
       />
     ));
@@ -110,7 +110,7 @@ function AdminReviews() {
     if (review.isApproved === null) {
       return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">Pending</span>;
     } else if (review.isApproved === true) {
-      return <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">Approved</span>;
+      return <span className="px-3 py-1 bg-fv-cream text-green-800 rounded-full text-xs font-semibold">Approved</span>;
     } else {
       return <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold">Rejected</span>;
     }
@@ -119,7 +119,7 @@ function AdminReviews() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-fv-primary"></div>
       </div>
     );
   }
@@ -127,8 +127,8 @@ function AdminReviews() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Review Management</h1>
-        <p className="text-gray-600 dark:text-gray-400">Moderate customer reviews and provide responses</p>
+        <h1 className="text-3xl font-bold text-fv-heading  mb-2">Review Management</h1>
+        <p className="text-fv-muted ">Moderate customer reviews and provide responses</p>
       </div>
 
       {/* Filter Tabs */}
@@ -137,8 +137,8 @@ function AdminReviews() {
           onClick={() => setFilter('all')}
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
             filter === 'all'
-              ? 'bg-green-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300'
+              ? 'bg-fv-primary text-white'
+              : 'bg-gray-200 text-fv-ink hover:bg-gray-300  '
           }`}
         >
           All Reviews ({reviews.length})
@@ -148,7 +148,7 @@ function AdminReviews() {
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
             filter === 'pending'
               ? 'bg-yellow-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300'
+              : 'bg-gray-200 text-fv-ink hover:bg-gray-300  '
           }`}
         >
           Pending ({reviews.filter(r => r.isApproved === null).length})
@@ -157,8 +157,8 @@ function AdminReviews() {
           onClick={() => setFilter('approved')}
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
             filter === 'approved'
-              ? 'bg-green-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300'
+              ? 'bg-fv-primary text-white'
+              : 'bg-gray-200 text-fv-ink hover:bg-gray-300  '
           }`}
         >
           Approved ({reviews.filter(r => r.isApproved === true).length})
@@ -168,7 +168,7 @@ function AdminReviews() {
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
             filter === 'rejected'
               ? 'bg-red-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300'
+              : 'bg-gray-200 text-fv-ink hover:bg-gray-300  '
           }`}
         >
           Rejected ({reviews.filter(r => r.isApproved === false).length})
@@ -180,13 +180,13 @@ function AdminReviews() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl"
+          className="text-center py-16 bg-white  rounded-[12px]"
         >
-          <MessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          <MessageSquare className="w-16 h-16 text-fv-muted mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-fv-heading  mb-2">
             No reviews found
           </h3>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-fv-muted ">
             {filter === 'all' ? 'No reviews have been submitted yet.' : `No ${filter} reviews.`}
           </p>
         </motion.div>
@@ -198,7 +198,7 @@ function AdminReviews() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6"
+              className="bg-white  rounded-[12px]  p-6"
             >
               <div className="flex flex-col md:flex-row gap-6">
                 {/* Product Image */}
@@ -214,12 +214,12 @@ function AdminReviews() {
                 <div className="flex-1">
                   <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                      <h3 className="text-lg font-semibold text-fv-heading  mb-1">
                         {review.productId?.name || 'Product Deleted'}
                       </h3>
                       <div className="flex items-center gap-2 mb-2">
                         <div className="flex">{renderStars(review.rating)}</div>
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                        <span className="text-sm text-fv-muted ">
                           {review.rating}/5
                         </span>
                       </div>
@@ -229,21 +229,21 @@ function AdminReviews() {
 
                   {/* Review Title */}
                   {review.title && (
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                    <h4 className="font-semibold text-fv-heading  mb-2">
                       {review.title}
                     </h4>
                   )}
 
                   {/* Review Comment */}
-                  <p className="text-gray-700 dark:text-gray-300 mb-3">{review.comment}</p>
+                  <p className="text-fv-ink  mb-3">{review.comment}</p>
 
                   {/* Review Meta */}
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-fv-muted  mb-3">
                     <span className="flex items-center gap-1">
                       By: <strong>{review.userId?.name || 'Anonymous'}</strong>
                     </span>
                     {review.isVerifiedPurchase && (
-                      <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                      <span className="flex items-center gap-1 text-fv-primary dark:text-green-400">
                         <ShoppingBag className="w-4 h-4" />
                         Verified Purchase
                       </span>
@@ -275,7 +275,7 @@ function AdminReviews() {
                       <>
                         <button
                           onClick={() => handleApproveClick(review)}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                          className="px-4 py-2 bg-fv-primary text-white rounded-lg hover:bg-fv-primary-dark transition-colors flex items-center gap-2"
                         >
                           <CheckCircle className="w-4 h-4" />
                           Approve
@@ -319,24 +319,24 @@ function AdminReviews() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full"
+            className="bg-white  rounded-[12px] p-6 max-w-md w-full"
           >
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+            <h3 className="text-xl font-bold text-fv-heading  mb-4">
               {actionType === 'approve' ? 'Approve Review' : 'Reject Review'}
             </h3>
 
             <div className="mb-4">
-              <p className="text-gray-700 dark:text-gray-300 mb-2">
+              <p className="text-fv-ink  mb-2">
                 <strong>Product:</strong> {selectedReview?.productId?.name}
               </p>
-              <p className="text-gray-700 dark:text-gray-300 mb-2">
+              <p className="text-fv-ink  mb-2">
                 <strong>Rating:</strong> {selectedReview?.rating}/5
               </p>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
+              <p className="text-fv-ink  mb-4">
                 <strong>Comment:</strong> {selectedReview?.comment}
               </p>
 
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-fv-ink  mb-2">
                 Admin Response (Optional)
               </label>
               <textarea
@@ -344,7 +344,7 @@ function AdminReviews() {
                 onChange={(e) => setAdminResponse(e.target.value)}
                 placeholder="Add a response to this review..."
                 rows="4"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                className="w-full px-3 py-2 border border-fv-border  rounded-lg focus:outline-none focus:ring-2 focus:ring-fv-primary"
               />
             </div>
 
@@ -353,7 +353,7 @@ function AdminReviews() {
                 onClick={handleConfirmAction}
                 className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors ${
                   actionType === 'approve'
-                    ? 'bg-green-600 hover:bg-green-700'
+                    ? 'bg-fv-primary hover:bg-fv-primary-dark'
                     : 'bg-red-600 hover:bg-red-700'
                 }`}
               >
@@ -365,7 +365,7 @@ function AdminReviews() {
                   setSelectedReview(null);
                   setAdminResponse('');
                 }}
-                className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+                className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-fv-heading  rounded-lg hover:bg-gray-400 dark:hover:bg-fv-page0 transition-colors"
               >
                 Cancel
               </button>

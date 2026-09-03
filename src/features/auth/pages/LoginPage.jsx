@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Loader2, Sprout } from 'lucide-react';
+import { ArrowLeft, Loader2, Sprout } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import Input from '../../../components/ui/Input';
 import PasswordInput from '../../../components/ui/PasswordInput';
@@ -57,7 +57,10 @@ const LoginPage = () => {
       const result = await login(formData.email, formData.password);
       
       if (result.success) {
-        navigate('/');
+        // Destination can arrive as router state (PrivateRoute) or as ?next=
+        // (a session that expired on a protected page).
+        const nextParam = new URLSearchParams(location.search).get('next');
+        navigate(location.state?.from?.pathname || nextParam || '/', { replace: true });
       } else {
         setGlobalError(result.message || 'Login failed. Please check your credentials.');
       }
@@ -69,7 +72,33 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex overflow-hidden">
+    <div className="min-h-screen bg-fv-page px-4 py-10 sm:px-6 lg:px-10">
+      {/* Auth pages hide the site chrome, so without this there is no way back
+          to the store — people who reached sign-in from checkout were stranded. */}
+      <div className="mx-auto mb-4 max-w-[1100px]">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Two ways out: back to wherever they came from, or into the store. */}
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 rounded-[50px] px-3 py-2 text-[14px] font-medium
+                       text-fv-primary hover:bg-white focus-visible:outline-none focus-visible:ring-2
+                       focus-visible:ring-fv-primary"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Go back
+          </button>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 rounded-[50px] px-3 py-2 text-[14px] font-medium
+                       text-fv-primary hover:bg-white focus-visible:outline-none focus-visible:ring-2
+                       focus-visible:ring-fv-primary"
+          >
+            Continue shopping
+          </Link>
+        </div>
+      </div>
+      <div className="mx-auto flex max-w-[1100px] overflow-hidden rounded-[18px] shadow-[0_18px_50px_rgba(10,76,54,0.10)]">
       {/* Left Side - Form */}
       <motion.div 
         initial={{ x: -100, opacity: 0 }}
@@ -99,8 +128,8 @@ const LoginPage = () => {
             transition={{ delay: 0.4, duration: 0.6 }}
             className="text-center mb-8"
           >
-            <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent">Welcome Back!</h1>
-            <p className="text-gray-600 dark:text-gray-400 text-lg">
+            <h1 className="font-serif text-[34px] font-semibold mb-3 text-fv-heading">Welcome Back!</h1>
+            <p className="text-fv-muted text-[16px]">
               Sign in to continue your organic journey
             </p>
           </motion.div>
@@ -114,7 +143,7 @@ const LoginPage = () => {
             className="space-y-6"
           >
             {notice && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+              <div className="p-4 bg-fv-cream border border-fv-border rounded-lg text-fv-success text-sm">
                 {notice}
               </div>
             )}
@@ -153,7 +182,7 @@ const LoginPage = () => {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                  className="w-4 h-4 rounded border-gray-300 text-fv-primary focus:ring-fv-primary"
                 />
                 <span className="text-sm text-gray-600 dark:text-gray-400">
                   Remember me
@@ -161,7 +190,7 @@ const LoginPage = () => {
               </label>
               <Link
                 to="/forgot-password"
-                className="text-sm text-green-600 hover:text-green-700 font-medium"
+                className="text-sm text-fv-primary hover:text-fv-primary-dark font-medium"
               >
                 Forgot Password?
               </Link>
@@ -169,7 +198,7 @@ const LoginPage = () => {
 
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+              className="w-full bg-fv-primary hover:bg-fv-primary-dark"
               disabled={loading}
             >
               {loading ? (
@@ -186,7 +215,7 @@ const LoginPage = () => {
               Don't have an account?{' '}
               <Link
                 to="/register"
-                className="text-green-600 hover:text-green-700 font-semibold"
+                className="text-fv-primary hover:text-fv-primary-dark font-semibold"
               >
                 Create one now
               </Link>
@@ -205,7 +234,7 @@ const LoginPage = () => {
 
             <Link
               to="/mobile-login"
-              className="w-full block text-center px-4 py-2 border-2 border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg font-semibold transition-colors"
+              className="w-full block text-center px-4 py-2 border-2 border-fv-primary text-fv-primary hover:bg-fv-cream rounded-lg font-semibold transition-colors"
             >
               Login with Phone Number
             </Link>
@@ -218,7 +247,7 @@ const LoginPage = () => {
         initial={{ x: 100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: [0.6, -0.05, 0.01, 0.99] }}
-        className="hidden lg:flex flex-1 bg-gradient-to-br from-green-600 via-emerald-600 to-teal-600 items-center justify-center p-12 relative overflow-hidden"
+        className="hidden lg:flex flex-1 bg-fv-primary items-center justify-center p-12 relative overflow-hidden"
       >
         {/* Background Pattern */}
         <motion.div 
@@ -242,10 +271,10 @@ const LoginPage = () => {
             <div className="w-32 h-32 mx-auto bg-white/20 backdrop-blur-lg rounded-3xl flex items-center justify-center mb-6">
               <Sprout className="w-20 h-20" />
             </div>
-            <h2 className="text-4xl font-bold mb-4">
+            <h2 className="font-serif text-[34px] font-semibold mb-4">
               Grow Your Own Fresh Vegetables
             </h2>
-            <p className="text-xl text-green-100 leading-relaxed">
+            <p className="text-xl text-white/80 leading-relaxed">
               Access premium organic seeds and start your journey to healthier, sustainable living
             </p>
           </motion.div>
@@ -256,23 +285,26 @@ const LoginPage = () => {
             transition={{ delay: 0.8, duration: 0.6 }}
             className="flex items-center justify-center gap-8 text-sm"
           >
+            {/* These replace invented figures ("5000+ Happy Customers",
+                "100+ Products") with claims the backend actually honours. */}
             <div className="text-center">
-              <div className="text-3xl font-bold mb-1">5000+</div>
-              <div className="text-green-100">Happy Customers</div>
+              <div className="text-2xl font-bold mb-1">Free</div>
+              <div className="text-white/80">Delivery over ₹300</div>
             </div>
             <div className="w-px h-12 bg-white/30" />
             <div className="text-center">
-              <div className="text-3xl font-bold mb-1">100+</div>
-              <div className="text-green-100">Products</div>
+              <div className="text-2xl font-bold mb-1">COD</div>
+              <div className="text-white/80">Pay on delivery</div>
             </div>
             <div className="w-px h-12 bg-white/30" />
             <div className="text-center">
-              <div className="text-3xl font-bold mb-1">100%</div>
-              <div className="text-green-100">Organic</div>
+              <div className="text-2xl font-bold mb-1">Tracked</div>
+              <div className="text-white/80">On every order</div>
             </div>
           </motion.div>
         </div>
       </motion.div>
+      </div>
     </div>
   );
 };

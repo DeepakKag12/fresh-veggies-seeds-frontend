@@ -104,20 +104,20 @@ const AdminCoupons = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 lg:p-8">
+    <div className="min-h-screen bg-fv-page  p-4 lg:p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            <h1 className="text-3xl font-bold text-fv-heading  mb-2">
               Coupon Management
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-fv-muted ">
               Create and manage discount coupons
             </p>
           </div>
           <button
             onClick={() => handleOpen()}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+            className="flex items-center gap-2 bg-fv-primary hover:bg-fv-primary-dark text-white px-6 py-3 rounded-lg font-medium transition-colors"
           >
             <Plus className="w-5 h-5" />
             Create Coupon
@@ -130,22 +130,22 @@ const AdminCoupons = () => {
               key={coupon._id}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-gray-700"
+              className="bg-white  rounded-[12px]  overflow-hidden border border-fv-border "
             >
               <div className={`p-6 ${isExpired(coupon.expiryDate) ? 'opacity-60' : ''}`}>
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-                      <Tag className="w-6 h-6 text-green-600" />
+                    <div className="w-12 h-12 bg-fv-cream dark:bg-green-900 rounded-lg flex items-center justify-center">
+                      <Tag className="w-6 h-6 text-fv-primary" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                      <h3 className="text-xl font-bold text-fv-heading ">
                         {coupon.code}
                       </h3>
                       <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
                         coupon.isActive && !isExpired(coupon.expiryDate)
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
+                          ? 'bg-fv-cream text-green-800'
+                          : 'bg-fv-surface text-fv-heading'
                       }`}>
                         {isExpired(coupon.expiryDate) ? 'Expired' : coupon.isActive ? 'Active' : 'Inactive'}
                       </span>
@@ -153,32 +153,32 @@ const AdminCoupons = () => {
                   </div>
                 </div>
 
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <p className="text-sm text-fv-muted  mb-4">
                   {coupon.description}
                 </p>
 
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center gap-2 text-sm">
-                    <Percent className="w-4 h-4 text-gray-500" />
-                    <span className="font-semibold text-gray-900 dark:text-white">
+                    <Percent className="w-4 h-4 text-fv-muted" />
+                    <span className="font-semibold text-fv-heading ">
                       {coupon.discountType === 'percentage' 
                         ? `${coupon.discountValue}% OFF`
                         : `₹${coupon.discountValue} OFF`}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center gap-2 text-sm text-fv-muted ">
                     <Calendar className="w-4 h-4" />
                     Expires: {new Date(coupon.expiryDate).toLocaleDateString('en-IN')}
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <div className="text-sm text-fv-muted ">
                     Min Order: ₹{coupon.minOrderAmount}
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <div className="text-sm text-fv-muted ">
                     Used: {coupon.usedCount} / {coupon.usageLimit || '∞'}
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex gap-2 pt-4 border-t border-fv-border ">
                   <button
                     onClick={() => handleOpen(coupon)}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-lg hover:bg-blue-200 transition-colors"
@@ -201,16 +201,16 @@ const AdminCoupons = () => {
 
         {coupons.length === 0 && (
           <div className="text-center py-12">
-            <Tag className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            <Tag className="w-16 h-16 text-fv-muted mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-fv-heading  mb-2">
               No coupons yet
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-fv-muted  mb-4">
               Create your first discount coupon to boost sales
             </p>
             <button
               onClick={() => handleOpen()}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium"
+              className="bg-fv-primary hover:bg-fv-primary-dark text-white px-6 py-2 rounded-lg font-medium"
             >
               Create Coupon
             </button>
@@ -223,16 +223,16 @@ const AdminCoupons = () => {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto"
+              className="bg-white  rounded-[12px] shadow-[0_18px_40px_rgba(10,76,54,0.10)] max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto"
             >
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+              <h2 className="text-2xl font-bold text-fv-heading  mb-6">
                 {editMode ? 'Edit Coupon' : 'Create New Coupon'}
               </h2>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-fv-ink  mb-2">
                       Coupon Code *
                     </label>
                     <input
@@ -240,19 +240,19 @@ const AdminCoupons = () => {
                       required
                       value={formData.code}
                       onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-2 border border-fv-border  rounded-lg focus:ring-2 focus:ring-fv-primary bg-white  text-fv-heading "
                       placeholder="SAVE20"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-fv-ink  mb-2">
                       Discount Type *
                     </label>
                     <select
                       required
                       value={formData.discountType}
                       onChange={(e) => setFormData({ ...formData, discountType: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-2 border border-fv-border  rounded-lg focus:ring-2 focus:ring-fv-primary bg-white  text-fv-heading "
                     >
                       <option value="percentage">Percentage (%)</option>
                       <option value="fixed">Fixed Amount (₹)</option>
@@ -261,14 +261,14 @@ const AdminCoupons = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-fv-ink  mb-2">
                     Description *
                   </label>
                   <textarea
                     required
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="w-full px-4 py-2 border border-fv-border  rounded-lg focus:ring-2 focus:ring-fv-primary bg-white  text-fv-heading "
                     rows="2"
                     placeholder="Get 20% off on all products"
                   />
@@ -276,7 +276,7 @@ const AdminCoupons = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-fv-ink  mb-2">
                       Discount Value *
                     </label>
                     <input
@@ -285,12 +285,12 @@ const AdminCoupons = () => {
                       min="0"
                       value={formData.discountValue}
                       onChange={(e) => setFormData({ ...formData, discountValue: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-2 border border-fv-border  rounded-lg focus:ring-2 focus:ring-fv-primary bg-white  text-fv-heading "
                       placeholder={formData.discountType === 'percentage' ? '20' : '100'}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-fv-ink  mb-2">
                       Min Order Amount *
                     </label>
                     <input
@@ -299,7 +299,7 @@ const AdminCoupons = () => {
                       min="0"
                       value={formData.minOrderAmount}
                       onChange={(e) => setFormData({ ...formData, minOrderAmount: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-2 border border-fv-border  rounded-lg focus:ring-2 focus:ring-fv-primary bg-white  text-fv-heading "
                       placeholder="500"
                     />
                   </div>
@@ -307,7 +307,7 @@ const AdminCoupons = () => {
 
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-fv-ink  mb-2">
                       Max Discount
                     </label>
                     <input
@@ -315,12 +315,12 @@ const AdminCoupons = () => {
                       min="0"
                       value={formData.maxDiscountAmount}
                       onChange={(e) => setFormData({ ...formData, maxDiscountAmount: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-2 border border-fv-border  rounded-lg focus:ring-2 focus:ring-fv-primary bg-white  text-fv-heading "
                       placeholder="200"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-fv-ink  mb-2">
                       Usage Limit
                     </label>
                     <input
@@ -328,12 +328,12 @@ const AdminCoupons = () => {
                       min="1"
                       value={formData.usageLimit}
                       onChange={(e) => setFormData({ ...formData, usageLimit: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-2 border border-fv-border  rounded-lg focus:ring-2 focus:ring-fv-primary bg-white  text-fv-heading "
                       placeholder="100"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-fv-ink  mb-2">
                       Per User Limit *
                     </label>
                     <input
@@ -342,13 +342,13 @@ const AdminCoupons = () => {
                       min="1"
                       value={formData.perUserLimit}
                       onChange={(e) => setFormData({ ...formData, perUserLimit: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-2 border border-fv-border  rounded-lg focus:ring-2 focus:ring-fv-primary bg-white  text-fv-heading "
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-fv-ink  mb-2">
                     Expiry Date *
                   </label>
                   <input
@@ -356,7 +356,7 @@ const AdminCoupons = () => {
                     required
                     value={formData.expiryDate}
                     onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="w-full px-4 py-2 border border-fv-border  rounded-lg focus:ring-2 focus:ring-fv-primary bg-white  text-fv-heading "
                   />
                 </div>
 
@@ -364,13 +364,13 @@ const AdminCoupons = () => {
                   <button
                     type="button"
                     onClick={() => setShowDialog(false)}
-                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    className="flex-1 px-4 py-2 border border-fv-border  text-fv-ink  rounded-lg hover:bg-fv-page  transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    className="flex-1 px-4 py-2 bg-fv-primary text-white rounded-lg hover:bg-fv-primary-dark transition-colors"
                   >
                     {editMode ? 'Update Coupon' : 'Create Coupon'}
                   </button>

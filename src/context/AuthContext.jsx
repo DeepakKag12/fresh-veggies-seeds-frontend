@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
+import { setCacheBypass, invalidateCache } from '../utils/cache';
 
 const AuthContext = createContext();
 
@@ -20,6 +21,12 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
+  // Admins edit the catalogue, so they must always read live data rather than
+  // the shared response cache. Keep the cache layer in step with who is signed in.
+  useEffect(() => {
+    setCacheBypass(user?.role === 'admin');
+  }, [user]);
+
   const checkAuth = async () => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -27,7 +34,11 @@ export const AuthProvider = ({ children }) => {
         const response = await api.get('/auth/me');
         setUser(response.data.data);
       } catch (error) {
+        // Covers an expired token and a revoked one (the backend rejects tokens
+        // issued before the last password change or logout-everywhere).
         localStorage.removeItem('token');
+        setUser(null);
+        invalidateCache();
       }
     }
     setLoading(false);
@@ -70,9 +81,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // Tell the backend first so it bumps tokenVersion and the token is actually
+    // revoked server-side. Without this call a copy of the token kept working
+    // until it expired, even though the user had "logged out".
+    try {
+      await api.post('/auth/logout');
+    } catch (err) {
+      // An expired or already-invalid token still means the user is logged out.
+      // Never block the local sign-out on a network or auth failure.
+      console.warn('Server logout failed; clearing local session anyway.', err?.message);
+    }
+
     localStorage.removeItem('token');
     setUser(null);
+    // Drop every cached response so the next session never inherits this one's data.
+    invalidateCache();
     toast.success('Logged out successfully. See you soon!');
   };
 

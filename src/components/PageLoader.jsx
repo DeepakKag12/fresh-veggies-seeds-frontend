@@ -1,19 +1,11 @@
 import React from 'react';
-import SeedLoader from './SeedLoader';
-import './PageLoader.css';
+import Loader from './Loader';
 
-/**
- * PageLoader - Uses the SeedLoader for page/section loading states
- * Can be used inline or centered in a container
- */
-const PageLoader = ({ size = 48, text = 'Loading...', centered = true, fullHeight = false }) => {
-  const containerClass = `page-loader ${centered ? 'page-loader--centered' : ''} ${fullHeight ? 'page-loader--full-height' : ''}`;
-  
-  return (
-    <div className={containerClass}>
-      <SeedLoader size={size} text={text} />
-    </div>
-  );
-};
+/** Centred loading state for a page or a section. */
+const PageLoader = ({ size = 56, text = 'Loading…', fullHeight = false }) => (
+  <div className={`flex w-full items-center justify-center ${fullHeight ? 'min-h-[60vh]' : 'py-16'}`}>
+    <Loader size={size} text={text} />
+  </div>
+);
 
 export default PageLoader;

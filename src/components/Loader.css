@@ -1,0 +1,71 @@
+/* Brand loader. Transform/opacity only, so the animation runs on the
+   compositor and never triggers layout. */
+.fv-loader {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.fv-loader__ring {
+  position: relative;
+  width: var(--fv-loader-size, 56px);
+  height: var(--fv-loader-size, 56px);
+}
+
+/* Track sits underneath so the sweep always reads against something. */
+.fv-loader__ring::before,
+.fv-loader__ring::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 3px solid transparent;
+}
+.fv-loader__ring::before {
+  border-color: #CADFD4;
+}
+.fv-loader__ring::after {
+  border-top-color: #0A4C36;
+  border-right-color: #FFD51F;
+  animation: fv-loader-spin 900ms linear infinite;
+}
+
+.fv-loader__mark {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #0A4C36;
+  animation: fv-loader-breathe 1800ms ease-in-out infinite;
+}
+
+.fv-loader__text {
+  font-size: 14px;
+  color: #5D6B5F;
+}
+
+@keyframes fv-loader-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes fv-loader-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+}
+
+/* Motion here is decorative — the text and role="status" carry the meaning. */
+@media (prefers-reduced-motion: reduce) {
+  .fv-loader__ring::after { animation: none; border-top-color: #0A4C36; border-right-color: #0A4C36; }
+  .fv-loader__mark { animation: none; }
+}
+
+/* Full-screen overlay used between route transitions. */
+.fv-loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 246, 244, 0.88);
+  backdrop-filter: blur(2px);
+}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Edit, Trash2, Plus, X, Upload, ShoppingBag } from 'lucide-react';
-import api from '../../utils/api';
+import api, { fetchAllPages } from '../../utils/api';
 
 const AdminCombos = () => {
   const [combos, setCombos] = useState([]);
@@ -40,8 +40,10 @@ const AdminCombos = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await api.get('/products?limit=100');
-      setProducts(response.data.data);
+      // The picker must offer every product, and `?limit=100` did not do that —
+      // the API clamps page size, so products beyond the cap were unpickable.
+      const allProducts = await fetchAllPages('/products');
+      setProducts(allProducts);
     } catch (error) {
       console.error('Error fetching products:', error);
     }
@@ -191,16 +193,16 @@ const AdminCombos = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+    <div className="min-h-screen bg-fv-page  py-8">
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-3xl font-bold text-fv-heading ">
             Manage Combo Packs
           </h1>
           <button
             onClick={() => handleOpen()}
-            className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition-all"
+            className="flex items-center gap-2 bg-fv-primary hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 rounded-lg font-semibold  transition-all"
           >
             <Plus className="w-5 h-5" />
             Add Combo
@@ -212,7 +214,7 @@ const AdminCombos = () => {
           {combos.map((combo) => (
             <div
               key={combo._id}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow"
+              className="bg-white  rounded-[12px]  overflow-hidden hover:shadow-[0_18px_40px_rgba(10,76,54,0.10)] transition-shadow"
             >
               <img
                 src={combo.images?.[0] || 'https://via.placeholder.com/300'}
@@ -220,19 +222,19 @@ const AdminCombos = () => {
                 className="w-full h-48 object-cover"
               />
               <div className="p-4">
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
+                <h3 className="font-semibold text-fv-heading  mb-2 line-clamp-2">
                   {combo.name}
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                <p className="text-sm text-fv-muted  mb-2">
                   {combo.comboType}
                 </p>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg font-bold text-green-600">
+                  <span className="text-lg font-bold text-fv-primary">
                     ₹{combo.price}
                   </span>
                   {combo.originalPrice && combo.originalPrice > combo.price && (
                     <>
-                      <span className="text-sm text-gray-500 line-through">
+                      <span className="text-sm text-fv-muted line-through">
                         ₹{combo.originalPrice}
                       </span>
                       <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-1 rounded-full">
@@ -242,7 +244,7 @@ const AdminCombos = () => {
                   )}
                 </div>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-fv-muted">
                     Stock: {combo.stock}
                   </span>
                   {combo.includedProducts && combo.includedProducts.length > 0 && (
@@ -274,17 +276,17 @@ const AdminCombos = () => {
         {/* Modal */}
         {open && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-white  rounded-[12px] shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
               <form onSubmit={handleSubmit}>
                 {/* Modal Header */}
-                <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <div className="flex justify-between items-center p-6 border-b border-fv-border ">
+                  <h2 className="text-2xl font-bold text-fv-heading ">
                     {editMode ? 'Edit Combo' : 'Add New Combo'}
                   </h2>
                   <button
                     type="button"
                     onClick={handleClose}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    className="p-2 hover:bg-fv-surface  rounded-lg transition-colors"
                   >
                     <X className="w-6 h-6" />
                   </button>
@@ -294,14 +296,14 @@ const AdminCombos = () => {
                 <div className="p-6 space-y-6">
                   {/* Message */}
                   {message.text && (
-                    <div className={`p-4 rounded-lg ${message.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'}`}>
+                    <div className={`p-4 rounded-lg ${message.type === 'success' ? 'bg-fv-cream dark:bg-green-900/20 text-fv-primary-dark dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'}`}>
                       {message.text}
                     </div>
                   )}
 
                   {/* Combo Name */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-fv-ink  mb-2">
                       Combo Name *
                     </label>
                     <input
@@ -309,21 +311,21 @@ const AdminCombos = () => {
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
+                      className="w-full px-4 py-3 border border-fv-border  rounded-lg bg-white  text-fv-heading  focus:ring-2 focus:ring-fv-primary"
                     />
                   </div>
 
                   {/* Type & Stock */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-fv-ink  mb-2">
                         Combo Type *
                       </label>
                       <select
                         required
                         value={formData.comboType}
                         onChange={(e) => setFormData({ ...formData, comboType: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
+                        className="w-full px-4 py-3 border border-fv-border  rounded-lg bg-white  text-fv-heading  focus:ring-2 focus:ring-fv-primary"
                       >
                         {['Small', 'Medium', 'Kitchen Garden', 'Terrace Garden', 'Growing Kit', 'Custom'].map((type) => (
                           <option key={type} value={type}>
@@ -333,7 +335,7 @@ const AdminCombos = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-fv-ink  mb-2">
                         Stock Quantity *
                       </label>
                       <input
@@ -341,7 +343,7 @@ const AdminCombos = () => {
                         required
                         value={formData.stock}
                         onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
+                        className="w-full px-4 py-3 border border-fv-border  rounded-lg bg-white  text-fv-heading  focus:ring-2 focus:ring-fv-primary"
                       />
                     </div>
                   </div>
@@ -349,7 +351,7 @@ const AdminCombos = () => {
                   {/* Price Fields */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-fv-ink  mb-2">
                         Combo Price * (₹)
                       </label>
                       <input
@@ -357,36 +359,36 @@ const AdminCombos = () => {
                         required
                         value={formData.price}
                         onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
+                        className="w-full px-4 py-3 border border-fv-border  rounded-lg bg-white  text-fv-heading  focus:ring-2 focus:ring-fv-primary"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-fv-ink  mb-2">
                         Original Price (₹)
                       </label>
                       <input
                         type="number"
                         value={formData.originalPrice}
                         onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
+                        className="w-full px-4 py-3 border border-fv-border  rounded-lg bg-white  text-fv-heading  focus:ring-2 focus:ring-fv-primary"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-fv-ink  mb-2">
                         Discount (%)
                       </label>
                       <input
                         type="number"
                         value={formData.discount}
                         onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
+                        className="w-full px-4 py-3 border border-fv-border  rounded-lg bg-white  text-fv-heading  focus:ring-2 focus:ring-fv-primary"
                       />
                     </div>
                   </div>
 
                   {/* Description */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-fv-ink  mb-2">
                       Description *
                     </label>
                     <textarea
@@ -394,14 +396,14 @@ const AdminCombos = () => {
                       rows="4"
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500"
+                      className="w-full px-4 py-3 border border-fv-border  rounded-lg bg-white  text-fv-heading  focus:ring-2 focus:ring-fv-primary"
                     />
                   </div>
 
                   {/* Product Selection Section */}
-                  <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-4">
+                  <div className="border border-fv-border  rounded-lg p-4">
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <h3 className="text-lg font-semibold text-fv-heading  flex items-center gap-2">
                         <ShoppingBag className="w-5 h-5" />
                         Included Products
                       </h3>
@@ -419,22 +421,22 @@ const AdminCombos = () => {
                     {selectedProducts.length > 0 && (
                       <div className="space-y-2 mb-4">
                         {selectedProducts.map((item) => (
-                          <div key={item.productId._id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                          <div key={item.productId._id} className="flex items-center gap-3 p-3 bg-fv-page  rounded-lg">
                             <img
                               src={item.productId.images?.[0] || 'https://via.placeholder.com/50'}
                               alt={item.productId.name}
                               className="w-12 h-12 object-cover rounded"
                             />
                             <div className="flex-1">
-                              <p className="font-medium text-gray-900 dark:text-white">{item.productId.name}</p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">₹{item.productId.price}</p>
+                              <p className="font-medium text-fv-heading ">{item.productId.name}</p>
+                              <p className="text-sm text-fv-muted ">₹{item.productId.price}</p>
                             </div>
                             <input
                               type="number"
                               min="1"
                               value={item.quantity}
                               onChange={(e) => handleProductQuantityChange(item.productId._id, e.target.value)}
-                              className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                              className="w-20 px-2 py-1 border border-fv-border  rounded bg-white  text-fv-heading "
                             />
                             <button
                               type="button"
@@ -450,7 +452,7 @@ const AdminCombos = () => {
 
                     {/* Product Selector */}
                     {showProductSelector && (
-                      <div className="max-h-64 overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-lg p-2">
+                      <div className="max-h-64 overflow-y-auto border border-fv-border  rounded-lg p-2">
                         <div className="grid grid-cols-1 gap-2">
                           {products.map((product) => (
                             <button
@@ -461,7 +463,7 @@ const AdminCombos = () => {
                               className={`flex items-center gap-3 p-2 rounded-lg text-left transition-colors ${
                                 selectedProducts.some(p => p.productId._id === product._id)
                                   ? 'bg-gray-200 dark:bg-gray-600 cursor-not-allowed'
-                                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                                  : 'hover:bg-fv-surface '
                               }`}
                             >
                               <img
@@ -470,11 +472,11 @@ const AdminCombos = () => {
                                 className="w-10 h-10 object-cover rounded"
                               />
                               <div className="flex-1">
-                                <p className="font-medium text-gray-900 dark:text-white text-sm">{product.name}</p>
-                                <p className="text-xs text-gray-600 dark:text-gray-400">₹{product.price}</p>
+                                <p className="font-medium text-fv-heading  text-sm">{product.name}</p>
+                                <p className="text-xs text-fv-muted ">₹{product.price}</p>
                               </div>
                               {selectedProducts.some(p => p.productId._id === product._id) && (
-                                <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded-full">
+                                <span className="text-xs bg-fv-cream dark:bg-green-900/30 text-fv-primary-dark dark:text-green-400 px-2 py-1 rounded-full">
                                   Added
                                 </span>
                               )}
@@ -487,11 +489,11 @@ const AdminCombos = () => {
 
                   {/* Image Upload */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-fv-ink  mb-2">
                       Combo Images
                     </label>
                     <div className="flex items-center gap-4">
-                      <label className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-3 rounded-lg cursor-pointer transition-colors">
+                      <label className="flex items-center gap-2 bg-fv-surface  hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-3 rounded-lg cursor-pointer transition-colors">
                         <Upload className="w-5 h-5" />
                         <span>Upload from Device</span>
                         <input
@@ -520,23 +522,23 @@ const AdminCombos = () => {
                       placeholder="Or paste image URLs (comma-separated)"
                       value={formData.images}
                       onChange={(e) => setFormData({ ...formData, images: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 mt-2"
+                      className="w-full px-4 py-3 border border-fv-border  rounded-lg bg-white  text-fv-heading  focus:ring-2 focus:ring-fv-primary mt-2"
                     />
                   </div>
                 </div>
 
                 {/* Modal Footer */}
-                <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex justify-end gap-3 p-6 border-t border-fv-border ">
                   <button
                     type="button"
                     onClick={handleClose}
-                    className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    className="px-6 py-3 border border-fv-border  text-fv-ink  rounded-lg hover:bg-fv-surface  transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-semibold transition-all"
+                    className="px-6 py-3 bg-fv-primary hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-semibold transition-all"
                   >
                     {editMode ? 'Update Combo' : 'Create Combo'}
                   </button>

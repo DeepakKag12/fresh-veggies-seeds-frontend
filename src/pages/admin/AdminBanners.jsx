@@ -147,12 +147,12 @@ function AdminBanners() {
     const colors = {
       hero: 'bg-purple-100 text-purple-800',
       top: 'bg-blue-100 text-blue-800',
-      middle: 'bg-green-100 text-green-800',
+      middle: 'bg-fv-cream text-green-800',
       bottom: 'bg-yellow-100 text-yellow-800',
       sidebar: 'bg-pink-100 text-pink-800'
     };
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${colors[position] || 'bg-gray-100 text-gray-800'}`}>
+      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${colors[position] || 'bg-fv-surface text-fv-heading'}`}>
         {position.charAt(0).toUpperCase() + position.slice(1)}
       </span>
     );
@@ -166,7 +166,7 @@ function AdminBanners() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-fv-primary"></div>
       </div>
     );
   }
@@ -175,12 +175,12 @@ function AdminBanners() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Banner Management</h1>
-          <p className="text-gray-600 dark:text-gray-400">Manage homepage banners and promotional campaigns</p>
+          <h1 className="text-3xl font-bold text-fv-heading  mb-2">Banner Management</h1>
+          <p className="text-fv-muted ">Manage homepage banners and promotional campaigns</p>
         </div>
         <button
           onClick={() => handleOpenDialog()}
-          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+          className="px-6 py-3 bg-fv-primary text-white rounded-lg hover:bg-fv-primary-dark transition-colors flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
           Create Banner
@@ -192,16 +192,16 @@ function AdminBanners() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl"
+          className="text-center py-16 bg-white  rounded-[12px]"
         >
-          <Image className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No banners yet</h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
+          <Image className="w-16 h-16 text-fv-muted mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-fv-heading  mb-2">No banners yet</h3>
+          <p className="text-fv-muted  mb-6">
             Create your first banner to start promoting products and offers
           </p>
           <button
             onClick={() => handleOpenDialog()}
-            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-2"
+            className="px-6 py-3 bg-fv-primary text-white rounded-lg hover:bg-fv-primary-dark transition-colors inline-flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />
             Create Banner
@@ -215,7 +215,7 @@ function AdminBanners() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden"
+              className="bg-white  rounded-[12px]  overflow-hidden"
             >
               {/* Banner Image */}
               <div className="relative h-48">
@@ -228,8 +228,8 @@ function AdminBanners() {
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-semibold ${
                       isActive(banner)
-                        ? 'bg-green-500 text-white'
-                        : 'bg-gray-500 text-white'
+                        ? 'bg-fv-cream0 text-white'
+                        : 'bg-fv-page0 text-white'
                     }`}
                   >
                     {isActive(banner) ? 'Active' : 'Inactive'}
@@ -241,25 +241,25 @@ function AdminBanners() {
               <div className="p-6">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                    <h3 className="text-xl font-bold text-fv-heading  mb-2">
                       {banner.title}
                     </h3>
                     {getPositionBadge(banner.position)}
                   </div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                  <span className="text-sm text-fv-muted ">
                     Order: {banner.order}
                   </span>
                 </div>
 
                 {banner.description && (
-                  <p className="text-gray-700 dark:text-gray-300 mb-3 line-clamp-2">
+                  <p className="text-fv-ink  mb-3 line-clamp-2">
                     {banner.description}
                   </p>
                 )}
 
                 {/* Schedule */}
                 {(banner.startDate || banner.endDate) && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  <div className="flex items-center gap-2 text-sm text-fv-muted  mb-3">
                     <Calendar className="w-4 h-4" />
                     <span>
                       {banner.startDate && new Date(banner.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -271,14 +271,14 @@ function AdminBanners() {
 
                 {/* Link */}
                 {banner.linkUrl && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-3 truncate">
+                  <div className="flex items-center gap-2 text-sm text-fv-muted  mb-3 truncate">
                     <LinkIcon className="w-4 h-4" />
                     <span className="truncate">{banner.linkUrl}</span>
                   </div>
                 )}
 
                 {/* Analytics */}
-                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <div className="flex items-center gap-4 text-sm text-fv-muted  mb-4">
                   <div className="flex items-center gap-1">
                     <Eye className="w-4 h-4" />
                     <span>{banner.viewCount || 0} views</span>
@@ -321,16 +321,16 @@ function AdminBanners() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-2xl w-full my-8"
+            className="bg-white  rounded-[12px] p-6 max-w-2xl w-full my-8"
           >
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+            <h3 className="text-2xl font-bold text-fv-heading  mb-6">
               {editingBanner ? 'Edit Banner' : 'Create New Banner'}
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-fv-ink  mb-2">
                   Title *
                 </label>
                 <input
@@ -339,13 +339,13 @@ function AdminBanners() {
                   value={formData.title}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-fv-border  rounded-lg focus:outline-none focus:ring-2 focus:ring-fv-primary"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-fv-ink  mb-2">
                   Description
                 </label>
                 <textarea
@@ -353,13 +353,13 @@ function AdminBanners() {
                   value={formData.description}
                   onChange={handleInputChange}
                   rows="3"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-fv-border  rounded-lg focus:outline-none focus:ring-2 focus:ring-fv-primary"
                 />
               </div>
 
               {/* Desktop Image URL */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-fv-ink  mb-2">
                   Desktop Image URL *
                 </label>
                 <input
@@ -369,13 +369,13 @@ function AdminBanners() {
                   onChange={handleInputChange}
                   required
                   placeholder="https://example.com/banner.jpg"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-fv-border  rounded-lg focus:outline-none focus:ring-2 focus:ring-fv-primary"
                 />
               </div>
 
               {/* Mobile Image URL */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-fv-ink  mb-2">
                   Mobile Image URL (Optional)
                 </label>
                 <input
@@ -384,14 +384,14 @@ function AdminBanners() {
                   value={formData.mobileImageUrl}
                   onChange={handleInputChange}
                   placeholder="https://example.com/banner-mobile.jpg"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-fv-border  rounded-lg focus:outline-none focus:ring-2 focus:ring-fv-primary"
                 />
               </div>
 
               {/* Link URL and Type */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-fv-ink  mb-2">
                     Link URL
                   </label>
                   <input
@@ -399,19 +399,19 @@ function AdminBanners() {
                     name="linkUrl"
                     value={formData.linkUrl}
                     onChange={handleInputChange}
-                    placeholder="/shop or https://..."
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="/ or https://..."
+                    className="w-full px-3 py-2 border border-fv-border  rounded-lg focus:outline-none focus:ring-2 focus:ring-fv-primary"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-fv-ink  mb-2">
                     Link Type
                   </label>
                   <select
                     name="linkType"
                     value={formData.linkType}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 border border-fv-border  rounded-lg focus:outline-none focus:ring-2 focus:ring-fv-primary"
                   >
                     <option value="internal">Internal</option>
                     <option value="external">External</option>
@@ -422,14 +422,14 @@ function AdminBanners() {
               {/* Position and Order */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-fv-ink  mb-2">
                     Position
                   </label>
                   <select
                     name="position"
                     value={formData.position}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 border border-fv-border  rounded-lg focus:outline-none focus:ring-2 focus:ring-fv-primary"
                   >
                     <option value="hero">Hero</option>
                     <option value="top">Top</option>
@@ -439,7 +439,7 @@ function AdminBanners() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-fv-ink  mb-2">
                     Order
                   </label>
                   <input
@@ -448,7 +448,7 @@ function AdminBanners() {
                     value={formData.order}
                     onChange={handleInputChange}
                     min="0"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 border border-fv-border  rounded-lg focus:outline-none focus:ring-2 focus:ring-fv-primary"
                   />
                 </div>
               </div>
@@ -456,7 +456,7 @@ function AdminBanners() {
               {/* Start and End Dates */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-fv-ink  mb-2">
                     Start Date
                   </label>
                   <input
@@ -464,11 +464,11 @@ function AdminBanners() {
                     name="startDate"
                     value={formData.startDate}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 border border-fv-border  rounded-lg focus:outline-none focus:ring-2 focus:ring-fv-primary"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-fv-ink  mb-2">
                     End Date
                   </label>
                   <input
@@ -476,7 +476,7 @@ function AdminBanners() {
                     name="endDate"
                     value={formData.endDate}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 py-2 border border-fv-border  rounded-lg focus:outline-none focus:ring-2 focus:ring-fv-primary"
                   />
                 </div>
               </div>
@@ -489,9 +489,9 @@ function AdminBanners() {
                   name="isActive"
                   checked={formData.isActive}
                   onChange={handleInputChange}
-                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                  className="w-4 h-4 text-fv-primary border-fv-border rounded focus:ring-fv-primary"
                 />
-                <label htmlFor="isActive" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label htmlFor="isActive" className="text-sm font-medium text-fv-ink ">
                   Active
                 </label>
               </div>
@@ -500,14 +500,14 @@ function AdminBanners() {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  className="flex-1 px-4 py-2 bg-fv-primary text-white rounded-lg hover:bg-fv-primary-dark transition-colors"
                 >
                   {editingBanner ? 'Update Banner' : 'Create Banner'}
                 </button>
                 <button
                   type="button"
                   onClick={handleCloseDialog}
-                  className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+                  className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-fv-heading  rounded-lg hover:bg-gray-400 dark:hover:bg-fv-page0 transition-colors"
                 >
                   Cancel
                 </button>

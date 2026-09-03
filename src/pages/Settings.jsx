@@ -1,11 +1,76 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  User, MapPin, Package, Lock, Mail, LogOut, Save, Loader2, CheckCircle2, AlertCircle, Clock,
+} from 'lucide-react';
+import { validatePassword, PASSWORD_RULE_TEXT } from '../utils/passwordPolicy';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Lock, User, Save, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
+import { cachedGet } from '../utils/api';
+import PasswordInput from '../components/ui/PasswordInput';
+import Input from '../components/ui/Input';
+
+/**
+ * Account settings: a persistent sidebar of account areas beside the active
+ * panel. The sidebar is a real <nav> with buttons, so the whole thing is
+ * keyboard navigable and the current panel is announced via aria-current.
+ */
+const SECTIONS = [
+  { id: 'profile', label: 'My profile', Icon: User },
+  { id: 'address', label: 'Delivery address', Icon: MapPin },
+  { id: 'email', label: 'Change email', Icon: Mail },
+  { id: 'password', label: 'Change password', Icon: Lock },
+];
+
+const greeting = () => {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+};
+
+const Panel = ({ title, description, children, onSubmit, busy, submitLabel = 'Save changes' }) => (
+  <form onSubmit={onSubmit} className="rounded-[18px] border border-fv-border bg-white p-6">
+    <h2 className="font-serif text-[22px] font-semibold text-fv-heading">{title}</h2>
+    {description && <p className="mt-1 text-[14px] text-fv-muted">{description}</p>}
+    <div className="mt-6 space-y-5">{children}</div>
+    <button
+      type="submit"
+      disabled={busy}
+      className="mt-6 inline-flex h-12 items-center gap-2 rounded-[50px] bg-fv-primary px-6 text-[15px]
+                 font-semibold text-white hover:bg-fv-primary-dark disabled:opacity-60
+                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary
+                 focus-visible:ring-offset-2"
+    >
+      {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Save className="h-4 w-4" aria-hidden="true" />}
+      {submitLabel}
+    </button>
+  </form>
+);
 
 const Settings = () => {
-  const { user, updateProfile, changeEmail, changePassword } = useAuth();
-  
-  // Profile form state
+  const { user, logout, updateProfile, changeEmail, changePassword } = useAuth();
+  const [active, setActive] = useState('profile');
+  const [now, setNow] = useState(() => new Date());
+  const [orderCount, setOrderCount] = useState(null);
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // The badge shows a real count from the orders API, or nothing at all —
+  // never a placeholder zero that might be wrong.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await cachedGet('/orders/myorders', { params: { limit: 1 } });
+        if (alive) setOrderCount(res?.data?.total ?? (res?.data?.data || []).length);
+      } catch { /* leave the badge off */ }
+    })();
+    return () => { alive = false; };
+  }, []);
+
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
     phone: user?.phone || '',
@@ -14,33 +79,12 @@ const Settings = () => {
       city: user?.address?.city || '',
       state: user?.address?.state || '',
       pincode: user?.address?.pincode || '',
-    }
+    },
   });
-  
-  // Email form state
-  const [emailData, setEmailData] = useState({
-    newEmail: '',
-    password: ''
-  });
-  
-  // Password form state
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-  
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showEmailPassword, setShowEmailPassword] = useState(false);
-  
-  const [loading, setLoading] = useState({
-    profile: false,
-    email: false,
-    password: false
-  });
-  
+  const [emailData, setEmailData] = useState({ newEmail: '', password: '' });
+  const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState({ profile: false, email: false, password: false });
   const [message, setMessage] = useState({ type: '', text: '' });
 
   const showMessage = (type, text) => {
@@ -48,320 +92,182 @@ const Settings = () => {
     setTimeout(() => setMessage({ type: '', text: '' }), 5000);
   };
 
+  const setAddress = (field, value) =>
+    setProfileData((p) => ({ ...p, address: { ...p.address, [field]: value } }));
+
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
-    setLoading({ ...loading, profile: true });
-    
+    setLoading((l) => ({ ...l, profile: true }));
     const result = await updateProfile(profileData);
-    
-    if (result.success) {
-      showMessage('success', 'Profile updated successfully!');
-    } else {
-      showMessage('error', result.message);
-    }
-    
-    setLoading({ ...loading, profile: false });
+    showMessage(result.success ? 'success' : 'error', result.success ? 'Profile updated.' : result.message);
+    setLoading((l) => ({ ...l, profile: false }));
   };
 
   const handleEmailChange = async (e) => {
     e.preventDefault();
-    setLoading({ ...loading, email: true });
-    
+    setLoading((l) => ({ ...l, email: true }));
     const result = await changeEmail(emailData.newEmail, emailData.password);
-    
-    if (result.success) {
-      showMessage('success', result.message);
-      setEmailData({ newEmail: '', password: '' });
-    } else {
-      showMessage('error', result.message);
-    }
-    
-    setLoading({ ...loading, email: false });
+    if (result.success) setEmailData({ newEmail: '', password: '' });
+    showMessage(result.success ? 'success' : 'error', result.message);
+    setLoading((l) => ({ ...l, email: false }));
   };
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
-    
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      showMessage('error', 'New passwords do not match');
-      return;
-    }
-    
-    if (passwordData.newPassword.length < 6) {
-      showMessage('error', 'New password must be at least 6 characters long');
-      return;
-    }
-    
-    setLoading({ ...loading, password: true });
-    
+    const next = {};
+    const check = validatePassword(passwordData.newPassword);
+    if (!check.valid) next.newPassword = check.message;
+    if (passwordData.newPassword !== passwordData.confirmPassword) next.confirmPassword = 'Passwords do not match';
+    setErrors(next);
+    if (Object.keys(next).length) return;
+
+    setLoading((l) => ({ ...l, password: true }));
     const result = await changePassword(passwordData.currentPassword, passwordData.newPassword);
-    
-    if (result.success) {
-      showMessage('success', result.message);
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } else {
-      showMessage('error', result.message);
-    }
-    
-    setLoading({ ...loading, password: false });
+    if (result.success) setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    showMessage(result.success ? 'success' : 'error', result.message);
+    setLoading((l) => ({ ...l, password: false }));
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Account Settings</h1>
-          <p className="text-gray-600 dark:text-gray-400">Manage your account information and security settings</p>
-        </div>
+    <div className="bg-fv-page">
+      <div className="mx-auto max-w-[1200px] px-4 py-10 sm:px-6 lg:px-10">
+        <h1 className="text-center font-serif text-[30px] font-semibold text-fv-heading sm:text-[38px]">
+          {greeting()}{user?.name ? `, ${user.name.split(' ')[0]}` : ''}!
+        </h1>
 
-        {/* Success/Error Message */}
         {message.text && (
-          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
-            message.type === 'success' 
-              ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-400' 
-              : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400'
-          }`}>
-            {message.type === 'success' ? (
-              <CheckCircle className="w-5 h-5" />
-            ) : (
-              <XCircle className="w-5 h-5" />
-            )}
-            <span>{message.text}</span>
-          </div>
+          <p
+            role="alert"
+            className={`mx-auto mt-6 flex max-w-xl items-center gap-2 rounded-[10px] px-4 py-3 text-[14px] ${
+              message.type === 'success'
+                ? 'bg-fv-cream text-fv-success'
+                : 'bg-red-50 text-fv-danger'
+            }`}
+          >
+            {message.type === 'success'
+              ? <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+              : <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />}
+            {message.text}
+          </p>
         )}
 
-        {/* Profile Information */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-          <div className="flex items-center gap-3 mb-6">
-            <User className="w-6 h-6 text-green-600 dark:text-green-400" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Profile Information</h2>
-          </div>
-          
-          <form onSubmit={handleProfileUpdate} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name</label>
-              <input
-                type="text"
-                value={profileData.name}
-                onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                required
-              />
+        <div className="mt-8 grid gap-6 lg:grid-cols-[280px_1fr]">
+          {/* Sidebar */}
+          <nav aria-label="Account sections" className="h-fit rounded-[18px] bg-fv-primary p-4 text-white shadow-[0_18px_40px_rgba(10,76,54,0.18)]">
+            <div className="flex items-center gap-3 rounded-[12px] bg-white/10 p-3">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/20 text-[18px] font-semibold">
+                {(user?.name || '?').charAt(0).toUpperCase()}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-[15px] font-semibold">{user?.name || 'Your account'}</span>
+                <span className="mt-0.5 flex items-center gap-1.5 text-[13px] text-white/70">
+                  <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                  <time dateTime={now.toISOString()}>
+                    {now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </time>
+                </span>
+              </span>
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone</label>
-              <input
-                type="tel"
-                value={profileData.phone}
-                onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                required
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Street</label>
-                <input
-                  type="text"
-                  value={profileData.address.street}
-                  onChange={(e) => setProfileData({ 
-                    ...profileData, 
-                    address: { ...profileData.address, street: e.target.value }
-                  })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">City</label>
-                <input
-                  type="text"
-                  value={profileData.address.city}
-                  onChange={(e) => setProfileData({ 
-                    ...profileData, 
-                    address: { ...profileData.address, city: e.target.value }
-                  })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">State</label>
-                <input
-                  type="text"
-                  value={profileData.address.state}
-                  onChange={(e) => setProfileData({ 
-                    ...profileData, 
-                    address: { ...profileData.address, state: e.target.value }
-                  })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pincode</label>
-                <input
-                  type="text"
-                  value={profileData.address.pincode}
-                  onChange={(e) => setProfileData({ 
-                    ...profileData, 
-                    address: { ...profileData.address, pincode: e.target.value }
-                  })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                />
-              </div>
-            </div>
-            
-            <button
-              type="submit"
-              disabled={loading.profile}
-              className="flex items-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Save className="w-4 h-4" />
-              {loading.profile ? 'Saving...' : 'Save Changes'}
-            </button>
-          </form>
-        </div>
 
-        {/* Change Email */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Mail className="w-6 h-6 text-green-600 dark:text-green-400" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Change Email</h2>
-          </div>
-          
-          <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Current Email: <span className="font-semibold text-gray-900 dark:text-white">{user?.email}</span></p>
-          </div>
-          
-          <form onSubmit={handleEmailChange} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">New Email</label>
-              <input
-                type="email"
-                value={emailData.newEmail}
-                onChange={(e) => setEmailData({ ...emailData, newEmail: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                required
-                placeholder="Enter new email"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Password</label>
-              <div className="relative">
-                <input
-                  type={showEmailPassword ? 'text' : 'password'}
-                  value={emailData.password}
-                  onChange={(e) => setEmailData({ ...emailData, password: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 pr-10"
-                  required
-                  placeholder="Confirm with your password"
-                />
+            <ul className="mt-3 space-y-1">
+              {SECTIONS.map(({ id, label, Icon }) => (
+                <li key={id}>
+                  <button
+                    type="button"
+                    onClick={() => setActive(id)}
+                    aria-current={active === id ? 'true' : undefined}
+                    className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-3 text-left text-[15px]
+                                transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2
+                                focus-visible:ring-fv-yellow motion-reduce:transition-none ${
+                      active === id ? 'bg-white/15 font-semibold' : 'hover:bg-white/10'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {label}
+                  </button>
+                </li>
+              ))}
+              <li>
+                <Link
+                  to="/orders"
+                  className="flex w-full items-center gap-3 rounded-[10px] px-3 py-3 text-[15px] hover:bg-white/10
+                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-yellow"
+                >
+                  <Package className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  Order history
+                  {orderCount !== null && (
+                    <span className="ml-auto rounded-[6px] bg-white/20 px-2 py-0.5 text-[12px] font-semibold">
+                      {orderCount}
+                    </span>
+                  )}
+                </Link>
+              </li>
+              <li className="pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowEmailPassword(!showEmailPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                  onClick={logout}
+                  className="flex w-full items-center gap-3 rounded-[10px] px-3 py-3 text-left text-[15px]
+                             text-fv-yellow hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2
+                             focus-visible:ring-fv-yellow"
                 >
-                  {showEmailPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  Log out
                 </button>
-              </div>
-            </div>
-            
-            <button
-              type="submit"
-              disabled={loading.email}
-              className="flex items-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Mail className="w-4 h-4" />
-              {loading.email ? 'Changing...' : 'Change Email'}
-            </button>
-          </form>
-        </div>
+              </li>
+            </ul>
+          </nav>
 
-        {/* Change Password */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Lock className="w-6 h-6 text-green-600 dark:text-green-400" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Change Password</h2>
+          {/* Active panel */}
+          <div>
+            {active === 'profile' && (
+              <Panel title="My profile" description="Your name and contact number." onSubmit={handleProfileUpdate} busy={loading.profile}>
+                <Input label="Full name" value={profileData.name} required
+                       onChange={(e) => setProfileData((p) => ({ ...p, name: e.target.value }))} />
+                <Input label="Contact number" type="tel" inputMode="numeric" value={profileData.phone}
+                       onChange={(e) => setProfileData((p) => ({ ...p, phone: e.target.value }))} />
+                <p className="text-[13px] text-fv-muted">
+                  Your email is {user?.email}. Change it from the “Change email” section.
+                </p>
+              </Panel>
+            )}
+
+            {active === 'address' && (
+              <Panel title="Delivery address" description="Where your orders are sent." onSubmit={handleProfileUpdate} busy={loading.profile}>
+                <Input label="Street address" value={profileData.address.street} onChange={(e) => setAddress('street', e.target.value)} />
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Input label="City" value={profileData.address.city} onChange={(e) => setAddress('city', e.target.value)} />
+                  <Input label="State" value={profileData.address.state} onChange={(e) => setAddress('state', e.target.value)} />
+                </div>
+                <Input label="PIN code" inputMode="numeric" maxLength={6} value={profileData.address.pincode}
+                       onChange={(e) => setAddress('pincode', e.target.value.replace(/\D/g, ''))} />
+              </Panel>
+            )}
+
+            {active === 'email' && (
+              <Panel title="Change email" description="You will need to confirm the new address." onSubmit={handleEmailChange} busy={loading.email} submitLabel="Update email">
+                <Input label="New email address" type="email" required value={emailData.newEmail}
+                       onChange={(e) => setEmailData((d) => ({ ...d, newEmail: e.target.value }))} />
+                <PasswordInput label="Current password" required value={emailData.password}
+                               onChange={(e) => setEmailData((d) => ({ ...d, password: e.target.value }))} />
+              </Panel>
+            )}
+
+            {active === 'password' && (
+              <Panel title="Change password" onSubmit={handlePasswordChange} busy={loading.password} submitLabel="Update password">
+                <PasswordInput label="Current password" required value={passwordData.currentPassword}
+                               onChange={(e) => setPasswordData((d) => ({ ...d, currentPassword: e.target.value }))} />
+                <div>
+                  <PasswordInput label="New password" required showStrengthIndicator value={passwordData.newPassword}
+                                 error={errors.newPassword}
+                                 onChange={(e) => setPasswordData((d) => ({ ...d, newPassword: e.target.value }))} />
+                  {!errors.newPassword && <p className="mt-1.5 text-xs text-fv-muted">{PASSWORD_RULE_TEXT}</p>}
+                </div>
+                <PasswordInput label="Confirm new password" required value={passwordData.confirmPassword}
+                               error={errors.confirmPassword}
+                               onChange={(e) => setPasswordData((d) => ({ ...d, confirmPassword: e.target.value }))} />
+              </Panel>
+            )}
           </div>
-          
-          <form onSubmit={handlePasswordChange} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Password</label>
-              <div className="relative">
-                <input
-                  type={showCurrentPassword ? 'text' : 'password'}
-                  value={passwordData.currentPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                >
-                  {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">New Password</label>
-              <div className="relative">
-                <input
-                  type={showNewPassword ? 'text' : 'password'}
-                  value={passwordData.newPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 pr-10"
-                  required
-                  minLength={6}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                >
-                  {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Must be at least 6 characters</p>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Confirm New Password</label>
-              <div className="relative">
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={passwordData.confirmPassword}
-                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 pr-10"
-                  required
-                  minLength={6}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                >
-                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-            
-            <button
-              type="submit"
-              disabled={loading.password}
-              className="flex items-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Lock className="w-4 h-4" />
-              {loading.password ? 'Changing...' : 'Change Password'}
-            </button>
-          </form>
         </div>
       </div>
     </div>

@@ -36,7 +36,7 @@ const BottomNav = () => {
             >
               <div className="relative">
                 <div className={`p-1.5 rounded-full transition-colors ${
-                  active ? 'bg-green-600' : ''
+                  active ? 'bg-fv-primary' : ''
                 }`}>
                   <Icon className={`w-5 h-5 ${
                     active ? 'text-white' : 'text-gray-400'

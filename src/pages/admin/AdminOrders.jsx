@@ -118,14 +118,14 @@ const AdminOrders = () => {
   const getStatusColor = (status) => {
     const colors = {
       Pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-      Confirmed: 'bg-green-100 text-green-800 border-green-300',
+      Confirmed: 'bg-fv-cream text-green-800 border-green-300',
       Packed: 'bg-blue-100 text-blue-800 border-blue-300',
       Shipped: 'bg-indigo-100 text-indigo-800 border-indigo-300',
-      Delivered: 'bg-green-100 text-green-800 border-green-300',
+      Delivered: 'bg-fv-cream text-green-800 border-green-300',
       Cancelled: 'bg-red-100 text-red-800 border-red-300',
       CancellationRequested: 'bg-orange-100 text-orange-800 border-orange-300'
     };
-    return colors[status] || 'bg-gray-100 text-gray-800 border-gray-300';
+    return colors[status] || 'bg-fv-surface text-fv-heading border-fv-border';
   };
 
   const getStatusIcon = (status) => {
@@ -157,7 +157,7 @@ const AdminOrders = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 lg:p-8">
+      <div className="min-h-screen bg-fv-page p-4 lg:p-8">
         <div className="max-w-7xl mx-auto">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-48 mb-8" />
@@ -169,14 +169,14 @@ const AdminOrders = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen bg-fv-page p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-fv-heading mb-2">
             Order Management
           </h1>
-          <p className="text-sm md:text-base text-gray-600">
+          <p className="text-sm md:text-base text-fv-muted">
             Manage and track all customer orders
           </p>
         </div>
@@ -185,10 +185,10 @@ const AdminOrders = () => {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6">
           <div
             onClick={() => { setStatusFilter('All'); setPage(1); }}
-            className={`p-3 md:p-4 rounded-lg md:rounded-xl cursor-pointer transition-all ${
+            className={`p-3 md:p-4 rounded-lg md:rounded-[12px] cursor-pointer transition-all ${
               statusFilter === 'All'
-                ? 'bg-green-600 text-white shadow-lg'
-                : 'bg-white text-gray-900 shadow-md hover:shadow-lg'
+                ? 'bg-fv-primary text-white '
+                : 'bg-white text-fv-heading  hover:'
             }`}
           >
             <p className="text-xs md:text-sm opacity-90 mb-1">All Orders</p>
@@ -196,10 +196,10 @@ const AdminOrders = () => {
           </div>
           <div
             onClick={() => { setStatusFilter('Pending'); setPage(1); }}
-            className={`p-3 md:p-4 rounded-lg md:rounded-xl cursor-pointer transition-all ${
+            className={`p-3 md:p-4 rounded-lg md:rounded-[12px] cursor-pointer transition-all ${
               statusFilter === 'Pending'
-                ? 'bg-yellow-600 text-white shadow-lg'
-                : 'bg-white text-gray-900 shadow-md hover:shadow-lg'
+                ? 'bg-yellow-600 text-white '
+                : 'bg-white text-fv-heading  hover:'
             }`}
           >
             <p className="text-xs md:text-sm opacity-90 mb-1">Pending</p>
@@ -207,10 +207,10 @@ const AdminOrders = () => {
           </div>
           <div
             onClick={() => { setStatusFilter('Confirmed'); setPage(1); }}
-            className={`p-3 md:p-4 rounded-lg md:rounded-xl cursor-pointer transition-all ${
+            className={`p-3 md:p-4 rounded-lg md:rounded-[12px] cursor-pointer transition-all ${
               statusFilter === 'Confirmed'
-                ? 'bg-green-600 text-white shadow-lg'
-                : 'bg-white text-gray-900 shadow-md hover:shadow-lg'
+                ? 'bg-fv-primary text-white '
+                : 'bg-white text-fv-heading  hover:'
             }`}
           >
             <p className="text-xs md:text-sm opacity-90 mb-1">Confirmed</p>
@@ -218,10 +218,10 @@ const AdminOrders = () => {
           </div>
           <div
             onClick={() => { setStatusFilter('Shipped'); setPage(1); }}
-            className={`p-3 md:p-4 rounded-lg md:rounded-xl cursor-pointer transition-all ${
+            className={`p-3 md:p-4 rounded-lg md:rounded-[12px] cursor-pointer transition-all ${
               statusFilter === 'Shipped'
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'bg-white text-gray-900 shadow-md hover:shadow-lg'
+                ? 'bg-indigo-600 text-white '
+                : 'bg-white text-fv-heading  hover:'
             }`}
           >
             <p className="text-xs md:text-sm opacity-90 mb-1">Shipped</p>
@@ -229,10 +229,10 @@ const AdminOrders = () => {
           </div>
           <div
             onClick={() => { setStatusFilter('Delivered'); setPage(1); }}
-            className={`p-3 md:p-4 rounded-lg md:rounded-xl cursor-pointer transition-all ${
+            className={`p-3 md:p-4 rounded-lg md:rounded-[12px] cursor-pointer transition-all ${
               statusFilter === 'Delivered'
-                ? 'bg-green-600 text-white shadow-lg'
-                : 'bg-white text-gray-900 shadow-md hover:shadow-lg'
+                ? 'bg-fv-primary text-white '
+                : 'bg-white text-fv-heading  hover:'
             }`}
           >
             <p className="text-xs md:text-sm opacity-90 mb-1">Delivered</p>
@@ -240,10 +240,10 @@ const AdminOrders = () => {
           </div>
           <div
             onClick={() => { setStatusFilter('CancellationRequested'); setPage(1); }}
-            className={`p-3 md:p-4 rounded-lg md:rounded-xl cursor-pointer transition-all ${
+            className={`p-3 md:p-4 rounded-lg md:rounded-[12px] cursor-pointer transition-all ${
               statusFilter === 'CancellationRequested'
-                ? 'bg-orange-500 text-white shadow-lg'
-                : 'bg-orange-50 text-orange-900 shadow-md hover:shadow-lg'
+                ? 'bg-orange-500 text-white '
+                : 'bg-orange-50 text-orange-900  hover:'
             }`}
           >
             <p className="text-xs md:text-sm opacity-90 mb-1">Cancel Requests</p>
@@ -254,9 +254,9 @@ const AdminOrders = () => {
         {/* Orders List */}
         <div className="space-y-4">
           {filteredOrders.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-md p-8 text-center">
-              <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">No orders found</p>
+            <div className="bg-white rounded-[12px]  p-8 text-center">
+              <Package className="w-16 h-16 text-fv-muted mx-auto mb-4" />
+              <p className="text-fv-muted">No orders found</p>
             </div>
           ) : (
             filteredOrders.map((order) => (
@@ -282,17 +282,17 @@ const AdminOrders = () => {
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-40 transition-colors"
+              className="px-3 py-1.5 text-sm border border-fv-border rounded-lg hover:bg-fv-surface disabled:opacity-40 transition-colors"
             >
               ← Prev
             </button>
-            <span className="text-sm text-gray-600 px-2">
+            <span className="text-sm text-fv-muted px-2">
               Page {page} of {totalPages} &bull; {total} orders
             </span>
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-40 transition-colors"
+              className="px-3 py-1.5 text-sm border border-fv-border rounded-lg hover:bg-fv-surface disabled:opacity-40 transition-colors"
             >
               Next →
             </button>
@@ -339,26 +339,26 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, onApprov
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-xl shadow-md overflow-hidden"
+      className="bg-white rounded-[12px]  overflow-hidden"
     >
       {/* Card Header - Always Visible */}
       <div 
-        className="p-4 md:p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+        className="p-4 md:p-6 cursor-pointer hover:bg-fv-page transition-colors"
         onClick={onToggleExpand}
       >
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           {/* Left Section */}
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs md:text-sm font-mono font-semibold text-gray-900">
-                #{order._id.slice(-8).toUpperCase()}
+              <span className="text-xs md:text-sm font-mono font-semibold text-fv-heading">
+                {order.orderNumber || `#${order._id.slice(-8).toUpperCase()}`}
               </span>
               <span className={`px-2 md:px-3 py-1 inline-flex items-center gap-1 text-xs font-semibold rounded-full border ${getStatusColor(order.orderStatus)}`}>
                 {getStatusIcon(order.orderStatus)}
                 {order.orderStatus}
               </span>
             </div>
-            <div className="text-xs md:text-sm text-gray-600">
+            <div className="text-xs md:text-sm text-fv-muted">
               {new Date(order.createdAt).toLocaleDateString('en-IN', { 
                 year: 'numeric', 
                 month: 'short', 
@@ -372,18 +372,18 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, onApprov
           {/* Right Section */}
           <div className="flex items-center justify-between md:justify-end gap-4">
             <div className="text-right">
-              <div className="text-xs md:text-sm text-gray-600 mb-1">
+              <div className="text-xs md:text-sm text-fv-muted mb-1">
                 {order.orderItems?.length || 0} items
               </div>
-              <div className="text-lg md:text-xl font-bold text-green-600">
+              <div className="text-lg md:text-xl font-bold text-fv-primary">
                 ₹{order.totalAmount}
               </div>
             </div>
             <div>
               {isExpanded ? (
-                <ChevronUp className="w-5 h-5 md:w-6 md:h-6 text-gray-400" />
+                <ChevronUp className="w-5 h-5 md:w-6 md:h-6 text-fv-muted" />
               ) : (
-                <ChevronDown className="w-5 h-5 md:w-6 md:h-6 text-gray-400" />
+                <ChevronDown className="w-5 h-5 md:w-6 md:h-6 text-fv-muted" />
               )}
             </div>
           </div>
@@ -398,32 +398,32 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, onApprov
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="border-t border-gray-200"
+            className="border-t border-fv-border"
           >
             <div className="p-4 md:p-6 space-y-6">
               {/* Customer Information */}
-              <div className="bg-green-50 rounded-lg p-4">
-                <h3 className="text-sm md:text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <User className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
+              <div className="bg-fv-cream rounded-lg p-4">
+                <h3 className="text-sm md:text-base font-semibold text-fv-heading mb-3 flex items-center gap-2">
+                  <User className="w-4 h-4 md:w-5 md:h-5 text-fv-primary" />
                   Customer Information
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="flex items-start gap-2">
-                    <User className="w-4 h-4 text-gray-600 mt-0.5" />
+                    <User className="w-4 h-4 text-fv-muted mt-0.5" />
                     <div>
-                      <div className="text-xs text-gray-500">Name</div>
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-xs text-fv-muted">Name</div>
+                      <div className="text-sm font-medium text-fv-heading">
                         {order.userId?.name || order.shippingAddress?.name || 'Guest'}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Phone className="w-4 h-4 text-gray-600 mt-0.5" />
+                    <Phone className="w-4 h-4 text-fv-muted mt-0.5" />
                     <div>
-                      <div className="text-xs text-gray-500">Phone</div>
+                      <div className="text-xs text-fv-muted">Phone</div>
                       <a 
                         href={`tel:${order.userId?.phone || order.shippingAddress?.phone}`}
-                        className="text-sm font-medium text-green-600 hover:text-green-700"
+                        className="text-sm font-medium text-fv-primary hover:text-fv-primary-dark"
                       >
                         {order.userId?.phone || order.shippingAddress?.phone || 'N/A'}
                       </a>
@@ -431,12 +431,12 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, onApprov
                   </div>
                   {order.userId?.email && (
                     <div className="flex items-start gap-2 md:col-span-2">
-                      <Mail className="w-4 h-4 text-gray-600 mt-0.5" />
+                      <Mail className="w-4 h-4 text-fv-muted mt-0.5" />
                       <div>
-                        <div className="text-xs text-gray-500">Email</div>
+                        <div className="text-xs text-fv-muted">Email</div>
                         <a 
                           href={`mailto:${order.userId.email}`}
-                          className="text-sm font-medium text-green-600 hover:text-green-700 break-all"
+                          className="text-sm font-medium text-fv-primary hover:text-fv-primary-dark break-all"
                         >
                           {order.userId.email}
                         </a>
@@ -448,11 +448,11 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, onApprov
 
               {/* Shipping Address */}
               <div className="bg-blue-50 rounded-lg p-4">
-                <h3 className="text-sm md:text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <h3 className="text-sm md:text-base font-semibold text-fv-heading mb-3 flex items-center gap-2">
                   <MapPin className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
                   Shipping Address
                 </h3>
-                <div className="text-sm text-gray-700 space-y-1">
+                <div className="text-sm text-fv-ink space-y-1">
                   <div className="font-medium">{order.shippingAddress?.name}</div>
                   <div>{order.shippingAddress?.street}</div>
                   <div>
@@ -464,13 +464,13 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, onApprov
 
               {/* Order Items */}
               <div>
-                <h3 className="text-sm md:text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <Package className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
+                <h3 className="text-sm md:text-base font-semibold text-fv-heading mb-3 flex items-center gap-2">
+                  <Package className="w-4 h-4 md:w-5 md:h-5 text-fv-muted" />
                   Order Items
                 </h3>
                 <div className="space-y-3">
                   {order.orderItems?.map((item, index) => (
-                    <div key={index} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div key={index} className="flex gap-3 p-3 bg-fv-page rounded-lg">
                       {item.image && (
                         <img 
                           src={item.image} 
@@ -479,13 +479,13 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, onApprov
                         />
                       )}
                       <div className="flex-1">
-                        <div className="text-sm md:text-base font-medium text-gray-900">
+                        <div className="text-sm md:text-base font-medium text-fv-heading">
                           {item.name}
                         </div>
-                        <div className="text-xs md:text-sm text-gray-600 mt-1">
+                        <div className="text-xs md:text-sm text-fv-muted mt-1">
                           Quantity: {item.quantity}
                         </div>
-                        <div className="text-sm md:text-base font-semibold text-green-600 mt-1">
+                        <div className="text-sm md:text-base font-semibold text-fv-primary mt-1">
                           ₹{item.price} × {item.quantity} = ₹{item.price * item.quantity}
                         </div>
                       </div>
@@ -498,25 +498,25 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, onApprov
               <div className="border-t pt-4">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Items Price:</span>
+                    <span className="text-fv-muted">Items Price:</span>
                     <span className="font-medium">₹{order.itemsPrice || 0}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Shipping:</span>
+                    <span className="text-fv-muted">Shipping:</span>
                     <span className="font-medium">₹{order.shippingPrice || 0}</span>
                   </div>
                   {order.discountAmount > 0 && (
-                    <div className="flex justify-between text-green-600">
+                    <div className="flex justify-between text-fv-primary">
                       <span>Discount:</span>
                       <span className="font-medium">-₹{order.discountAmount}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-base md:text-lg font-bold pt-2 border-t">
                     <span>Total Amount:</span>
-                    <span className="text-green-600">₹{order.totalAmount}</span>
+                    <span className="text-fv-primary">₹{order.totalAmount}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Payment Method:</span>
+                    <span className="text-fv-muted">Payment Method:</span>
                     <span className="font-medium">{order.paymentMode}</span>
                   </div>
                 </div>
@@ -546,7 +546,7 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, onApprov
                         </div>
                       )}
                       {order.paymentMode === 'COD' && (
-                        <div className="mt-2 flex items-center gap-1 text-xs text-gray-600 bg-gray-100 border border-gray-200 rounded px-2 py-1">
+                        <div className="mt-2 flex items-center gap-1 text-xs text-fv-muted bg-fv-surface border border-fv-border rounded px-2 py-1">
                           💵 COD order — customer hasn't paid yet, no refund required
                         </div>
                       )}
@@ -558,7 +558,7 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, onApprov
                       <button
                         onClick={handleApprove}
                         disabled={processing}
-                        className="flex-1 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+                        className="flex-1 py-2 bg-fv-primary hover:bg-fv-primary-dark text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
                       >
                         {processing
                           ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -582,12 +582,12 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, onApprov
                         onChange={(e) => setRejectionReason(e.target.value)}
                         placeholder="Enter rejection reason for the customer..."
                         rows={2}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg mb-2 focus:ring-2 focus:ring-red-400 focus:border-transparent resize-none"
+                        className="w-full px-3 py-2 text-sm border border-fv-border rounded-lg mb-2 focus:ring-2 focus:ring-red-400 focus:border-transparent resize-none"
                       />
                       <div className="flex gap-2">
                         <button
                           onClick={() => { setShowRejectInput(false); setRejectionReason(''); }}
-                          className="flex-1 py-2 border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50"
+                          className="flex-1 py-2 border border-fv-border text-fv-ink text-sm font-semibold rounded-lg hover:bg-fv-page"
                         >
                           Back
                         </button>
@@ -605,8 +605,8 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, onApprov
               )}
 
               {/* Status Update Section */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-sm md:text-base font-semibold text-gray-900 mb-3">
+              <div className="bg-fv-page rounded-lg p-4">
+                <h3 className="text-sm md:text-base font-semibold text-fv-heading mb-3">
                   Update Order Status
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
@@ -617,8 +617,8 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, onApprov
                       disabled={isUpdating || status === order.orderStatus}
                       className={`px-3 py-2 text-xs md:text-sm font-medium rounded-lg transition-all ${
                         status === order.orderStatus
-                          ? 'bg-green-600 text-white cursor-default'
-                          : 'bg-white text-gray-700 hover:bg-green-50 hover:text-green-700 border border-gray-300'
+                          ? 'bg-fv-primary text-white cursor-default'
+                          : 'bg-white text-fv-ink hover:bg-fv-cream hover:text-fv-primary-dark border border-fv-border'
                       } ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       {status}

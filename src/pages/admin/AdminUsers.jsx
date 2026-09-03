@@ -1,30 +1,42 @@
 import React, { useEffect, useState } from 'react';
+import Pagination from '../../components/Pagination';
 import { Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   const fetchUsers = async () => {
     try {
-      const response = await api.get('/admin/users');
-      setUsers(response.data.data);
+      const response = await api.get('/admin/users', { params: { page, limit: 25 } });
+      setUsers(response.data.data || []);
+      setTotalPages(response.data.totalPages || 1);
+      setTotalUsers(response.data.total || 0);
     } catch (error) {
       console.error('Error fetching users:', error);
+      toast.error(error.response?.data?.message || 'Failed to load users');
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    if (!window.confirm(
+      'Delete this user?\n\nIf they have placed orders the account is deactivated instead, so their order history is preserved.'
+    )) return;
     try {
-      await api.delete(`/admin/users/${id}`);
+      const res = await api.delete(`/admin/users/${id}`);
       fetchUsers();
-      toast.success('User deleted successfully!');
+      // Report what actually happened. This used to always claim the user was
+      // deleted, even when the backend deactivated them to keep their orders.
+      toast.success(res.data?.message || 'User removed successfully');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to delete user');
     }
@@ -32,18 +44,18 @@ const AdminUsers = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
-      <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6">
+      <h1 className="text-2xl md:text-3xl font-bold text-fv-heading  mb-6">
         Manage Users
       </h1>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-x-auto">
+      <div className="bg-white  rounded-[12px] shadow-sm border border-fv-border  overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-900">
+          <thead className="bg-fv-page ">
             <tr>
               {['Name', 'Email', 'Phone', 'Role', 'Joined', 'Status', 'Actions'].map((h) => (
                 <th
                   key={h}
-                  className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  className="px-4 py-3 text-left text-xs font-semibold text-fv-muted  uppercase tracking-wider"
                 >
                   {h}
                 </th>
@@ -52,30 +64,30 @@ const AdminUsers = () => {
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {users.map((user) => (
-              <tr key={user._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
-                <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{user.name}</td>
-                <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{user.email}</td>
-                <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{user.phone}</td>
+              <tr key={user._id} className="hover:bg-fv-page /40 transition-colors">
+                <td className="px-4 py-3 text-sm text-fv-heading ">{user.name}</td>
+                <td className="px-4 py-3 text-sm text-fv-muted ">{user.email}</td>
+                <td className="px-4 py-3 text-sm text-fv-muted ">{user.phone}</td>
                 <td className="px-4 py-3">
                   <span
                     className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-full ${
                       user.role === 'admin'
                         ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-                        : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                        : 'bg-fv-surface text-fv-muted  '
                     }`}
                   >
                     {user.role}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                <td className="px-4 py-3 text-sm text-fv-muted ">
                   {new Date(user.createdAt).toLocaleDateString('en-IN')}
                 </td>
                 <td className="px-4 py-3">
                   <span
                     className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-full ${
                       user.isActive
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
-                        : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                        ? 'bg-fv-cream text-fv-primary-dark dark:bg-green-900/40 dark:text-green-300'
+                        : 'bg-fv-surface text-fv-muted  '
                     }`}
                   >
                     {user.isActive ? 'Active' : 'Inactive'}
@@ -85,9 +97,11 @@ const AdminUsers = () => {
                   <button
                     onClick={() => handleDelete(user._id)}
                     disabled={user.role === 'admin'}
-                    className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    aria-label={`Remove ${user.name}`}
+                    title={user.role === 'admin' ? 'Admin accounts cannot be removed here' : `Remove ${user.name}`}
+                    className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4" aria-hidden="true" />
                   </button>
                 </td>
               </tr>
@@ -95,6 +109,14 @@ const AdminUsers = () => {
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        total={totalUsers}
+        onPageChange={setPage}
+        itemLabel="users"
+      />
     </div>
   );
 };

@@ -90,12 +90,12 @@ const AdminCategories = () => {
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+        <h1 className="text-2xl md:text-3xl font-bold text-fv-heading ">
           Manage Categories
         </h1>
         <button
           onClick={() => handleOpen()}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-fv-primary hover:bg-fv-primary-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Category
@@ -103,14 +103,14 @@ const AdminCategories = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-x-auto">
+      <div className="bg-white  rounded-[12px] shadow-sm border border-fv-border  overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-900">
+          <thead className="bg-fv-page ">
             <tr>
               {['Name', 'Slug', 'Description', 'Status', 'Actions'].map((h) => (
                 <th
                   key={h}
-                  className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                  className="px-4 py-3 text-left text-xs font-semibold text-fv-muted  uppercase tracking-wider"
                 >
                   {h}
                 </th>
@@ -119,16 +119,16 @@ const AdminCategories = () => {
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {categories.map((category) => (
-              <tr key={category._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
-                <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{category.name}</td>
-                <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{category.slug}</td>
-                <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{category.description || '—'}</td>
+              <tr key={category._id} className="hover:bg-fv-page /40 transition-colors">
+                <td className="px-4 py-3 text-sm font-medium text-fv-heading ">{category.name}</td>
+                <td className="px-4 py-3 text-sm text-fv-muted ">{category.slug}</td>
+                <td className="px-4 py-3 text-sm text-fv-muted ">{category.description || '—'}</td>
                 <td className="px-4 py-3">
                   <span
                     className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-full ${
                       category.isActive
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
-                        : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                        ? 'bg-fv-cream text-fv-primary-dark dark:bg-green-900/40 dark:text-green-300'
+                        : 'bg-fv-surface text-fv-muted  '
                     }`}
                   >
                     {category.isActive ? 'Active' : 'Inactive'}
@@ -157,14 +157,14 @@ const AdminCategories = () => {
       {/* Modal */}
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md">
+          <div className="bg-white  rounded-[18px] shadow-2xl w-full max-w-md">
             <form onSubmit={handleSubmit}>
               {/* Modal Header */}
-              <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+              <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-fv-border ">
+                <h2 className="text-lg font-bold text-fv-heading ">
                   {editMode ? 'Edit Category' : 'Add New Category'}
                 </h2>
-                <button type="button" onClick={handleClose} className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
+                <button type="button" onClick={handleClose} className="p-1 text-fv-muted hover:text-fv-muted transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -176,7 +176,7 @@ const AdminCategories = () => {
                   <div
                     className={`flex items-center gap-2 p-3 rounded-lg text-sm font-medium ${
                       message.type === 'success'
-                        ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                        ? 'bg-fv-cream text-fv-primary-dark dark:bg-green-900/30 dark:text-green-300'
                         : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300'
                     }`}
                   >
@@ -191,7 +191,7 @@ const AdminCategories = () => {
 
                 {/* Category Name */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-fv-ink  mb-1">
                     Category Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -199,21 +199,21 @@ const AdminCategories = () => {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+                    className="w-full px-3 py-2 text-sm border border-fv-border  rounded-lg bg-white  text-fv-heading  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-fv-primary transition"
                     placeholder="Enter category name"
                   />
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-fv-ink  mb-1">
                     Description
                   </label>
                   <textarea
                     rows={3}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition resize-none"
+                    className="w-full px-3 py-2 text-sm border border-fv-border  rounded-lg bg-white  text-fv-heading  placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-fv-primary transition resize-none"
                     placeholder="Optional description"
                   />
                 </div>
@@ -224,13 +224,13 @@ const AdminCategories = () => {
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-fv-ink  border border-fv-border  rounded-lg hover:bg-fv-page  transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                  className="px-4 py-2 text-sm font-semibold text-white bg-fv-primary hover:bg-fv-primary-dark rounded-lg transition-colors"
                 >
                   {editMode ? 'Update' : 'Create'}
                 </button>

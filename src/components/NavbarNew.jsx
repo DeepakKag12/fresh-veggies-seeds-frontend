@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import { ShieldAlert, 
+  Search,
   ShoppingCart, 
   User, 
   Menu, 
@@ -21,11 +22,17 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { Button } from './ui/Button';
 
+const OFFERS = [
+  '🚚 Free shipping above ₹300',
+  '🌱 Fresh stock every week',
+  '💳 Cash on delivery available',
+];
+
 const NavbarNew = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { user, logout } = useAuth();
-  const { cartItems } = useCart();
+  const { cartItems, openCart } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -39,6 +46,10 @@ const NavbarNew = () => {
 
   const isActive = (path) => location.pathname === path;
 
+  // Offers belong on the storefront. On checkout, the account pages and admin
+  // screens they are a distraction from the task the page exists for.
+  const showOffersBar = location.pathname === '/';
+
   const navLinks = user?.role === 'admin' ? [
     { path: '/', label: 'Home' },
     { path: '/admin/dashboard', label: 'Dashboard' },
@@ -46,8 +57,7 @@ const NavbarNew = () => {
     { path: '/admin/orders', label: 'All Orders' },
     { path: '/admin/categories', label: 'Categories' },
   ] : [
-    { path: '/', label: 'Home' },
-    { path: '/shop', label: 'Shop' },
+    { path: '/', label: 'Shop' },
     { path: '/combos', label: 'Combos' },
     { path: '/about', label: 'About' },
     { path: '/contact', label: 'Contact' },
@@ -57,10 +67,33 @@ const NavbarNew = () => {
     <motion.nav
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 shadow-sm"
+      className="sticky top-0 z-50 bg-white border-b border-fv-border"
     >
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+      {showOffersBar && (
+      <div className="overflow-hidden bg-fv-primary py-2" aria-hidden="true">
+        <style>{`
+          .fv-offers-track { display:flex; width:max-content; animation: fv-offers 28s linear infinite; will-change:transform; }
+          @keyframes fv-offers { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+          .fv-offers-pass { display:flex; flex-shrink:0; min-width:100vw; justify-content:space-around; }
+          @media (prefers-reduced-motion: reduce) { .fv-offers-track { animation:none; } }
+        `}</style>
+        <div className="fv-offers-track">
+          {['a', 'b'].map((pass) => (
+            <div className="fv-offers-pass" key={pass}>
+              {OFFERS.map((o) => (
+                <span key={o} className="whitespace-nowrap px-8 text-[12px] font-semibold uppercase tracking-wide text-white">
+                  {o}
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+      )}
+      {/* The bar is decorative motion; the same facts are stated in the footer. */}
+      <p className="sr-only">Free delivery on orders over ₹300. Cash on delivery available.</p>
+      <div className="mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-10">
+        <div className="flex items-center gap-4 h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
             <img 
@@ -68,41 +101,46 @@ const NavbarNew = () => {
               alt="Fresh Veggies" 
               className="h-12 w-auto object-contain group-hover:scale-105 transition-transform"
             />
-            <span className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent hidden lg:block">
+            <span className="hidden font-serif text-[22px] font-bold text-fv-primary lg:block">
               Fresh Veggies
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  isActive(link.path)
-                    ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
+          {/* Search — the primary way people find products, so it gets the
+              centre of the bar rather than a cramped corner. */}
+          <form
+            role="search"
+            onSubmit={(e) => { e.preventDefault(); const q = new FormData(e.currentTarget).get('q');
+              navigate(q ? `/?search=${encodeURIComponent(q)}` : '/'); }}
+            className="hidden flex-1 lg:block"
+          >
+            <label htmlFor="site-search" className="sr-only">Search products</label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-fv-muted" aria-hidden="true" />
+              <input
+                id="site-search"
+                name="q"
+                type="search"
+                placeholder="Search for seeds, soil, tools…"
+                className="h-11 w-full rounded-[50px] bg-fv-surface pl-12 pr-4 text-[15px] text-fv-ink
+                           placeholder:text-fv-muted focus:outline-none focus:ring-2 focus:ring-fv-primary"
+              />
+            </div>
+          </form>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2 lg:ml-0">
             {/* Admin Buttons */}
             {user?.role === 'admin' && (
               <>
                 <Link to="/admin/orders?status=Pending">
-                  <button className="hidden md:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg">
+                  <button className="hidden md:flex items-center gap-2 px-4 py-2 bg-fv-yellow text-fv-primary hover:brightness-95 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg">
                     <ClipboardList className="w-4 h-4" />
                     <span className="text-sm">New Orders</span>
                   </button>
                 </Link>
                 <Link to="/admin/products">
-                  <button className="hidden md:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg">
+                  <button className="hidden md:flex items-center gap-2 px-4 py-2 bg-fv-primary hover:bg-fv-primary-dark text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg">
                     <Plus className="w-4 h-4" />
                     <span className="text-sm">Add Product</span>
                   </button>
@@ -112,24 +150,21 @@ const NavbarNew = () => {
             
             {/* Cart Button - Only for non-admin users */}
             {user?.role !== 'admin' && (
-              <Link to="/cart">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative"
-                >
-                  <ShoppingCart className="w-5 h-5" />
-                  {cartItemsCount > 0 && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-1 -right-1 w-5 h-5 bg-green-600 text-white text-xs rounded-full flex items-center justify-center font-semibold"
-                    >
-                      {cartItemsCount}
-                    </motion.span>
-                  )}
-                </Button>
-              </Link>
+              <button
+                type="button"
+                onClick={openCart}
+                aria-label={cartItemsCount > 0 ? `Open cart, ${cartItemsCount} items` : 'Open cart'}
+                className="relative flex h-11 w-11 items-center justify-center rounded-full text-fv-primary
+                           hover:bg-fv-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary"
+              >
+                <ShoppingCart className="h-5 w-5" aria-hidden="true" />
+                {cartItemsCount > 0 && (
+                  <span className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full
+                                   bg-fv-primary text-xs font-semibold text-white">
+                    {cartItemsCount}
+                  </span>
+                )}
+              </button>
             )}
 
             {/* User Menu */}
@@ -219,6 +254,14 @@ const NavbarNew = () => {
                                 Banners
                               </Link>
                               <Link
+                                to="/admin/danger-zone"
+                                onClick={() => setUserMenuOpen(false)}
+                                className="flex items-center gap-3 px-4 py-2 text-sm text-fv-danger hover:bg-red-50"
+                              >
+                                <ShieldAlert className="w-4 h-4" />
+                                Production prep
+                              </Link>
+                              <Link
                                 to="/admin/users"
                                 onClick={() => setUserMenuOpen(false)}
                                 className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -262,18 +305,15 @@ const NavbarNew = () => {
                 </AnimatePresence>
               </div>
             ) : (
-              <div className="hidden md:flex items-center gap-2">
-                <Link to="/login">
-                  <Button variant="ghost" size="sm">
-                    Login
-                  </Button>
-                </Link>
-                <Link to="/register">
-                  <Button size="sm" className="bg-gradient-to-r from-green-600 to-emerald-600">
-                    Sign Up
-                  </Button>
-                </Link>
-              </div>
+              <Link
+                to="/login"
+                aria-label="Sign in to your account"
+                className="hidden h-11 w-11 items-center justify-center rounded-full text-fv-primary
+                           hover:bg-fv-surface focus-visible:outline-none focus-visible:ring-2
+                           focus-visible:ring-fv-primary md:flex"
+              >
+                <User className="h-5 w-5" aria-hidden="true" />
+              </Link>
             )}
 
             {/* Mobile Menu Button */}
@@ -287,6 +327,27 @@ const NavbarNew = () => {
             </Button>
           </div>
         </div>
+
+        {/* Category row, centred beneath the search bar. */}
+        <nav aria-label="Product categories" className="hidden border-t border-fv-border md:block">
+          <ul className="flex items-center justify-center gap-8 py-3">
+            {navLinks.map((link) => (
+              <li key={link.path}>
+                <Link
+                  to={link.path}
+                  aria-current={isActive(link.path) ? 'page' : undefined}
+                  className={`text-[14px] uppercase tracking-wide transition-colors motion-reduce:transition-none ${
+                    isActive(link.path)
+                      ? 'font-semibold text-fv-primary underline underline-offset-8'
+                      : 'text-fv-heading hover:text-fv-primary'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
         {/* Mobile Menu */}
         <AnimatePresence>
@@ -306,7 +367,7 @@ const NavbarNew = () => {
                     onClick={() => setMobileMenuOpen(false)}
                     className={`block px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive(link.path)
-                        ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
+                        ? 'bg-fv-cream text-fv-primary'
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
                   >
@@ -381,7 +442,7 @@ const NavbarNew = () => {
                       onClick={() => setMobileMenuOpen(false)}
                       className="block"
                     >
-                      <Button className="w-full bg-gradient-to-r from-green-600 to-emerald-600">
+                      <Button className="w-full bg-fv-primary hover:bg-fv-primary-dark">
                         Sign Up
                       </Button>
                     </Link>

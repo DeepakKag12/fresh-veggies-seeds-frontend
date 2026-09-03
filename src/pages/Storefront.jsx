@@ -1,13 +1,19 @@
+import CollectionBanner from '../components/storefront/CollectionBanner';
+import CategoryCircleRow from '../components/storefront/CategoryCircleRow';
+import FilterSortBar from '../components/storefront/FilterSortBar';
+import ProductCardV2 from '../components/storefront/ProductCardV2';
+import PageLoader from '../components/PageLoader';
+import PromoTile from '../components/storefront/PromoTile';
+import SupportCta from '../components/storefront/SupportCta';
+import Pagination from '../components/Pagination';
 import React, { useEffect, useState, useCallback } from 'react';
-import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, Edit, Trash2, Plus, X, Upload, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
-import api from '../utils/api';
-import { useCart } from '../context/CartContext';
+import { Plus, Upload, X, ShoppingBag } from 'lucide-react';
+import api, { cachedGet } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { Button } from '../components/ui/Button';
 
-const Shop = () => {
+const Storefront = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +26,8 @@ const Shop = () => {
   });
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const { addToCart } = useCart();
+  const [total, setTotal] = useState(0);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -47,10 +54,11 @@ const Shop = () => {
         page,
         limit: 12,
       };
-      const response = await api.get('/products', { params });
+      const response = await cachedGet('/products', { params });
       const productsData = response.data?.data || response.data || [];
       setProducts(Array.isArray(productsData) ? productsData : []);
       setTotalPages(response.data?.totalPages || 1);
+      setTotal(response.data?.total ?? productsData.length);
     } catch (error) {
       console.error('Error fetching products:', error);
       setProducts([]);
@@ -109,7 +117,7 @@ const Shop = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await api.get('/categories');
+      const response = await cachedGet('/categories');
       const categoriesData = response.data?.data || response.data || [];
       setCategories(Array.isArray(categoriesData) ? categoriesData : []);
     } catch (error) {
@@ -245,237 +253,143 @@ const Shop = () => {
     }
   };
 
+  const SORT_OPTIONS = [
+    { value: 'newest', label: 'Newest' },
+    { value: 'price-low', label: 'Price: low to high' },
+    { value: 'price-high', label: 'Price: high to low' },
+  ];
+
+  const hasExtraFilters = filters.search || filters.season;
+
+  // Reuse a real catalogue photo for the promo tile rather than shipping
+  // another stock image; the tile falls back to a flat panel if none loads.
+  const promoImage = products.find((p) => /fertilizer|compost|soil/i.test(p.name) && p.images?.[0])?.images?.[0]
+    || products.find((p) => p.images?.[0])?.images?.[0];
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-4 md:py-8">
-      {/* Header with Create Combo Button */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl md:text-[2.125rem] font-bold text-gray-900 dark:text-white">
-          Shop All Products
-        </h1>
-        
+    <div className="bg-fv-page">
+      <CollectionBanner />
+
+      <CategoryCircleRow
+        categories={categories}
+        activeId={filters.category}
+        onSelect={(id) => handleFilterChange('category', id)}
+      />
+
+      <FilterSortBar
+        count={total}
+        sort={filters.sort}
+        options={SORT_OPTIONS}
+        onSortChange={(v) => handleFilterChange('sort', v)}
+        onOpenFilter={() => setFiltersOpen((o) => !o)}
+        filtersOpen={filtersOpen}
+      />
+
+      {/* Search and season live behind FILTER so the bar stays uncluttered,
+          but they stay mounted once opened so typing is not interrupted. */}
+      {filtersOpen && (
+        <div className="px-4 sm:px-6 lg:px-10">
+          <div className="mx-auto flex max-w-[1500px] flex-wrap items-end gap-4 border-b border-fv-border py-4">
+            <p className="min-w-[220px] flex-1">
+              <label htmlFor="shop-search" className="block text-[13px] font-medium text-fv-muted">Search</label>
+              <input
+                id="shop-search"
+                type="search"
+                value={filters.search}
+                onChange={(e) => handleFilterChange('search', e.target.value)}
+                placeholder="Search for seeds, soil, tools…"
+                className="mt-1 h-11 w-full rounded-[50px] border border-fv-border bg-white px-4 text-[15px]
+                           focus:border-fv-primary focus:outline-none focus:ring-2 focus:ring-fv-primary"
+              />
+            </p>
+            <p className="min-w-[180px]">
+              <label htmlFor="shop-season" className="block text-[13px] font-medium text-fv-muted">Season</label>
+              <select
+                id="shop-season"
+                value={filters.season}
+                onChange={(e) => handleFilterChange('season', e.target.value)}
+                className="mt-1 h-11 w-full rounded-[50px] border border-fv-border bg-white px-4 text-[15px]
+                           focus:border-fv-primary focus:outline-none focus:ring-2 focus:ring-fv-primary"
+              >
+                <option value="">All seasons</option>
+                <option value="Summer">Summer</option>
+                <option value="Winter">Winter</option>
+                <option value="All Season">All season</option>
+                <option value="Monsoon">Monsoon</option>
+              </select>
+            </p>
+            {hasExtraFilters && (
+              <button
+                type="button"
+                onClick={() => { handleFilterChange('search', ''); handleFilterChange('season', ''); }}
+                className="h-11 rounded-[50px] border border-fv-primary px-5 text-[14px] font-semibold text-fv-primary
+                           hover:bg-fv-primary hover:text-white focus-visible:outline-none focus-visible:ring-2
+                           focus-visible:ring-fv-primary"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="mx-auto max-w-[1500px] px-4 py-8 sm:px-6 lg:px-10">
         {user?.role === 'admin' && (
           <button
             onClick={() => setShowComboModal(true)}
-            className="flex items-center gap-2 px-4 md:px-6 py-2.5 md:py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+            className="mb-6 inline-flex h-11 items-center gap-2 rounded-[50px] bg-fv-primary px-5 text-[15px]
+                       font-semibold text-white hover:bg-fv-primary-dark focus-visible:outline-none
+                       focus-visible:ring-2 focus-visible:ring-fv-primary focus-visible:ring-offset-2"
           >
-            <Plus className="w-4 h-4 md:w-5 md:h-5" />
-            <span className="text-sm md:text-base">Create Combo</span>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Create combo
           </button>
+        )}
+
+        {loading ? (
+          <PageLoader text="Loading products…" />
+        ) : products.length > 0 ? (
+          <>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-3 xl:grid-cols-4">
+              {products.map((product, i) => (
+                <React.Fragment key={product._id}>
+                  <ProductCardV2
+                    product={product}
+                    isAdmin={user?.role === 'admin'}
+                    onEdit={user?.role === 'admin' ? handleEditProduct : undefined}
+                    onDelete={user?.role === 'admin' ? handleDeleteProduct : undefined}
+                  />
+                  {/* Break the grid once, after the first full row. */}
+                  {i === 5 && (
+                    <PromoTile
+                      title="Feed your plants right with our organic fertilizers"
+                      to="/"
+                      image={promoImage}
+                    />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+
+            <div className="mt-10">
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                total={total}
+                onPageChange={setPage}
+                itemLabel="products"
+              />
+            </div>
+          </>
+        ) : (
+          <div className="py-20 text-center">
+            <p className="text-[18px] font-medium text-fv-heading">No products found</p>
+            <p className="mt-1 text-[15px] text-fv-muted">Try a different category or clear your filters.</p>
+          </div>
         )}
       </div>
 
-      {/* Filters */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <input
-          type="text"
-          placeholder="Search products…"
-          value={filters.search}
-          onChange={(e) => handleFilterChange('search', e.target.value)}
-          className="col-span-2 md:col-span-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition"
-        />
-        <select
-          value={filters.category}
-          onChange={(e) => handleFilterChange('category', e.target.value)}
-          className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition"
-        >
-          <option value="">All Categories</option>
-          {categories.map((cat) => (
-            <option key={cat._id} value={cat._id}>{cat.name}</option>
-          ))}
-        </select>
-        <select
-          value={filters.season}
-          onChange={(e) => handleFilterChange('season', e.target.value)}
-          className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition"
-        >
-          <option value="">All Seasons</option>
-          <option value="Summer">Summer</option>
-          <option value="Winter">Winter</option>
-          <option value="All Season">All Season</option>
-          <option value="Monsoon">Monsoon</option>
-        </select>
-        <select
-          value={filters.sort}
-          onChange={(e) => handleFilterChange('sort', e.target.value)}
-          className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition"
-        >
-          <option value="newest">Newest</option>
-          <option value="price-low">Price: Low to High</option>
-          <option value="price-high">Price: High to Low</option>
-        </select>
-      </div>
-
-      {/* Products Grid */}
-      {loading ? (
-        <div className="flex justify-center py-16">
-          <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
-        </div>
-      ) : products.length > 0 ? (
-        <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {products.map((product) => (
-              <motion.div
-                key={product._id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full border border-gray-200 dark:border-gray-700 relative"
-              >
-                <Link to={`/product/${product._id}`} className="block relative">
-                  {/* Admin Action Buttons */}
-                  {user?.role === 'admin' && (
-                    <div className="absolute top-2 right-2 z-20 flex gap-2">
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleEditProduct(product);
-                        }}
-                        className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg shadow-lg transition-all transform hover:scale-110"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleDeleteProduct(product._id);
-                        }}
-                        className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg shadow-lg transition-all transform hover:scale-110"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Discount Badge */}
-                  {product.discount > 0 && !user?.role === 'admin' && (
-                    <div className="absolute top-2 left-2 bg-yellow-400 text-gray-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-md z-10">
-                      -{product.discount}%
-                    </div>
-                  )}
-                  
-                  {/* Trending Badge */}
-                  {product.trending && !user?.role === 'admin' && (
-                    <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md z-10">
-                      ⭐ TRENDING
-                    </div>
-                  )}
-
-                  {/* Product Image */}
-                  <div className="relative h-48 lg:h-56 bg-gray-100 dark:bg-gray-700 overflow-hidden">
-                    <img
-                      src={product.images?.[0] || 'https://via.placeholder.com/300'}
-                      alt={product.name}
-                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
-                    />
-                  </div>
-                </Link>
-
-                {/* Product Info */}
-                <div className="p-3 lg:p-4 flex flex-col flex-grow">
-                  <Link to={`/product/${product._id}`}>
-                    <h3 className="font-semibold text-sm lg:text-base text-gray-900 dark:text-white mb-1.5 line-clamp-2 hover:text-green-600 dark:hover:text-green-400 transition-colors min-h-[40px]">
-                      {product.name}
-                    </h3>
-                  </Link>
-
-                  {/* Quantity/Weight Badge */}
-                  {product.weight && (
-                    <div className="mb-2">
-                      <span className="inline-block bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                        📦 {product.weight}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Rating */}
-                  <div className="flex items-center gap-1 mb-2">
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-3 h-3 ${
-                            i < Math.floor(product.rating || 0)
-                              ? 'fill-yellow-400 text-yellow-400'
-                              : 'fill-gray-300 text-gray-300'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                      {product.rating?.toFixed(1) || '0.0'}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      | {product.numReviews || 0}
-                    </span>
-                  </div>
-
-                  {/* Price */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-lg lg:text-xl font-bold text-green-600 dark:text-green-400">
-                      ₹{product.price}
-                    </span>
-                    {product.originalPrice && product.originalPrice > product.price && (
-                      <span className="text-xs text-gray-500 dark:text-gray-400 line-through">
-                        ₹{product.originalPrice}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Add to Cart Button */}
-                  {user?.role !== 'admin' && (
-                    <Button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        addToCart(product, 1);
-                      }}
-                      className="w-full bg-green-600 hover:bg-green-700 text-white text-sm py-2.5 rounded-xl transition-all duration-300 hover:shadow-lg mt-auto"
-                    >
-                      Add to Cart
-                    </Button>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-6">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPage(p)}
-                  className={`w-9 h-9 rounded-lg text-sm font-semibold transition-colors ${
-                    p === page
-                      ? 'bg-green-600 text-white'
-                      : 'border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <p className="text-base md:text-xl text-gray-500 dark:text-gray-400">
-            No products found
-          </p>
-        </div>
-      )}
+      <SupportCta />
 
       {/* Create Combo Modal */}
       {showComboModal && user?.role === 'admin' && (
@@ -785,4 +699,4 @@ const ComboImageCarousel = ({ images }) => {
   );
 };
 
-export default Shop;
+export default Storefront;

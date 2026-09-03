@@ -1,18 +1,18 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import './animations.css';
 import NavbarNew from './components/NavbarNew';
-import PageTransitionLoader from './components/PageTransitionLoader';
-import CartPopup from './components/CartPopup';
-import Footer from './components/Footer';
+import CartDrawer from './components/CartDrawer';
+import Footer from './components/storefront/StorefrontFooter';
 import BottomNav from './components/BottomNav';
 import AdminBottomNav from './components/AdminBottomNav';
 import WhatsAppButton from './components/WhatsAppButton';
 import { useAuth } from './context/AuthContext';
 import { useCart } from './context/CartContext';
-import HomePage from './features/landing/pages/HomePage';
-import Shop from './pages/Shop';
+import Storefront from './pages/Storefront';
+import NotFound from './pages/NotFound';
+
 import ProductDetailNew from './pages/ProductDetailNew';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
@@ -37,8 +37,15 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminCoupons from './pages/admin/AdminCoupons';
 import AdminReviews from './pages/admin/AdminReviews';
 import AdminBanners from './pages/admin/AdminBanners';
+import AdminDangerZone from './pages/admin/AdminDangerZone';
 import PrivateRoute from './components/PrivateRoute';
 import AdminRoute from './components/AdminRoute';
+
+/** Redirects /shop to the storefront, preserving any query string. */
+const ShopRedirect = () => {
+  const { search } = useLocation();
+  return <Navigate to={{ pathname: '/', search }} replace />;
+};
 
 // ScrollToTop component to handle page scroll on route change
 function ScrollToTop() {
@@ -56,7 +63,6 @@ function App() {
   const location = useLocation();
   const { user } = useAuth();
   const { hideCartPopup } = useCart();
-  const isAdminPage = location.pathname.startsWith('/admin');
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/forgot-password' || location.pathname === '/mobile-login' || location.pathname.startsWith('/reset-password/') || location.pathname.startsWith('/verify-email/');
   const isAdmin = user?.role === 'admin';
 
@@ -68,15 +74,16 @@ function App() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <PageTransitionLoader />
-      <CartPopup />
+      <CartDrawer />
       <ScrollToTop />
       {!isAuthPage && <NavbarNew />}
-      <main className="flex-grow pt-16 pb-20 md:pb-0">
+      <main className="flex-grow overflow-x-hidden pb-20 md:pb-0">
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={<HomePage />} />
-          <Route path="/shop" element={<Shop />} />
+          <Route path="/" element={<Storefront />} />
+          {/* Legacy path. Carry the query string across so filtered links like
+              /shop?category=… keep working instead of landing unfiltered. */}
+          <Route path="/shop" element={<ShopRedirect />} />
           <Route path="/product/:id" element={<ProductDetailNew />} />
           <Route path="/combos" element={<ComboOffers />} />
           <Route path="/cart" element={<Cart />} />
@@ -87,6 +94,10 @@ function App() {
           <Route path="/verify-email/:token" element={<VerifyEmail />} />
           <Route path="/mobile-login" element={<MobileLogin />} />
           <Route path="/about" element={<About />} />
+
+
+
+
           <Route path="/contact" element={<Contact />} />
 
           {/* Private Routes */}
@@ -105,9 +116,16 @@ function App() {
           <Route path="/admin/coupons" element={<AdminRoute><AdminCoupons /></AdminRoute>} />
           <Route path="/admin/reviews" element={<AdminRoute><AdminReviews /></AdminRoute>} />
           <Route path="/admin/banners" element={<AdminRoute><AdminBanners /></AdminRoute>} />
+          <Route path="/admin/danger-zone" element={<AdminRoute><AdminDangerZone /></AdminRoute>} />
+
+          {/* Catch-all — must stay last. */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      {!isAuthPage && !isAdminPage && !isAdmin && <Footer />}
+      {/* One footer, everywhere — it used to be suppressed on auth pages, admin
+          pages and for any signed-in admin, which produced three different
+          page layouts across the same application. */}
+      <Footer />
       {/* Admin always sees AdminBottomNav, regular users see BottomNav */}
       {!isAuthPage && isAdmin && <AdminBottomNav />}
       {!isAuthPage && !isAdmin && <BottomNav />}

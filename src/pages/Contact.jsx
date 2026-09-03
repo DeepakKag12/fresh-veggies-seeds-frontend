@@ -14,7 +14,7 @@ const contactItems = [
     label: 'WhatsApp',
     value: '+91 99932 48054',
     href: 'https://wa.me/919993248054',
-    color: 'bg-green-100 text-green-600',
+    color: 'bg-fv-cream text-fv-primary',
     action: 'Chat with us',
   },
   {
@@ -45,19 +45,19 @@ const socials = [
 
 const Contact = () => {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 pb-24">
+    <div className="min-h-screen bg-fv-page py-10">
       <div className="max-w-5xl mx-auto px-4">
 
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-fv-heading  mb-6">
           Contact Us
         </h1>
 
         <div className="grid md:grid-cols-2 gap-6 mb-6">
 
           {/* Get in Touch */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Get in Touch</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+          <div className="bg-white rounded-[12px] p-6 border border-fv-border ">
+            <h2 className="text-xl font-bold text-fv-heading  mb-2">Get in Touch</h2>
+            <p className="text-sm text-fv-muted  mb-6">
               Have questions about our products or need gardening advice? We're here to help!
             </p>
             <div className="space-y-5">
@@ -67,20 +67,20 @@ const Contact = () => {
                     <Icon className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">{label}</p>
+                    <p className="text-xs text-fv-muted  mb-0.5">{label}</p>
                     {href ? (
-                      <a href={href} target="_blank" rel="noreferrer" className="text-sm font-medium text-gray-900 dark:text-white hover:text-green-600 transition-colors">
+                      <a href={href} target="_blank" rel="noreferrer" className="text-sm font-medium text-fv-heading  hover:text-fv-primary transition-colors">
                         {value}
                       </a>
                     ) : (
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{value}</p>
+                      <p className="text-sm font-medium text-fv-heading ">{value}</p>
                     )}
                     {action && href && (
                       <a
                         href={href}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-block mt-1 text-xs font-semibold text-green-600 border border-green-500 px-3 py-1 rounded-full hover:bg-green-50 transition-colors"
+                       className="inline-block mt-1 text-xs font-semibold text-fv-primary border border-fv-primary px-3 py-1 rounded-full hover:bg-fv-cream transition-colors"
                       >
                         {action}
                       </a>
@@ -92,25 +92,25 @@ const Contact = () => {
           </div>
 
           {/* Business Hours + Socials */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-green-600" />
+          <div className="bg-white rounded-[12px] p-6 border border-fv-border ">
+            <h2 className="text-xl font-bold text-fv-heading  mb-2 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-fv-primary" />
               Business Hours
             </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            <p className="text-sm text-fv-muted  mb-4">
               We're available to help you during these hours:
             </p>
             <div className="space-y-3 mb-8">
               {hours.map(({ day, time }) => (
-                <div key={day} className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{day}</span>
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">{time}</span>
+                <div key={day} className="flex justify-between items-center py-2 border-b border-fv-border  last:border-0">
+                  <span className="text-sm text-fv-ink ">{day}</span>
+                  <span className="text-sm font-semibold text-fv-heading ">{time}</span>
                 </div>
               ))}
             </div>
 
-            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Follow Us</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Stay updated with gardening tips and offers</p>
+            <h3 className="text-base font-bold text-fv-heading  mb-1">Follow Us</h3>
+            <p className="text-xs text-fv-muted  mb-3">Stay updated with gardening tips and offers</p>
             <div className="flex gap-3">
               {socials.map(({ icon: Icon, label, href }) => (
                 <a
@@ -118,7 +118,7 @@ const Contact = () => {
                   href={href}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-2 px-3 py-2 text-xs font-semibold border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                 className="flex items-center gap-2 px-3 py-2 text-xs font-semibold border border-fv-border  text-fv-ink  rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <Icon className="w-4 h-4" />
                   {label}
@@ -129,9 +129,9 @@ const Contact = () => {
         </div>
 
         {/* CTA Banner */}
-        <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-6 text-white">
+        <div className="bg-fv-primary rounded-[18px] p-6 text-white">
           <h3 className="text-xl font-bold mb-2">💬 Need Gardening Help?</h3>
-          <p className="text-green-100 text-sm">
+          <p className="text-white/80 text-sm">
             Our team is happy to help with any gardening questions — from seed selection to growing tips.
             Feel free to reach out via WhatsApp for quick support!
           </p>

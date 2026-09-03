@@ -12,7 +12,33 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      fontFamily: {
+        // Outfit for UI, Fraunces for display headings.
+        sans: ['Outfit', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        serif: ['Fraunces', 'Georgia', 'serif'],
+      },
       colors: {
+        // Storefront design system. Single source of truth — prefer these over
+        // raw hex values in components.
+        fv: {
+          primary: '#0A4C36',       // nav, primary buttons, badges
+          'primary-dark': '#083B2A',// hover / pressed
+          accent: '#00B566',        // prices, accent fills
+          leaf: '#2E9E5B',          // full-bleed support panel
+          page: '#FFF6F4',          // page background (warm, not white)
+          cream: '#FDF6EE',         // alternating section band
+          butter: '#FFF9E4',
+          yellow: '#FFD51F',        // trust strip, highlight CTA
+          star: '#FFB503',
+          ink: '#212326',
+          heading: '#1C1C1C',
+          deep: '#042018',
+          muted: '#5D6B5F',
+          border: '#CADFD4',
+          surface: '#F7F7F7',       // image placeholder
+          danger: '#D72C0D',
+          success: '#008060',
+        },
         // Fresh Veggies Brand Colors
         brand: {
           green: "#4caf50",
