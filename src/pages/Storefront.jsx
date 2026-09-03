@@ -21,7 +21,7 @@ const Storefront = () => {
   const [filters, setFilters] = useState({
     category: searchParams.get('category') || '',
     season: '',
-    search: '',
+    search: searchParams.get('search') || '',
     sort: 'newest',
   });
   const [page, setPage] = useState(1);
@@ -70,13 +70,19 @@ const Storefront = () => {
     fetchCategories();
   }, []);
 
+  // Keep filters in step with the URL. Both params matter: the header search
+  // navigates here with ?search=, and category tiles with ?category=. Clearing
+  // a param must clear the filter too, otherwise a stale term sticks after the
+  // user searches again for nothing.
   useEffect(() => {
-    // Update filters when URL params change
-    const categoryFromUrl = searchParams.get('category');
-    if (categoryFromUrl && categoryFromUrl !== filters.category) {
-      setFilters(prev => ({ ...prev, category: categoryFromUrl }));
-    }
-  }, [searchParams, filters.category]);
+    const categoryFromUrl = searchParams.get('category') || '';
+    const searchFromUrl = searchParams.get('search') || '';
+    setFilters((prev) => {
+      if (prev.category === categoryFromUrl && prev.search === searchFromUrl) return prev;
+      return { ...prev, category: categoryFromUrl, search: searchFromUrl };
+    });
+    setPage(1); // a new search starts at the first page, not wherever you were
+  }, [searchParams]);
 
   useEffect(() => {
     fetchProducts();
