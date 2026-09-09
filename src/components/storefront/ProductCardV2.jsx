@@ -19,11 +19,17 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
   const [imgFailed, setImgFailed] = useState(false);
   if (!product) return null;
 
-  const { _id, name, price, originalPrice, images, rating, numReviews, description, stock, featured } = product;
+  const { _id, name, price, originalPrice, images, rating, numReviews, description, stock, packages, featured } = product;
+
+  const hasPackages = Array.isArray(packages) && packages.length > 0;
+  const packageStock = hasPackages
+    ? packages.reduce((sum, pkg) => sum + (Number(pkg.stock) || 0), 0)
+    : 0;
+  const effectiveStock = hasPackages ? packageStock : (stock ?? 0);
 
   const hasDiscount = originalPrice > price;
   const discountPct = hasDiscount ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
-  const outOfStock = stock === 0;
+  const outOfStock = effectiveStock <= 0;
   const showImage = images?.[0] && !imgFailed;
 
   return (

@@ -186,17 +186,27 @@ const AdminProducts = () => {
         imageUrls = [...imageUrls, ...uploadedUrls];
       }
 
-      // Filter valid packages
+      // Filter valid packages (allowing 0 stock for sold-out variants)
       const validPackages = packages
-        .filter(p => p.quantity && p.price && p.stock)
+        .filter(p => p.quantity?.trim() && p.price !== '' && !isNaN(p.price) && p.stock !== '' && !isNaN(p.stock))
         .map(p => ({
-          quantity: p.quantity,
+          quantity: p.quantity.trim(),
           price: parseFloat(p.price),
-          stock: parseInt(p.stock)
+          stock: Math.max(0, parseInt(p.stock, 10) || 0)
         }));
+
+      if (formData.hasPackages && validPackages.length === 0) {
+        setMessage({
+          type: 'error',
+          text: 'Please add at least one package variant with label, price, and stock.'
+        });
+        return;
+      }
 
       // Strip UI-only fields before sending to backend
       const { hasPackages, ...restFormData } = formData;
+
+      const totalVariantStock = validPackages.reduce((sum, p) => sum + (p.stock || 0), 0);
 
       const productData = {
         ...restFormData,
@@ -204,8 +214,8 @@ const AdminProducts = () => {
         packages: formData.hasPackages && validPackages.length > 0 ? validPackages : [],
         originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : undefined,
         price: parseFloat(formData.price),
-        // If selling by packages, stock is managed per-package; set 0 as overall stock
-        stock: formData.hasPackages ? 0 : parseInt(formData.stock) || 0,
+        // If selling by packages, overall stock is the sum of variant package stock
+        stock: formData.hasPackages && validPackages.length > 0 ? totalVariantStock : (parseInt(formData.stock, 10) || 0),
         // Clear weight when using packages
         weight: formData.hasPackages ? undefined : (formData.weight || undefined)
       };
@@ -281,7 +291,9 @@ const AdminProducts = () => {
                     ₹{product.price}
                   </span>
                   <span className="text-sm text-fv-muted">
-                    Stock: {product.stock}
+                    Stock: {product.packages && product.packages.length > 0
+                      ? product.packages.reduce((sum, p) => sum + (Number(p.stock) || 0), 0)
+                      : product.stock}
                   </span>
                 </div>
                 {product.packages && product.packages.length > 0 && (
