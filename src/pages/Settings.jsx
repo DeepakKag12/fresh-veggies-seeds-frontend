@@ -410,8 +410,7 @@ const Settings = () => {
     setTimeout(() => setMessage({ type: '', text: '' }), 5000);
   };
 
-  const setAddress = (field, value) =>
-    setProfileData(p => ({ ...p, address: { ...p.address, [field]: value } }));
+
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();

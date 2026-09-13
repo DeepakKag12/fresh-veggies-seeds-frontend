@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CreditCard, MapPin, Package, AlertCircle, CheckCircle, Tag,
-  Navigation, Loader2, Edit2, Plus, Star, X, Check, Trash2
+  Navigation, Loader2, Plus, Star, Check
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -87,8 +87,7 @@ const Checkout = () => {
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const submittingRef = useRef(false);
 
-  /* ── Address state ── */
-  const BLANK = { name: '', phone: '', street: '', city: '', state: '', pincode: '' };
+
   const savedAddresses = user?.addresses || [];
   const defaultAddr = savedAddresses.find(a => a.isDefault) || savedAddresses[0];
 
