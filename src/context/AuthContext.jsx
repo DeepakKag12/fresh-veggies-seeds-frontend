@@ -148,6 +148,58 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const addAddress = async (addressData) => {
+    try {
+      const response = await api.post('/auth/addresses', addressData);
+      setUser(response.data.data);
+      toast.success('Delivery address saved! 📍');
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Failed to save address';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  };
+
+  const updateAddress = async (addressId, addressData) => {
+    try {
+      const response = await api.put(`/auth/addresses/${addressId}`, addressData);
+      setUser(response.data.data);
+      toast.success('Address updated successfully');
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Failed to update address';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  };
+
+  const deleteAddress = async (addressId) => {
+    try {
+      const response = await api.delete(`/auth/addresses/${addressId}`);
+      setUser(response.data.data);
+      toast.success('Address removed');
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Failed to delete address';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  };
+
+  const setDefaultAddress = async (addressId) => {
+    try {
+      const response = await api.put(`/auth/addresses/${addressId}/default`);
+      setUser(response.data.data);
+      toast.success('Default address updated');
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Failed to set default address';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -158,6 +210,10 @@ export const AuthProvider = ({ children }) => {
     updateProfile,
     changeEmail,
     changePassword,
+    addAddress,
+    updateAddress,
+    deleteAddress,
+    setDefaultAddress,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
   };

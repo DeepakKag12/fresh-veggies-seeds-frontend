@@ -9,7 +9,6 @@ import ProductGallery from '../components/storefront/ProductGallery';
 import VariantPicker from '../components/storefront/VariantPicker';
 import QuantityStepper from '../components/storefront/QuantityStepper';
 import OffersBox from '../components/storefront/OffersBox';
-import DeliveryCheck from '../components/storefront/DeliveryCheck';
 import ReviewsSection from '../components/storefront/ReviewsSection';
 import RelatedProducts from '../components/storefront/RelatedProducts';
 
@@ -189,7 +188,6 @@ const ProductDetailNew = () => {
             </div>
 
             <OffersBox />
-            <DeliveryCheck />
 
             <ul className="mt-6 grid gap-3 rounded-[12px] bg-fv-yellow p-4 sm:grid-cols-3">
               {GUARANTEES.map(({ Icon, title, detail }) => (
