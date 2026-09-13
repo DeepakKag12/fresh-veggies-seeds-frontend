@@ -338,11 +338,8 @@ const Checkout = () => {
   };
 
   /* ── Pricing ── */
-  const FREE_DELIVERY_THRESHOLD = 300;
-  const itemsPrice = getCartTotal();
-  const shippingPrice = itemsPrice >= FREE_DELIVERY_THRESHOLD ? 0 : 50;
-  const discountAmount = appliedCoupon?.discountAmount || 0;
-  const totalAmount = itemsPrice + shippingPrice - discountAmount;
+  const codExtra = paymentMode === 'COD' ? 50 : 0;
+  const totalAmount = itemsPrice + shippingPrice + codExtra - discountAmount;
 
   /* ── Coupon helpers ── */
   const handleApplyCoupon = async () => {
