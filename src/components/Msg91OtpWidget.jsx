@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShieldCheck, AlertCircle, Loader2, ArrowRight, RefreshCw, Edit2 } from 'lucide-react';
+import { ShieldCheck, AlertCircle, Loader2, ArrowRight, RefreshCw, Edit2, KeyRound } from 'lucide-react';
 import api from '../utils/api';
 
 /**
- * Mobile Number Verification Component.
- * Standard e-commerce 1-click checkout phone authentication.
+ * MSG91 Official SendOTP Widget & Mobile Verification Component.
+ * Supports:
+ *   1. Official MSG91 popup widget modal ("otp dial thing")
+ *   2. Server-side token verification via /api/v5/widget/verifyAccessToken
+ *   3. Seamless inline 4-digit code entry fallback
  */
 const Msg91OtpWidget = ({ onSuccess, initialPhone = '', initialName = '' }) => {
   const [step, setStep] = useState('phone'); // 'phone' | 'otp'
@@ -12,11 +15,34 @@ const Msg91OtpWidget = ({ onSuccess, initialPhone = '', initialName = '' }) => {
   const [name, setName] = useState(initialName);
   const [otp, setOtp] = useState(['', '', '', '']);
   const [loading, setLoading] = useState(false);
+  const [widgetOpening, setWidgetOpening] = useState(false);
   const [error, setError] = useState('');
   const [resendTimer, setResendTimer] = useState(0);
   const [devOtpHint, setDevOtpHint] = useState('');
 
   const otpInputsRef = useRef([]);
+
+  // Load MSG91 official widget script if not already loaded
+  useEffect(() => {
+    if (typeof window.initSendOTP === 'function') return;
+
+    const urls = [
+      'https://verify.msg91.com/otp-provider.js',
+      'https://verify.phone91.com/otp-provider.js'
+    ];
+    let i = 0;
+    function attempt() {
+      const s = document.createElement('script');
+      s.src = urls[i];
+      s.async = true;
+      s.onerror = () => {
+        i++;
+        if (i < urls.length) attempt();
+      };
+      document.head.appendChild(s);
+    }
+    attempt();
+  }, []);
 
   // Countdown timer for resend
   useEffect(() => {
@@ -29,8 +55,116 @@ const Msg91OtpWidget = ({ onSuccess, initialPhone = '', initialName = '' }) => {
     return () => clearInterval(interval);
   }, [resendTimer]);
 
-  // Handle Send OTP
-  const handleSendOtp = async (e) => {
+  /**
+   * Launch official MSG91 popup widget ("otp dial thing")
+   */
+  const launchMsg91Widget = (cleanPhone) => {
+    setError('');
+    setWidgetOpening(true);
+
+    const fullIdentifier = `91${cleanPhone}`;
+    const widgetId = process.env.REACT_APP_MSG91_WIDGET_ID || '36696f6e6235373730363034';
+    const tokenAuth = process.env.REACT_APP_MSG91_TOKEN_AUTH || '571570TJ2Jnicrt6aa951c6P1';
+
+    const configuration = {
+      widgetId,
+      tokenAuth,
+      identifier: fullIdentifier,
+      success: async (data) => {
+        console.log('✅ MSG91 SendOTP Widget success response:', data);
+        setWidgetOpening(false);
+        setLoading(true);
+
+        // data can be an access-token string or { message: '...' }
+        const accessToken =
+          typeof data === 'string'
+            ? data
+            : data?.message || data?.token || data?.accessToken || data?.jwt;
+
+        try {
+          const res = await api.post('/auth/msg91/verify-token', {
+            accessToken,
+            name: name.trim() || undefined
+          });
+
+          if (res.data?.success) {
+            onSuccess(res.data.data, res.data.isNewUser);
+          } else {
+            setError(res.data?.message || 'Verification token expired or invalid.');
+          }
+        } catch (err) {
+          setError(err.response?.data?.message || 'Token verification failed. Please try again.');
+        } finally {
+          setLoading(false);
+        }
+      },
+      failure: (err) => {
+        console.warn('⚠️ MSG91 SendOTP Widget dismissed/failed:', err);
+        setWidgetOpening(false);
+        setLoading(false);
+        const reason = typeof err === 'string' ? err : err?.message;
+        if (reason && !reason.toLowerCase().includes('close') && !reason.toLowerCase().includes('cancel')) {
+          setError(reason);
+        }
+      }
+    };
+
+    if (typeof window.initSendOTP === 'function') {
+      try {
+        window.initSendOTP(configuration);
+        setWidgetOpening(false);
+      } catch (widgetErr) {
+        console.error('initSendOTP invocation error:', widgetErr);
+        setWidgetOpening(false);
+        // If popup is blocked, dispatch inline OTP
+        triggerInlineOtp(cleanPhone);
+      }
+    } else {
+      // Script still downloading, retry in 300ms
+      setTimeout(() => {
+        if (typeof window.initSendOTP === 'function') {
+          try {
+            window.initSendOTP(configuration);
+            setWidgetOpening(false);
+          } catch (e) {
+            setWidgetOpening(false);
+            triggerInlineOtp(cleanPhone);
+          }
+        } else {
+          setWidgetOpening(false);
+          triggerInlineOtp(cleanPhone);
+        }
+      }, 350);
+    }
+  };
+
+  /**
+   * Inline OTP fallback
+   */
+  const triggerInlineOtp = async (cleanPhone) => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await api.post('/auth/msg91/send-otp', { phone: cleanPhone });
+      if (res.data?.success) {
+        setStep('otp');
+        setResendTimer(30);
+        if (res.data?.devOtp) setDevOtpHint(res.data.devOtp);
+        setTimeout(() => {
+          otpInputsRef.current[0]?.focus();
+        }, 100);
+      } else {
+        setError(res.data?.message || 'Unable to send verification code.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to send code.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Main Continue Handler
+  const handleContinue = async (e) => {
     e?.preventDefault();
     setError('');
 
@@ -40,27 +174,13 @@ const Msg91OtpWidget = ({ onSuccess, initialPhone = '', initialName = '' }) => {
       return;
     }
 
-    setLoading(true);
-    try {
-      const res = await api.post('/auth/msg91/send-otp', { phone: cleanPhone });
-      if (res.data?.success) {
-        setStep('otp');
-        setResendTimer(30);
-        if (res.data?.devOtp) {
-          setDevOtpHint(res.data.devOtp);
-        }
-        // Focus first OTP input on transition
-        setTimeout(() => {
-          otpInputsRef.current[0]?.focus();
-        }, 100);
-      } else {
-        setError(res.data?.message || 'Unable to send verification code. Please try again.');
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Could not send verification code. Please check your connection.');
-    } finally {
-      setLoading(false);
-    }
+    // Also prepare inline OTP in background in case popup is dismissed or blocked
+    api.post('/auth/msg91/send-otp', { phone: cleanPhone }).then((res) => {
+      if (res.data?.devOtp) setDevOtpHint(res.data.devOtp);
+    }).catch(() => {});
+
+    // Launch official MSG91 SendOTP Widget popup ("otp dial thing")
+    launchMsg91Widget(cleanPhone);
   };
 
   // Handle OTP input digits
@@ -70,12 +190,10 @@ const Msg91OtpWidget = ({ onSuccess, initialPhone = '', initialName = '' }) => {
     newOtp[index] = digit;
     setOtp(newOtp);
 
-    // Auto-advance to next input
     if (digit && index < 3) {
       otpInputsRef.current[index + 1]?.focus();
     }
 
-    // If all 4 digits are filled, auto-verify
     if (digit && index === 3 && newOtp.every((d) => d !== '')) {
       handleVerifyOtp(newOtp.join(''));
     }
@@ -106,9 +224,7 @@ const Msg91OtpWidget = ({ onSuccess, initialPhone = '', initialName = '' }) => {
       });
 
       if (res.data?.success) {
-        if (typeof onSuccess === 'function') {
-          onSuccess(res.data.data, res.data.isNewUser);
-        }
+        onSuccess(res.data.data, res.data.isNewUser);
       } else {
         setError(res.data?.message || 'Invalid code. Please check and try again.');
       }
@@ -162,7 +278,7 @@ const Msg91OtpWidget = ({ onSuccess, initialPhone = '', initialName = '' }) => {
             </div>
           )}
 
-          <form onSubmit={handleSendOtp} className="space-y-4">
+          <form onSubmit={handleContinue} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">
                 Phone Number
@@ -199,13 +315,13 @@ const Msg91OtpWidget = ({ onSuccess, initialPhone = '', initialName = '' }) => {
 
             <button
               type="submit"
-              disabled={loading || phone.length < 10}
+              disabled={loading || widgetOpening || phone.length < 10}
               className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-fv-primary hover:bg-fv-primary-dark text-white font-semibold text-base transition-all shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer mt-2"
             >
-              {loading ? (
+              {loading || widgetOpening ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Sending verification code…
+                  Opening verification window…
                 </>
               ) : (
                 <>
@@ -216,24 +332,38 @@ const Msg91OtpWidget = ({ onSuccess, initialPhone = '', initialName = '' }) => {
             </button>
           </form>
 
-          <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-4 flex items-center justify-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-fv-primary" />
-            We protect your details with encrypted checkout
-          </p>
+          <div className="flex items-center justify-between mt-4 text-xs text-gray-400 dark:text-gray-500">
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-fv-primary" />
+              Encrypted mobile verification
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                const clean = phone.replace(/\D/g, '').slice(-10);
+                if (clean.length === 10) triggerInlineOtp(clean);
+                else setStep('otp');
+              }}
+              className="text-xs font-semibold text-fv-primary hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              Enter code manually
+            </button>
+          </div>
         </div>
       ) : (
-        /* Step 2: Verification Code Screen */
+        /* Inline OTP Screen */
         <div>
           <div className="mb-6">
             <span className="text-xs font-bold uppercase tracking-wider text-fv-primary">
               Step 1 of 3
             </span>
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mt-1">
-              Verify Number
+              Enter Verification Code
             </h2>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                Enter the 4-digit code sent to <strong className="text-gray-900 dark:text-white">+91 {phone}</strong>
+                Code sent to <strong className="text-gray-900 dark:text-white">+91 {phone}</strong>
               </span>
               <button
                 type="button"
@@ -307,17 +437,28 @@ const Msg91OtpWidget = ({ onSuccess, initialPhone = '', initialName = '' }) => {
               )}
             </button>
 
-            <div className="text-center">
+            <div className="flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  const clean = phone.replace(/\D/g, '').slice(-10);
+                  launchMsg91Widget(clean);
+                }}
+                className="text-xs font-semibold text-fv-primary hover:underline cursor-pointer"
+              >
+                Open verification popup
+              </button>
+
               {resendTimer > 0 ? (
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Resend code in <span className="font-semibold text-fv-primary">{resendTimer}s</span>
-                </p>
+                <span className="text-gray-500 dark:text-gray-400">
+                  Resend code in <strong className="text-fv-primary">{resendTimer}s</strong>
+                </span>
               ) : (
                 <button
                   type="button"
                   onClick={handleResend}
                   disabled={loading}
-                  className="text-xs font-semibold text-fv-primary hover:underline inline-flex items-center gap-1.5 cursor-pointer"
+                  className="font-semibold text-fv-primary hover:underline inline-flex items-center gap-1 cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   Resend code
