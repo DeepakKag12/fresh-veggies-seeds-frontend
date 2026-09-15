@@ -85,11 +85,14 @@ export const CartProvider = ({ children }) => {
       try {
         const response = await api.get('/auth/cart');
         const accountCart = Array.isArray(response.data.data) ? response.data.data : [];
+        const sameCartLine = (a, b) =>
+          a._id === b._id &&
+          Boolean(a.isCombo) === Boolean(b.isCombo) &&
+          (a.packageId || null) === (b.packageId || null);
+
         const mergedCart = [...accountCart];
         (Array.isArray(guestCart) ? guestCart : []).forEach((savedItem) => {
-          const existingItem = mergedCart.find(
-            (item) => item._id === savedItem._id && item.isCombo === savedItem.isCombo
-          );
+          const existingItem = mergedCart.find((item) => sameCartLine(item, savedItem));
           if (existingItem) existingItem.quantity += savedItem.quantity;
           else mergedCart.push(savedItem);
         });

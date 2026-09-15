@@ -8,6 +8,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { fetchCurrentAddress } from '../utils/locationService';
+import Msg91OtpWidget from '../components/Msg91OtpWidget';
 
 /* ─── small helper ─────────────────────────────────────────────────────── */
 const inputCls =
@@ -49,6 +50,13 @@ const AddressFields = ({ addr, setAddr, gpsLoading, onUseLocation }) => (
           className={inputCls} />
       </div>
       <div className="sm:col-span-2">
+        <label className={labelCls}>Email Address (Optional — for Brevo order updates)</label>
+        <input type="email" value={addr.email || ''}
+          onChange={e => setAddr(a => ({ ...a, email: e.target.value }))}
+          placeholder="your.email@example.com"
+          className={inputCls} />
+      </div>
+      <div className="sm:col-span-2">
         <label className={labelCls}>Street / Area *</label>
         <input type="text" required value={addr.street}
           onChange={e => setAddr(a => ({ ...a, street: e.target.value }))}
@@ -80,7 +88,7 @@ const AddressFields = ({ addr, setAddr, gpsLoading, onUseLocation }) => (
 /* ─── Main Checkout component ──────────────────────────────────────────── */
 const Checkout = () => {
   const { cartItems, getCartTotal, clearCart, cartReady } = useCart();
-  const { user, addAddress } = useAuth();
+  const { user, addAddress, loginWithData } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -99,6 +107,7 @@ const Checkout = () => {
   const [newAddr, setNewAddr] = useState({
     name: user?.name || '',
     phone: user?.phone || '',
+    email: user?.email || '',
     street: '',
     city: '',
     state: '',
@@ -121,6 +130,7 @@ const Checkout = () => {
       ...a,
       name: a.name || user.name || '',
       phone: a.phone || user.phone || '',
+      email: a.email || user.email || '',
     }));
   }, [user]);
 
@@ -187,6 +197,7 @@ const Checkout = () => {
         return {
           name: saved.name || user?.name || '',
           phone: saved.phone || user?.phone || '',
+          email: user?.email || newAddr.email || '',
           street: saved.street,
           city: saved.city,
           state: saved.state,
@@ -195,7 +206,13 @@ const Checkout = () => {
         };
       }
     }
-    return { ...newAddr, country: 'India' };
+    return {
+      ...newAddr,
+      name: newAddr.name?.trim() || user?.name || '',
+      phone: newAddr.phone?.trim() || user?.phone || '',
+      email: user?.email || newAddr.email || '',
+      country: 'India'
+    };
   };
 
   /* ── Razorpay handler ── */
@@ -372,6 +389,11 @@ const Checkout = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!user) {
+      setError('Please complete Step 1: Verify your mobile number with MSG91 SMS OTP before placing your order.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (MIN_ORDER_AMOUNT && itemsPrice < MIN_ORDER_AMOUNT) {
       setError(`Minimum order amount is ₹${MIN_ORDER_AMOUNT}. Please add more items to your cart.`);
       return;
@@ -455,14 +477,51 @@ const Checkout = () => {
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
 
-              {/* ── Shipping Address ──────────────────────────────── */}
+              {/* ── Step 1: Mobile Verification with MSG91 ────────────── */}
+              {!user ? (
+                <Msg91OtpWidget
+                  onSuccess={(verifiedData) => {
+                    loginWithData(verifiedData);
+                  }}
+                  initialPhone={newAddr.phone}
+                  initialName={newAddr.name}
+                />
+              ) : (
+                <div className="rounded-[18px] border border-green-200 dark:border-green-800 bg-green-50/60 dark:bg-green-950/20 p-4 sm:p-5 flex items-center justify-between shadow-xs">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-10 h-10 rounded-full bg-fv-primary text-white flex items-center justify-center font-bold text-lg shadow-sm shrink-0">
+                      ✓
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-fv-primary bg-fv-primary/10 px-2.5 py-0.5 rounded-full">
+                          Step 1: Mobile Verified
+                        </span>
+                      </div>
+                      <p className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mt-1">
+                        {user.name || 'Verified Customer'} {user.phone ? `(+91 ${user.phone})` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-fv-muted font-medium hidden sm:inline-block bg-white dark:bg-gray-800 px-2.5 py-1 rounded-full border border-green-200 dark:border-green-800">
+                    MSG91 Verified
+                  </span>
+                </div>
+              )}
+
+              {/* ── Step 2: Shipping Address ────────────────────────── */}
               <div className="rounded-[18px] border border-fv-border bg-white p-4 sm:p-6 shadow-xs">
                 <div className="flex items-center justify-between mb-4 sm:mb-5">
                   <div className="flex items-center gap-2.5 sm:gap-3">
                     <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-fv-primary" />
-                    <h2 className="font-serif text-[18px] sm:text-[20px] font-semibold text-fv-heading">
-                      Delivery Address
-                    </h2>
+                    <div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-fv-muted">
+                        Step 2
+                      </span>
+                      <h2 className="font-serif text-[18px] sm:text-[20px] font-semibold text-fv-heading">
+                        Delivery Address
+                      </h2>
+                    </div>
                   </div>
                 </div>
 
@@ -554,13 +613,18 @@ const Checkout = () => {
                 )}
               </div>
 
-              {/* ── Payment Method ───────────────────────────────── */}
+              {/* ── Step 3: Payment Method ────────────────────────── */}
               <div className="rounded-[18px] border border-fv-border bg-white p-4 sm:p-6 shadow-xs">
                 <div className="flex items-center gap-2.5 sm:gap-3 mb-4 sm:mb-6">
                   <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-fv-primary" />
-                  <h2 className="font-serif text-[18px] sm:text-[20px] font-semibold text-fv-heading">
-                    Payment Method
-                  </h2>
+                  <div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-fv-muted">
+                      Step 3
+                    </span>
+                    <h2 className="font-serif text-[18px] sm:text-[20px] font-semibold text-fv-heading">
+                      Payment Method
+                    </h2>
+                  </div>
                 </div>
 
                 <div className="space-y-3">
@@ -743,6 +807,11 @@ const Checkout = () => {
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white" />
                       Placing Order…
+                    </>
+                  ) : !user ? (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Verify Mobile (Step 1) to Place Order
                     </>
                   ) : (
                     <>

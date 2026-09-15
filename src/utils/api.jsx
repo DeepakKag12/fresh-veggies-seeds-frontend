@@ -22,9 +22,10 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Pages that genuinely require a session. Everything else is browsable signed
-// out, so an expired token there should not interrupt the visit.
-const PROTECTED_PREFIXES = ['/checkout', '/orders', '/settings', '/admin'];
+// Pages that genuinely require an existing account session.
+// Note: /checkout is NOT in this list because it features an embedded guest-first
+// SMS OTP checkout flow (users verify right on the page without prior login).
+const PROTECTED_PREFIXES = ['/orders', '/settings', '/admin'];
 
 // Session expiry handling on 401.
 api.interceptors.response.use(

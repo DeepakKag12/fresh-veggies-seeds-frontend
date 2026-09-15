@@ -100,8 +100,8 @@ function App() {
 
           <Route path="/contact" element={<Contact />} />
 
-          {/* Private Routes */}
-          <Route path="/checkout" element={<PrivateRoute><Checkout /></PrivateRoute>} />
+          {/* Checkout & Private Routes */}
+          <Route path="/checkout" element={<Checkout />} />
           <Route path="/orders" element={<PrivateRoute><MyOrders /></PrivateRoute>} />
           <Route path="/orders/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
           <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />

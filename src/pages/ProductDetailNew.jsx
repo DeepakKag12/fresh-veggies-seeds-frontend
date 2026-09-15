@@ -70,7 +70,7 @@ const ProductDetailNew = () => {
 
   const handleBuyNow = () => {
     addToCart(buildCartItem(), quantity);
-    navigate('/cart');
+    navigate('/checkout');
   };
 
   const handleShare = async () => {
