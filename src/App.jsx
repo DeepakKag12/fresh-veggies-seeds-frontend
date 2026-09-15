@@ -100,7 +100,7 @@ function App() {
 
           <Route path="/contact" element={<Contact />} />
 
-          {/* Checkout & Private Routes */}
+          {/* Checkout (Guest OTP or Authenticated) */}
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/orders" element={<PrivateRoute><MyOrders /></PrivateRoute>} />
           <Route path="/orders/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
@@ -123,14 +123,12 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      {/* One footer, everywhere — it used to be suppressed on auth pages, admin
-          pages and for any signed-in admin, which produced three different
-          page layouts across the same application. */}
-      <Footer />
-      {/* Admin always sees AdminBottomNav, regular users see BottomNav */}
+      {/* One footer across the storefront, hidden on /checkout for a distraction-free checkout experience */}
+      {location.pathname !== '/checkout' && <Footer />}
+      {/* Admin always sees AdminBottomNav, regular users see BottomNav (hidden on checkout for clean mobile focus) */}
       {!isAuthPage && isAdmin && <AdminBottomNav />}
-      {!isAuthPage && !isAdmin && <BottomNav />}
-      {!isAuthPage && !isAdmin && <WhatsAppButton />}
+      {!isAuthPage && !isAdmin && location.pathname !== '/checkout' && <BottomNav />}
+      {!isAuthPage && !isAdmin && location.pathname !== '/checkout' && <WhatsAppButton />}
       <Toaster
         position="top-center"
         toastOptions={{
