@@ -42,16 +42,30 @@ export const initMsg91 = () => {
           return reject(new Error('initSendOTP not found on window object.'));
         }
 
+        const containerId = 'msg91-captcha-container';
+        let container = document.getElementById(containerId);
+        if (!container) {
+          container = document.createElement('div');
+          container.id = containerId;
+          document.body.appendChild(container);
+        }
+
         const configuration = {
           widgetId,
           tokenAuth,
           exposeMethods: true,
-          captchaRenderId: '',
+          captchaRenderId: containerId,
           success: (data) => {
             console.log('MSG91 global success event:', data);
           },
           failure: (error) => {
             console.warn('MSG91 global failure event:', error);
+          },
+          captchaVerified: (status) => {
+            console.log('MSG91 captcha verification status:', status);
+            if (typeof window.onMsg91CaptchaVerified === 'function') {
+              window.onMsg91CaptchaVerified(status);
+            }
           }
         };
 

@@ -25,19 +25,28 @@ const GuestMobileOtpStep = ({ onVerified }) => {
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
+  const [captchaVerified, setCaptchaVerified] = useState(false);
   const [error, setError] = useState('');
 
   const [cooldown, setCooldown] = useState(0);
   const timerRef = useRef(null);
   const digitInputRefs = useRef([]);
 
-  // Pre-load MSG91 script on mount
+  // Pre-load MSG91 script on mount & listen to CAPTCHA verification
   useEffect(() => {
+    window.onMsg91CaptchaVerified = (status) => {
+      setCaptchaVerified(Boolean(status));
+      if (status) {
+        setError('');
+      }
+    };
+
     initMsg91().catch((err) => {
       console.warn('MSG91 pre-load notice:', err.message);
     });
 
     return () => {
+      window.onMsg91CaptchaVerified = null;
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
@@ -92,6 +101,11 @@ const GuestMobileOtpStep = ({ onVerified }) => {
 
     if (!isValidIndianMobile(phone)) {
       setError('Please enter a valid 10-digit Indian mobile number');
+      return;
+    }
+
+    if (typeof window.isCaptchaVerified === 'function' && !window.isCaptchaVerified() && !captchaVerified) {
+      setError('Please complete the security check (I am human) above.');
       return;
     }
 
@@ -365,6 +379,17 @@ const GuestMobileOtpStep = ({ onVerified }) => {
             </div>
             <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">
               We'll send an SMS with a {otpLength}-digit verification code.
+            </p>
+          </div>
+
+          {/* MSG91 Security CAPTCHA Container */}
+          <div className="pt-0.5 pb-0.5">
+            <div
+              id="msg91-captcha-container"
+              className="min-h-[78px] flex items-center justify-center p-2 rounded-xl bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-600/50 transition-all overflow-x-auto"
+            ></div>
+            <p className="text-[11px] text-center text-gray-500 dark:text-gray-400 mt-1">
+              Complete the security check above to request your OTP
             </p>
           </div>
 
