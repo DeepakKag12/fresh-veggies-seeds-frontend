@@ -133,6 +133,17 @@ const Checkout = () => {
   const [couponError, setCouponError] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
 
+  /* ── Store settings state ── */
+  const [storeSettings, setStoreSettings] = useState(null);
+
+  useEffect(() => {
+    api.get('/settings')
+      .then(res => {
+        if (res.data?.success) setStoreSettings(res.data.data);
+      })
+      .catch(() => {});
+  }, []);
+
   /* Redirect to cart if empty */
   useEffect(() => {
     if (cartReady && cartItems.length === 0) navigate('/cart', { replace: true });
@@ -325,21 +336,68 @@ const Checkout = () => {
     setLoading(false);
   };
 
+  /* ── Pricing ── */
+  const FREE_DELIVERY_THRESHOLD = storeSettings?.delivery?.freeDeliveryThreshold ?? 300;
+  const DELIVERY_CHARGE = storeSettings?.delivery?.deliveryCharge ?? 50;
+  const COD_AVAILABLE = (storeSettings?.delivery?.codAvailable ?? true) && (storeSettings?.payments?.codEnabled ?? true);
+  const COD_MAX_ORDER = storeSettings?.delivery?.codMaxOrder ?? storeSettings?.payments?.codMaxOrder ?? 5000;
+  const MIN_ORDER_AMOUNT = storeSettings?.delivery?.minOrderAmount ?? 100;
+  const ONLINE_AVAILABLE = storeSettings?.payments?.onlinePaymentEnabled ?? true;
+  const COD_EXTRA_CHARGE = storeSettings?.payments?.codExtraCharge ?? 0;
+  const ONLINE_DISCOUNT_TYPE = storeSettings?.payments?.onlineDiscountType || 'percentage';
+  const ONLINE_DISCOUNT_VALUE = storeSettings?.payments?.onlineDiscountValue ?? 0;
+  const ONLINE_DISCOUNT_MAX = storeSettings?.payments?.onlineDiscountMaxLimit ?? 100;
+
+  const itemsPrice = getCartTotal();
+  const shippingPrice = itemsPrice >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_CHARGE;
+  const discountAmount = appliedCoupon ? (appliedCoupon.discountAmount || 0) : 0;
+
+  // Dynamic COD surcharge & Online payment incentive discount
+  const codExtraFee = (paymentMode === 'COD' && COD_EXTRA_CHARGE > 0) ? COD_EXTRA_CHARGE : 0;
+
+  let onlineDiscountAmount = 0;
+  if (paymentMode === 'Online' && ONLINE_DISCOUNT_VALUE > 0 && itemsPrice > 0) {
+    if (ONLINE_DISCOUNT_TYPE === 'percentage') {
+      onlineDiscountAmount = Math.round((itemsPrice * ONLINE_DISCOUNT_VALUE) / 100);
+      if (ONLINE_DISCOUNT_MAX > 0) {
+        onlineDiscountAmount = Math.min(onlineDiscountAmount, ONLINE_DISCOUNT_MAX);
+      }
+    } else {
+      onlineDiscountAmount = ONLINE_DISCOUNT_VALUE;
+    }
+    onlineDiscountAmount = Math.max(0, Math.min(onlineDiscountAmount, itemsPrice));
+  }
+
+  const totalAmount = Math.max(0, itemsPrice + shippingPrice + codExtraFee - discountAmount - onlineDiscountAmount);
+
   const handleSubmit = (e) => {
-    if (paymentMode === 'Online') {
+    e.preventDefault();
+    if (MIN_ORDER_AMOUNT && itemsPrice < MIN_ORDER_AMOUNT) {
+      setError(`Minimum order amount is ₹${MIN_ORDER_AMOUNT}. Please add more items to your cart.`);
+      return;
+    }
+    if (paymentMode === 'COD') {
+      if (!COD_AVAILABLE) {
+        setError('Cash on Delivery is currently unavailable. Please choose Online Payment.');
+        return;
+      }
+      if (COD_MAX_ORDER && totalAmount > COD_MAX_ORDER) {
+        setError(`Cash on Delivery is only available for orders up to ₹${COD_MAX_ORDER}. Please choose Online Payment.`);
+        return;
+      }
+      handleCODPayment(e);
+    } else {
+      if (!ONLINE_AVAILABLE) {
+        setError('Online Payment is currently unavailable. Please choose Cash on Delivery.');
+        return;
+      }
       if (!razorpayLoaded) {
         setError('Payment gateway is loading. Please wait a moment and try again.');
         return;
       }
       handleRazorpayPayment(e);
-    } else {
-      handleCODPayment(e);
     }
   };
-
-  /* ── Pricing ── */
-  const codExtra = paymentMode === 'COD' ? 50 : 0;
-  const totalAmount = itemsPrice + shippingPrice + codExtra - discountAmount;
 
   /* ── Coupon helpers ── */
   const handleApplyCoupon = async () => {
@@ -506,30 +564,63 @@ const Checkout = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <label className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    paymentMode === 'COD' ? 'border-fv-primary bg-fv-cream dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-700'
-                  }`}>
-                    <input type="radio" name="paymentMode" value="COD"
-                      checked={paymentMode === 'COD'}
-                      onChange={e => setPaymentMode(e.target.value)}
-                      className="w-5 h-5 text-fv-primary" />
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-white">Cash on Delivery (COD)</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Pay when you receive your order</p>
+                  {COD_AVAILABLE ? (
+                    <label className={`flex items-center justify-between p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      paymentMode === 'COD' ? 'border-fv-primary bg-fv-cream dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-700'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <input type="radio" name="paymentMode" value="COD"
+                          checked={paymentMode === 'COD'}
+                          onChange={e => setPaymentMode(e.target.value)}
+                          className="w-5 h-5 text-fv-primary" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-gray-900 dark:text-white">Cash on Delivery (COD)</p>
+                            {COD_EXTRA_CHARGE > 0 && (
+                              <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                                +₹{COD_EXTRA_CHARGE} fee
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Pay when you receive your order {COD_MAX_ORDER ? `(up to ₹${COD_MAX_ORDER.toLocaleString()})` : ''}
+                          </p>
+                        </div>
+                      </div>
+                    </label>
+                  ) : (
+                    <div className="p-3 rounded-lg border border-gray-200 text-gray-400 text-sm bg-gray-50 dark:bg-gray-800">
+                      Cash on Delivery is currently unavailable
                     </div>
-                  </label>
-                  <label className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    paymentMode === 'Online' ? 'border-fv-primary bg-fv-cream dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-700'
-                  }`}>
-                    <input type="radio" name="paymentMode" value="Online"
-                      checked={paymentMode === 'Online'}
-                      onChange={e => setPaymentMode(e.target.value)}
-                      className="w-5 h-5 text-fv-primary" />
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-white">Online Payment (Razorpay)</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Pay securely using Razorpay</p>
+                  )}
+
+                  {ONLINE_AVAILABLE ? (
+                    <label className={`flex items-center justify-between p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      paymentMode === 'Online' ? 'border-fv-primary bg-fv-cream dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-700'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <input type="radio" name="paymentMode" value="Online"
+                          checked={paymentMode === 'Online'}
+                          onChange={e => setPaymentMode(e.target.value)}
+                          className="w-5 h-5 text-fv-primary" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-gray-900 dark:text-white">Online Payment (Razorpay)</p>
+                            {ONLINE_DISCOUNT_VALUE > 0 && (
+                              <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
+                                {ONLINE_DISCOUNT_TYPE === 'percentage' ? `${ONLINE_DISCOUNT_VALUE}% Extra OFF` : `₹${ONLINE_DISCOUNT_VALUE} Extra OFF`}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Pay securely using UPI, Cards & Net Banking</p>
+                        </div>
+                      </div>
+                    </label>
+                  ) : (
+                    <div className="p-3 rounded-lg border border-gray-200 text-gray-400 text-sm bg-gray-50 dark:bg-gray-800">
+                      Online Payment is currently unavailable
                     </div>
-                  </label>
+                  )}
                 </div>
               </div>
             </div>
@@ -622,6 +713,18 @@ const Checkout = () => {
                     <div className="flex justify-between text-fv-primary dark:text-green-400">
                       <span>Discount ({appliedCoupon.code})</span>
                       <span className="font-semibold">−₹{discountAmount.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {codExtraFee > 0 && (
+                    <div className="flex justify-between text-amber-700 dark:text-amber-400">
+                      <span>COD Handling Fee</span>
+                      <span className="font-semibold">+₹{codExtraFee.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {onlineDiscountAmount > 0 && (
+                    <div className="flex justify-between text-fv-primary dark:text-green-400 font-medium">
+                      <span>Online Payment Discount</span>
+                      <span className="font-semibold">−₹{onlineDiscountAmount.toLocaleString()}</span>
                     </div>
                   )}
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-3">

@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { Star, Loader2, BadgeCheck } from 'lucide-react';
-import { cachedGet } from '../../utils/api';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Star, Loader2, BadgeCheck, PenSquare } from 'lucide-react';
+import api from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
+import WriteReviewModal from './WriteReviewModal';
 
 const Stars = ({ value, size = 'h-4 w-4' }) => (
   <span className="flex" aria-hidden="true">
@@ -15,30 +17,42 @@ const fmtDate = (iso) =>
 
 /**
  * Ratings & reviews, read from /api/reviews/product/:id.
- *
- * The distribution bars, the average and the count are all computed from the
- * reviews returned — none of it is asserted independently of the data, so the
- * summary can never contradict the list below it.
+ * Verified buyer review submission supported for delivered orders.
  */
-const ReviewsSection = ({ productId }) => {
+const ReviewsSection = ({ productId, productName }) => {
+  const { user } = useAuth();
   const [state, setState] = useState({ loading: true, reviews: [], avg: 0, total: 0 });
+  const [eligibility, setEligibility] = useState({ canReview: false, hasReviewed: false, existingReview: null });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const fetchReviews = useCallback(async () => {
+    if (!productId) return;
+    try {
+      const res = await api.get(`/reviews/product/${productId}?limit=20`);
+      const d = res?.data || {};
+      setState({ loading: false, reviews: d.data || [], avg: d.avgRating || 0, total: d.total || 0 });
+    } catch {
+      setState({ loading: false, reviews: [], avg: 0, total: 0 });
+    }
+  }, [productId]);
+
+  const checkEligibility = useCallback(async () => {
+    if (!productId || !user) {
+      setEligibility({ canReview: false, hasReviewed: false, existingReview: null });
+      return;
+    }
+    try {
+      const res = await api.get(`/reviews/eligibility/${productId}`);
+      setEligibility(res.data.data || { canReview: false, hasReviewed: false });
+    } catch {
+      setEligibility({ canReview: false, hasReviewed: false, existingReview: null });
+    }
+  }, [productId, user]);
 
   useEffect(() => {
-    if (!productId) return undefined;
-    let alive = true;
-    setState((s) => ({ ...s, loading: true }));
-    (async () => {
-      try {
-        const res = await cachedGet(`/reviews/product/${productId}`, { params: { limit: 20 } });
-        if (!alive) return;
-        const d = res?.data || {};
-        setState({ loading: false, reviews: d.data || [], avg: d.avgRating || 0, total: d.total || 0 });
-      } catch {
-        if (alive) setState({ loading: false, reviews: [], avg: 0, total: 0 });
-      }
-    })();
-    return () => { alive = false; };
-  }, [productId]);
+    fetchReviews();
+    checkEligibility();
+  }, [fetchReviews, checkEligibility]);
 
   const { loading, reviews, avg, total } = state;
 
@@ -54,6 +68,34 @@ const ReviewsSection = ({ productId }) => {
           Ratings &amp; Reviews
         </h2>
 
+        {/* Customer Review Eligibility Action Banner */}
+        {user && (
+          <div className="mt-6 flex justify-center">
+            {eligibility.canReview ? (
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                className="inline-flex items-center gap-2 rounded-full bg-fv-primary px-6 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-fv-primary-dark transition-all"
+              >
+                <PenSquare className="w-4 h-4" />
+                <span>Write a Verified Review</span>
+              </button>
+            ) : eligibility.hasReviewed ? (
+              <div className="flex items-center gap-3 bg-fv-surface px-5 py-2.5 rounded-2xl border border-fv-border">
+                <BadgeCheck className="w-4 h-4 text-fv-primary" />
+                <span className="text-xs text-fv-muted font-medium">You have already reviewed this product</span>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(true)}
+                  className="text-xs font-bold text-fv-primary hover:underline ml-1"
+                >
+                  Edit Review
+                </button>
+              </div>
+            ) : null}
+          </div>
+        )}
+
         {loading && (
           <p className="mt-8 flex items-center justify-center gap-2 text-fv-muted">
             <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> Loading reviews…
@@ -62,7 +104,7 @@ const ReviewsSection = ({ productId }) => {
 
         {!loading && total === 0 && (
           <p className="mt-6 text-center text-[15px] text-fv-muted">
-            No reviews yet — be the first to review this product.
+            No reviews yet — verified buyers who purchased this product can leave a review.
           </p>
         )}
 
@@ -117,6 +159,20 @@ const ReviewsSection = ({ productId }) => {
             </ul>
           </>
         )}
+
+        {/* Write / Edit Review Modal */}
+        <WriteReviewModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          productId={productId}
+          productName={productName}
+          orderId={eligibility.deliveredOrderId}
+          existingReview={eligibility.existingReview}
+          onSuccess={() => {
+            fetchReviews();
+            checkEligibility();
+          }}
+        />
       </div>
     </section>
   );

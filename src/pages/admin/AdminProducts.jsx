@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import Pagination from '../../components/Pagination';
-import { useLocation } from 'react-router-dom';
-import { Edit, Trash2, Plus, X, Package, Upload } from 'lucide-react';
+import { useLocation, useSearchParams } from 'react-router-dom';
+import { Edit, Trash2, Plus, X, Package, Upload, MoreVertical, Search, Boxes } from 'lucide-react';
 import api from '../../utils/api';
 
 const AdminProducts = () => {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const [activeMenuId, setActiveMenuId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [stockModalProduct, setStockModalProduct] = useState(null);
+  const [quickStockValue, setQuickStockValue] = useState('');
   const [products, setProducts] = useState([]);
   // Real pagination. This screen used to request `?limit=100`, but the API caps
   // page size at 50 — so an admin with more than 50 products simply could not
@@ -41,12 +46,11 @@ const AdminProducts = () => {
   });
 
 
-  // Refetch whenever the page changes. Kept separate from the location effect
-  // below so paging does not depend on navigation and vice versa.
+  // Refetch whenever the page, search, or URL filter changes
   useEffect(() => {
     fetchProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, searchQuery, searchParams]);
 
   useEffect(() => {
     fetchCategories();
@@ -62,13 +66,36 @@ const AdminProducts = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await api.get('/products', { params: { page, limit: 24 } });
+      const params = { page, limit: 24 };
+      if (searchQuery.trim()) params.search = searchQuery.trim();
+      if (searchParams.get('lowstock') === 'true') params.lowstock = 'true';
+      if (searchParams.get('outofstock') === 'true') params.outofstock = 'true';
+
+      const response = await api.get('/products', { params });
       setProducts(response.data.data || []);
       setTotalPages(response.data.totalPages || 1);
       setTotalProducts(response.data.total || 0);
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('Failed to load products');
+    }
+  };
+
+  const handleQuickStockSave = async () => {
+    if (!stockModalProduct) return;
+    const newStock = parseInt(quickStockValue, 10);
+    if (isNaN(newStock) || newStock < 0) {
+      toast.error('Please enter a valid stock count');
+      return;
+    }
+
+    try {
+      await api.put(`/products/${stockModalProduct._id}`, { stock: newStock });
+      toast.success(`Stock updated to ${newStock}!`);
+      setStockModalProduct(null);
+      fetchProducts();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update stock');
     }
   };
 
@@ -251,77 +278,195 @@ const AdminProducts = () => {
   };
 
   return (
-    <div className="min-h-screen bg-fv-page  py-8">
+    <div className="min-h-screen bg-fv-page py-6 md:py-8">
       <div className="container mx-auto px-4">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-fv-heading ">
-            Manage Products
-          </h1>
-          <button
-            onClick={() => handleOpen()}
-            className="flex items-center gap-2 bg-fv-primary hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 rounded-lg font-semibold  transition-all"
-          >
-            <Plus className="w-5 h-5" />
-            Add Product
-          </button>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-fv-heading flex items-center gap-2">
+              Manage Products
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-fv-primary/10 text-fv-primary font-bold">
+                {totalProducts} products
+              </span>
+            </h1>
+            <p className="text-xs md:text-sm text-fv-muted mt-0.5">
+              Control your catalog, manage inventory levels, and configure pricing
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="relative flex-1 md:w-64">
+              <Search className="w-4 h-4 text-fv-muted absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                className="w-full pl-9 pr-3 py-2 text-xs md:text-sm bg-white dark:bg-gray-800 border border-fv-border rounded-xl focus:ring-2 focus:ring-fv-primary text-fv-heading"
+              />
+            </div>
+            <button
+              onClick={() => handleOpen()}
+              className="flex items-center gap-1.5 bg-fv-primary hover:bg-fv-primary-dark text-white px-4 py-2 rounded-xl text-xs md:text-sm font-semibold shadow-xs transition-all whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Product</span>
+            </button>
+          </div>
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {products.map((product) => (
-            <div
-              key={product._id}
-              className="bg-white  rounded-[12px]  overflow-hidden hover:shadow-[0_18px_40px_rgba(10,76,54,0.10)] transition-shadow"
-            >
-              <img
-                src={product.images?.[0] || 'https://via.placeholder.com/300'}
-                alt={product.name}
-                className="w-full h-48 object-cover"
-              />
-              <div className="p-4">
-                <h3 className="font-semibold text-fv-heading  mb-2 line-clamp-2">
-                  {product.name}
-                </h3>
-                <p className="text-sm text-fv-muted  mb-2">
-                  {product.categoryId?.name || 'No Category'}
-                </p>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-lg font-bold text-fv-primary">
-                    ₹{product.price}
-                  </span>
-                  <span className="text-sm text-fv-muted">
-                    Stock: {product.packages && product.packages.length > 0
-                      ? product.packages.reduce((sum, p) => sum + (Number(p.stock) || 0), 0)
-                      : product.stock}
-                  </span>
-                </div>
-                {product.packages && product.packages.length > 0 && (
-                  <div className="mb-3">
-                    <span className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 px-2 py-1 rounded-full">
-                      {product.packages.length} Packages
-                    </span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
+          {products.map((product) => {
+            const stockCount = product.packages && product.packages.length > 0
+              ? product.packages.reduce((sum, p) => sum + (Number(p.stock) || 0), 0)
+              : product.stock;
+            const isOutOfStock = stockCount <= 0;
+            const isLowStock = !isOutOfStock && stockCount <= 10;
+
+            return (
+              <div
+                key={product._id}
+                className="bg-white dark:bg-gray-800 rounded-2xl border border-fv-border overflow-hidden shadow-xs hover:border-gray-300 dark:hover:border-gray-700 transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="relative">
+                    <img
+                      src={product.images?.[0] || 'https://via.placeholder.com/300'}
+                      alt={product.name}
+                      className="w-full h-44 object-cover"
+                    />
+                    <div className="absolute top-2.5 right-2.5 flex flex-col gap-1 items-end">
+                      {isOutOfStock ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-600 text-white shadow-xs">
+                          Out of Stock
+                        </span>
+                      ) : isLowStock ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white shadow-xs">
+                          Low: {stockCount} left
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
-                )}
-                <div className="flex gap-2">
+
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <h3 className="font-semibold text-sm text-fv-heading line-clamp-2">
+                        {product.name}
+                      </h3>
+                    </div>
+                    <p className="text-xs text-fv-muted mb-2">
+                      {product.categoryId?.name || 'No Category'}
+                    </p>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-base font-bold text-fv-primary">
+                        ₹{product.price}
+                      </span>
+                      <span className="text-xs font-semibold text-fv-muted">
+                        Stock: {stockCount}
+                      </span>
+                    </div>
+                    {product.packages && product.packages.length > 0 && (
+                      <div className="mb-2">
+                        <span className="text-[10px] bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full font-medium">
+                          {product.packages.length} Variants
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Consolidate: Primary Edit Button + More Options Dropdown */}
+                <div className="p-4 pt-0 flex items-center gap-2 relative">
                   <button
                     onClick={() => handleOpen(product)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl text-xs font-semibold shadow-xs transition-colors"
                   >
-                    <Edit className="w-4 h-4" />
-                    Edit
+                    <Edit className="w-3.5 h-3.5" />
+                    <span>Edit</span>
                   </button>
-                  <button
-                    onClick={() => handleDelete(product._id)}
-                    className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+
+                  <div className="relative">
+                    <button
+                      onClick={() => setActiveMenuId(activeMenuId === product._id ? null : product._id)}
+                      className="p-2 text-fv-muted hover:text-fv-heading hover:bg-fv-surface rounded-xl border border-fv-border transition-colors"
+                      title="More actions"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+
+                    {activeMenuId === product._id && (
+                      <div className="absolute right-0 bottom-full mb-1 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-fv-border p-1 z-20">
+                        <button
+                          onClick={() => {
+                            setStockModalProduct(product);
+                            setQuickStockValue(product.stock);
+                            setActiveMenuId(null);
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs font-medium text-fv-heading hover:bg-fv-surface rounded-lg flex items-center gap-2 transition-colors"
+                        >
+                          <Boxes className="w-3.5 h-3.5 text-orange-500" />
+                          Quick Adjust Stock
+                        </button>
+                        <button
+                          onClick={() => {
+                            setActiveMenuId(null);
+                            handleDelete(product._id);
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg flex items-center gap-2 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Delete Product
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
+
+        {/* Quick Stock Modal */}
+        {stockModalProduct && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm p-5 border border-fv-border">
+              <h3 className="text-sm font-bold text-fv-heading mb-1">
+                Quick Adjust Stock
+              </h3>
+              <p className="text-xs text-fv-muted mb-4 truncate">
+                {stockModalProduct.name}
+              </p>
+              <div className="mb-4">
+                <label className="block text-xs font-semibold text-fv-muted mb-1.5">
+                  Current Stock Available
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={quickStockValue}
+                  onChange={(e) => setQuickStockValue(e.target.value)}
+                  className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-fv-border rounded-xl focus:ring-2 focus:ring-fv-primary text-fv-heading"
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setStockModalProduct(null)}
+                  className="flex-1 py-2 bg-fv-surface text-fv-heading rounded-xl text-xs font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleQuickStockSave}
+                  className="flex-1 py-2 bg-fv-primary hover:bg-fv-primary-dark text-white rounded-xl text-xs font-semibold shadow-xs"
+                >
+                  Update Stock
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <Pagination
           page={page}

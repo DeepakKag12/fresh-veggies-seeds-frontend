@@ -224,7 +224,7 @@ const ProductDetailNew = () => {
         </div>
       </div>
 
-      <ReviewsSection productId={product._id} />
+      <ReviewsSection productId={product._id} productName={product.name} />
       <RelatedProducts categoryId={categoryId} excludeId={product._id} />
 
       {/* Sticky buy bar on phones, where the main CTA scrolls out of reach. */}

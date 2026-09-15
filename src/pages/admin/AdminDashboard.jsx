@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import {
   ShoppingCart,
   Package,
@@ -9,10 +10,6 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Bell,
-  Tag,
-  Image,
-  Star,
   ChevronRight,
   RefreshCw,
   Layers,
@@ -26,7 +23,9 @@ import {
   Calendar,
   BarChart2,
   ListOrdered,
-  Boxes
+  Boxes,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 import api from '../../utils/api';
 
@@ -64,14 +63,17 @@ const AdminDashboard = () => {
     refundedAmount: 0,
     pendingOrders: 0,
     confirmedOrders: 0,
+    packedOrders: 0,
     shippedOrders: 0,
     deliveredOrders: 0,
     cancelledOrders: 0,
     cancellationRequests: 0,
     failedPayments: 0,
     lowStockProducts: 0,
+    outOfStockProducts: 0,
     pendingReviews: 0,
     todayOrders: 0,
+    todayUsers: 0,
     todayRevenue: 0,
     todayOnlineRevenue: 0,
     todayCODRevenue: 0,
@@ -79,7 +81,9 @@ const AdminDashboard = () => {
     monthOnlineRevenue: 0,
     monthCODRevenue: 0,
     lastMonthRevenue: 0,
+    urgentOrders: [],
   });
+  const [actionLoadingId, setActionLoadingId] = useState(null);
   const [recentOrders, setRecentOrders] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [analytics, setAnalytics] = useState(null);
@@ -92,6 +96,32 @@ const AdminDashboard = () => {
   const [showAllMonths, setShowAllMonths] = useState(false);
   const [showAllOrders, setShowAllOrders] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
+
+  const handleQuickConfirm = async (orderId) => {
+    setActionLoadingId(orderId);
+    try {
+      await api.put(`/orders/${orderId}/status`, { orderStatus: 'Confirmed' });
+      toast.success('Order confirmed!');
+      fetchDashboardData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to confirm order');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleQuickApproveCancel = async (orderId) => {
+    setActionLoadingId(orderId);
+    try {
+      await api.put(`/orders/${orderId}/approve-cancel`);
+      toast.success('Cancellation approved! Refund initiated.');
+      fetchDashboardData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to approve cancellation');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   const TABS = [
     { id: 'home',      label: 'Home',      icon: CheckCircle },
@@ -301,136 +331,339 @@ const AdminDashboard = () => {
       <div className="max-w-7xl mx-auto p-3 md:p-6">
 
         {/* ══════════════════════════════════════════════════════
-            HOME TAB — Quick Actions first, then KPI + Today
+            HOME TAB — Orders Requiring Action Command Center + 8 Clickable KPIs
         ══════════════════════════════════════════════════════ */}
         {activeTab === 'home' && (<>
 
-          {/* Alerts */}
-          {(stats.pendingOrders > 0 || stats.cancellationRequests > 0 || stats.failedPayments > 0) && (
-            <div className="space-y-2 mb-5">
-              {stats.pendingOrders > 0 && (
-                <Link to="/admin/orders?status=Pending">
-                  <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-[12px] px-4 py-3 hover:bg-amber-100 transition-colors">
-                    <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse flex-shrink-0" />
-                    <Bell className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-300 flex-1">
-                      {stats.pendingOrders} new order{stats.pendingOrders !== 1 ? 's' : ''} awaiting processing
-                    </p>
-                    <ChevronRight className="w-4 h-4 text-amber-500 flex-shrink-0" />
-                  </div>
-                </Link>
-              )}
-              {stats.cancellationRequests > 0 && (
-                <Link to="/admin/orders?status=CancellationRequested">
-                  <div className="flex items-center gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-[12px] px-4 py-3 hover:bg-red-100 transition-colors">
-                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse flex-shrink-0" />
-                    <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0" />
-                    <p className="text-sm font-semibold text-red-800 dark:text-red-300 flex-1">
-                      {stats.cancellationRequests} cancellation request{stats.cancellationRequests !== 1 ? 's' : ''} need review
-                    </p>
-                    <ChevronRight className="w-4 h-4 text-red-500 flex-shrink-0" />
-                  </div>
-                </Link>
-              )}
-              {stats.failedPayments > 0 && (
-                <Link to="/admin/orders">
-                  <div className="flex items-center gap-3 bg-fv-surface /50 border border-fv-border  rounded-[12px] px-4 py-3 hover:bg-gray-200 transition-colors">
-                    <div className="w-2 h-2 bg-fv-page0 rounded-full flex-shrink-0" />
-                    <CreditCard className="w-4 h-4 text-fv-muted  flex-shrink-0" />
-                    <p className="text-sm font-semibold text-fv-ink  flex-1">
-                      {stats.failedPayments} failed payment{stats.failedPayments !== 1 ? 's' : ''} detected
-                    </p>
-                    <ChevronRight className="w-4 h-4 text-fv-muted flex-shrink-0" />
-                  </div>
-                </Link>
-              )}
+          {/* 🚨 ORDERS REQUIRING ACTION COMMAND CENTER */}
+          <div className="bg-gradient-to-r from-red-500/10 via-amber-500/10 to-transparent border border-red-200 dark:border-red-900/40 rounded-2xl p-4 md:p-5 mb-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-3 h-3 rounded-full bg-red-500 animate-ping" />
+                <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  Orders Requiring Action
+                  <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-red-600 text-white shadow-sm">
+                    {(stats.pendingOrders || 0) + (stats.cancellationRequests || 0)} URGENT
+                  </span>
+                </h2>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+                <span>Fast resolution reduces customer support queries</span>
+              </div>
             </div>
-          )}
 
-          {/* ── QUICK ACTIONS — Navigation hub, shown FIRST ── */}
-          <div className="bg-white  rounded-[12px] shadow-sm border border-fv-border  p-5 mb-5">
-            <h2 className="text-sm font-bold text-fv-ink  mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
-              {[
-                { icon: Package,      label: 'Products',   path: '/admin/products',   bg: 'bg-fv-cream',    color: 'text-fv-primary' },
-                { icon: ShoppingCart, label: 'Orders',     path: '/admin/orders',     bg: 'bg-fv-cream',  color: 'text-fv-primary' },
-                { icon: Boxes,        label: 'Stock',      path: '/admin/products?lowstock=true', bg: 'bg-fv-cream', color: 'text-fv-primary', badge: stats.lowStockProducts },
-                { icon: Layers,       label: 'Categories', path: '/admin/categories', bg: 'bg-fv-cream',  color: 'text-fv-primary' },
-                { icon: Tag,          label: 'Combos',     path: '/admin/combos',     bg: 'bg-fv-cream',color: 'text-fv-primary' },
-                { icon: Users,        label: 'Users',      path: '/admin/users',      bg: 'bg-fv-cream',color: 'text-fv-primary' },
-                { icon: Tag,          label: 'Coupons',    path: '/admin/coupons',    bg: 'bg-fv-cream',    color: 'text-fv-primary' },
-                { icon: Star,         label: 'Reviews',    path: '/admin/reviews',    bg: 'bg-fv-cream',color: 'text-fv-primary', badge: stats.pendingReviews },
-                { icon: Image,        label: 'Banners',    path: '/admin/banners',    bg: 'bg-fv-cream',    color: 'text-fv-primary' },
-              ].map((item, index) => (
-                <Link key={item.path} to={item.path}>
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }}
-                    className="flex flex-col items-center gap-2 p-3 rounded-[12px] border border-fv-border  hover:border-fv-border dark:hover:border-gray-500 hover:shadow-sm transition-all relative"
+            {/* Action pill counters */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
+              <Link
+                to="/admin/orders?status=Pending"
+                className={`flex items-center justify-between p-2.5 rounded-xl border transition-all ${
+                  stats.pendingOrders > 0
+                    ? 'bg-amber-500/10 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 hover:bg-amber-500/20 shadow-xs'
+                    : 'bg-white/60 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-amber-600" />
+                  <span className="text-xs font-semibold">New Pending</span>
+                </div>
+                <span className="text-sm font-bold">{stats.pendingOrders || 0}</span>
+              </Link>
+
+              <Link
+                to="/admin/orders?status=CancellationRequested"
+                className={`flex items-center justify-between p-2.5 rounded-xl border transition-all ${
+                  stats.cancellationRequests > 0
+                    ? 'bg-red-500/10 border-red-300 dark:border-red-800 text-red-900 dark:text-red-200 hover:bg-red-500/20 shadow-xs'
+                    : 'bg-white/60 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-600" />
+                  <span className="text-xs font-semibold">Cancellation</span>
+                </div>
+                <span className="text-sm font-bold">{stats.cancellationRequests || 0}</span>
+              </Link>
+
+              <Link
+                to="/admin/orders?paymentStatus=Failed"
+                className={`flex items-center justify-between p-2.5 rounded-xl border transition-all ${
+                  stats.failedPayments > 0
+                    ? 'bg-rose-500/10 border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200 hover:bg-rose-500/20'
+                    : 'bg-white/60 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-rose-600" />
+                  <span className="text-xs font-semibold">Failed Pay</span>
+                </div>
+                <span className="text-sm font-bold">{stats.failedPayments || 0}</span>
+              </Link>
+
+              <Link
+                to="/admin/products?lowstock=true"
+                className={`flex items-center justify-between p-2.5 rounded-xl border transition-all ${
+                  (stats.lowStockProducts || 0) + (stats.outOfStockProducts || 0) > 0
+                    ? 'bg-orange-500/10 border-orange-300 dark:border-orange-800 text-orange-900 dark:text-orange-200 hover:bg-orange-500/20'
+                    : 'bg-white/60 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Boxes className="w-4 h-4 text-orange-600" />
+                  <span className="text-xs font-semibold">Low/Out Stock</span>
+                </div>
+                <span className="text-sm font-bold">{(stats.lowStockProducts || 0) + (stats.outOfStockProducts || 0)}</span>
+              </Link>
+            </div>
+
+            {/* List of Urgent Orders with 1-click Quick Action */}
+            {stats.urgentOrders && stats.urgentOrders.length > 0 ? (
+              <div className="space-y-2 mt-3">
+                <div className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 px-1">
+                  High Priority Orders
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                  {stats.urgentOrders.slice(0, 6).map((order) => {
+                    const isCancel = order.orderStatus === 'CancellationRequested';
+                    return (
+                      <div
+                        key={order._id}
+                        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 flex items-center justify-between gap-3 shadow-xs hover:border-gray-300 transition-all"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs font-bold text-gray-900 dark:text-white truncate">
+                              #{order.orderNumber || order._id.slice(-6).toUpperCase()}
+                            </span>
+                            <span
+                              className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                                isCancel
+                                  ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
+                                  : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
+                              }`}
+                            >
+                              {isCancel ? 'Cancel Req' : 'Pending'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                            <span>{order.customerName || order.user?.name || 'Customer'}</span>
+                            <span>•</span>
+                            <span className="font-semibold text-gray-700 dark:text-gray-300">₹{order.totalAmount}</span>
+                            <span>•</span>
+                            <span>{order.paymentMode}</span>
+                          </div>
+                        </div>
+
+                        {/* 1-Click Action Button */}
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {isCancel ? (
+                            <button
+                              disabled={actionLoadingId === order._id}
+                              onClick={() => handleQuickApproveCancel(order._id)}
+                              className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition-all shadow-xs flex items-center gap-1"
+                            >
+                              {actionLoadingId === order._id ? (
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <>
+                                  <XCircle className="w-3.5 h-3.5" />
+                                  Approve Cancel
+                                </>
+                              )}
+                            </button>
+                          ) : (
+                            <button
+                              disabled={actionLoadingId === order._id}
+                              onClick={() => handleQuickConfirm(order._id)}
+                              className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition-all shadow-xs flex items-center gap-1"
+                            >
+                              {actionLoadingId === order._id ? (
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <>
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  Confirm
+                                </>
+                              )}
+                            </button>
+                          )}
+                          <Link
+                            to={`/admin/orders`}
+                            state={{ focusOrderId: order._id }}
+                            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            title="View order"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="pt-2 text-right">
+                  <Link
+                    to="/admin/orders?status=action_required"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400 hover:underline"
                   >
-                    <div className={`w-12 h-12 rounded-[12px] ${item.bg} flex items-center justify-center`}>
-                      <item.icon className={`w-6 h-6 ${item.color}`} />
+                    View all actionable orders <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl p-3 flex items-center gap-2.5 text-emerald-800 dark:text-emerald-300">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                <span className="text-xs font-medium">All caught up! No urgent orders pending administrative action right now.</span>
+              </div>
+            )}
+          </div>
+
+          {/* ── 8 CLICKABLE KPI CONTROL CARDS ── */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                Store Operations Pulse
+              </h2>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Click any card to inspect</span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                {
+                  label: "Today's Orders",
+                  value: stats.todayOrders || 0,
+                  icon: ShoppingCart,
+                  link: '/admin/orders?period=today',
+                  bg: 'hover:bg-blue-50/50 dark:hover:bg-blue-900/10',
+                  iconColor: 'text-blue-600 dark:text-blue-400',
+                  iconBg: 'bg-blue-100 dark:bg-blue-900/30',
+                },
+                {
+                  label: "Today's Revenue",
+                  value: `₹${fmt(stats.todayRevenue)}`,
+                  icon: TrendingUp,
+                  link: null,
+                  bg: 'hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10',
+                  iconColor: 'text-emerald-600 dark:text-emerald-400',
+                  iconBg: 'bg-emerald-100 dark:bg-emerald-900/30',
+                },
+                {
+                  label: 'Pending Orders',
+                  value: stats.pendingOrders || 0,
+                  icon: Clock,
+                  link: '/admin/orders?status=Pending',
+                  badge: stats.pendingOrders > 0,
+                  bg: 'hover:bg-amber-50/50 dark:hover:bg-amber-900/10',
+                  iconColor: 'text-amber-600 dark:text-amber-400',
+                  iconBg: 'bg-amber-100 dark:bg-amber-900/30',
+                },
+                {
+                  label: 'Cancellation Requests',
+                  value: stats.cancellationRequests || 0,
+                  icon: AlertTriangle,
+                  link: '/admin/orders?status=CancellationRequested',
+                  badge: stats.cancellationRequests > 0,
+                  bg: 'hover:bg-red-50/50 dark:hover:bg-red-900/10',
+                  iconColor: 'text-red-600 dark:text-red-400',
+                  iconBg: 'bg-red-100 dark:bg-red-900/30',
+                },
+                {
+                  label: 'Low Stock Products',
+                  value: stats.lowStockProducts || 0,
+                  icon: Boxes,
+                  link: '/admin/products?lowstock=true',
+                  bg: 'hover:bg-orange-50/50 dark:hover:bg-orange-900/10',
+                  iconColor: 'text-orange-600 dark:text-orange-400',
+                  iconBg: 'bg-orange-100 dark:bg-orange-900/30',
+                },
+                {
+                  label: 'Out of Stock',
+                  value: stats.outOfStockProducts || 0,
+                  icon: Package,
+                  link: '/admin/products?outofstock=true',
+                  bg: 'hover:bg-rose-50/50 dark:hover:bg-rose-900/10',
+                  iconColor: 'text-rose-600 dark:text-rose-400',
+                  iconBg: 'bg-rose-100 dark:bg-rose-900/30',
+                },
+                {
+                  label: 'Failed Payments',
+                  value: stats.failedPayments || 0,
+                  icon: CreditCard,
+                  link: '/admin/orders?paymentStatus=Failed',
+                  bg: 'hover:bg-purple-50/50 dark:hover:bg-purple-900/10',
+                  iconColor: 'text-purple-600 dark:text-purple-400',
+                  iconBg: 'bg-purple-100 dark:bg-purple-900/30',
+                },
+                {
+                  label: 'New Customers Today',
+                  value: stats.todayUsers || 0,
+                  icon: Users,
+                  link: '/admin/users',
+                  bg: 'hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10',
+                  iconColor: 'text-indigo-600 dark:text-indigo-400',
+                  iconBg: 'bg-indigo-100 dark:bg-indigo-900/30',
+                },
+              ].map((kpi, i) => {
+                const content = (
+                  <div className={`p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 shadow-xs transition-all flex flex-col justify-between h-full ${kpi.bg}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className={`w-8 h-8 rounded-lg ${kpi.iconBg} flex items-center justify-center`}>
+                        <kpi.icon className={`w-4 h-4 ${kpi.iconColor}`} />
+                      </div>
+                      {kpi.badge && (
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                      )}
                     </div>
-                    <span className="text-[11px] md:text-xs font-semibold text-fv-muted  text-center leading-tight">{item.label}</span>
-                    {item.badge > 0 && (
-                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold shadow">
-                        {item.badge}
-                      </span>
-                    )}
-                  </motion.div>
-                </Link>
-              ))}
+                    <div>
+                      <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{kpi.value}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">{kpi.label}</p>
+                    </div>
+                  </div>
+                );
+
+                return kpi.link ? (
+                  <Link key={i} to={kpi.link} className="block group">
+                    {content}
+                  </Link>
+                ) : (
+                  <div key={i}>{content}</div>
+                );
+              })}
             </div>
           </div>
 
-          {/* ── KPI 5 CARDS ── */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-            {[
-              { label: 'Total Orders',        value: stats.totalOrders,               icon: ShoppingCart,  border: 'border-l-4 border-blue-500',  iconBg: 'bg-blue-50 dark:bg-blue-900/20',   iconColor: 'text-blue-600',   valColor: 'text-fv-heading ',            link: '/admin/orders' },
-              { label: 'Pending',             value: stats.pendingOrders,             icon: Clock,         border: 'border-l-4 border-amber-500', iconBg: 'bg-amber-50 dark:bg-amber-900/20', iconColor: 'text-amber-600',  valColor: 'text-amber-600',                           link: '/admin/orders?status=Pending' },
-              { label: 'Cancellations',       value: stats.cancellationRequests,      icon: AlertTriangle, border: 'border-l-4 border-red-500',   iconBg: 'bg-red-50 dark:bg-red-900/20',     iconColor: 'text-red-600',    valColor: 'text-red-600',                             link: '/admin/orders?status=CancellationRequested' },
-              { label: 'Failed Payments',     value: stats.failedPayments,            icon: CreditCard,    border: 'border-l-4 border-gray-400',  iconBg: 'bg-fv-surface ',     iconColor: 'text-fv-muted',   valColor: 'text-fv-ink ',         link: '/admin/orders' },
-              { label: 'Total Revenue',       value: `₹${fmt(stats.totalRevenue)}`,  icon: TrendingUp,    border: 'border-l-4 border-fv-primary', iconBg: 'bg-fv-cream dark:bg-green-900/20', iconColor: 'text-fv-primary',  valColor: 'text-fv-primary-dark dark:text-green-400',       link: null },
-            ].map((kpi, i) => {
-              const card = (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                  className={`bg-white  rounded-[12px] shadow-sm ${kpi.border} p-4 h-full ${kpi.link ? 'hover: cursor-pointer' : ''} transition-shadow`}
-                >
-                  <div className={`w-8 h-8 rounded-lg ${kpi.iconBg} flex items-center justify-center mb-3`}>
-                    <kpi.icon className={`w-4 h-4 ${kpi.iconColor}`} />
-                  </div>
-                  <p className={`text-xl md:text-2xl font-bold ${kpi.valColor}`}>{kpi.value}</p>
-                  <p className="text-[11px] text-fv-muted  mt-0.5 leading-tight">{kpi.label}</p>
-                </motion.div>
-              );
-              return kpi.link
-                ? <Link key={i} to={kpi.link} className="block">{card}</Link>
-                : <div key={i}>{card}</div>;
-            })}
-          </div>
-
-          {/* ── TODAY'S SNAPSHOT ── */}
-          <div className="bg-white  rounded-[12px] shadow-sm border border-fv-border  p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Calendar className="w-4 h-4 text-fv-muted" />
-              <h2 className="text-sm font-semibold text-fv-ink ">Today's Snapshot</h2>
+          {/* ── TODAY'S REVENUE SNAPSHOT ── */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-800 p-4 md:p-5 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-gray-500" />
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white">Today's Revenue Breakdown</h3>
+              </div>
+              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
+                Real-time
+              </span>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
-                { label: 'Revenue (Paid)',    value: `₹${fmt(stats.todayRevenue)}`,       color: 'text-fv-primary-dark', bg: 'bg-fv-cream' },
-                { label: 'Online Payments',   value: `₹${fmt(stats.todayOnlineRevenue)}`, color: 'text-fv-primary', bg: 'bg-fv-cream' },
-                { label: 'Cash on Delivery',  value: `₹${fmt(stats.todayCODRevenue)}`,    color: 'text-fv-primary', bg: 'bg-fv-cream' },
-                { label: 'Orders Today',      value: stats.todayOrders || 0,               color: 'text-fv-heading ',      bg: 'bg-fv-page ' },
-              ].map((item, i) => (
-                <div key={i} className={`${item.bg} rounded-[12px] p-3`}>
-                  <p className={`text-lg font-bold ${item.color}`}>{item.value}</p>
-                  <p className="text-xs text-fv-muted  mt-0.5">{item.label}</p>
-                </div>
-              ))}
+              <div className="bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 rounded-xl p-3.5">
+                <p className="text-xs font-medium text-emerald-800 dark:text-emerald-300">Paid Revenue Today</p>
+                <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400 mt-1">₹{fmt(stats.todayRevenue)}</p>
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5">Delivered & verified</p>
+              </div>
+              <div className="bg-blue-50/70 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-xl p-3.5">
+                <p className="text-xs font-medium text-blue-800 dark:text-blue-300">Online Payments</p>
+                <p className="text-xl font-bold text-blue-700 dark:text-blue-400 mt-1">₹{fmt(stats.todayOnlineRevenue)}</p>
+                <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5">Razorpay / UPI</p>
+              </div>
+              <div className="bg-amber-50/70 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 rounded-xl p-3.5">
+                <p className="text-xs font-medium text-amber-800 dark:text-amber-300">Cash on Delivery</p>
+                <p className="text-xl font-bold text-amber-700 dark:text-amber-400 mt-1">₹{fmt(stats.todayCODRevenue)}</p>
+                <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">Collected upon delivery</p>
+              </div>
+              <div className="bg-purple-50/70 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/30 rounded-xl p-3.5">
+                <p className="text-xs font-medium text-purple-800 dark:text-purple-300">Total Month Revenue</p>
+                <p className="text-xl font-bold text-purple-700 dark:text-purple-400 mt-1">₹{fmt(stats.monthRevenue)}</p>
+                <p className="text-[10px] text-purple-600 dark:text-purple-400 mt-0.5">Current billing cycle</p>
+              </div>
             </div>
           </div>
-
         </>)}
 
         {/* ══════════════════════════════════════════════════════

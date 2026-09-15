@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { X, Trash2, Minus, Plus, Sprout, ShoppingBag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { cachedGet } from '../utils/api';
 
-const FREE_DELIVERY_THRESHOLD = 300;
+const DEFAULT_FREE_DELIVERY_THRESHOLD = 300;
 
 /**
  * Slide-in cart. Opens whenever something is added, and from the header icon.
@@ -17,6 +18,16 @@ const CartDrawer = () => {
           removedItems, clearRemovedNotice } = useCart();
   const panelRef = useRef(null);
   const returnFocusRef = useRef(null);
+  const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState(DEFAULT_FREE_DELIVERY_THRESHOLD);
+
+  useEffect(() => {
+    cachedGet('/settings')
+      .then(res => {
+        const val = res?.data?.data?.delivery?.freeDeliveryThreshold;
+        if (typeof val === 'number') setFreeDeliveryThreshold(val);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!cartOpen) return undefined;
@@ -41,8 +52,8 @@ const CartDrawer = () => {
   if (!cartOpen) return null;
 
   const subtotal = getCartTotal();
-  const shortfall = Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal);
-  const progress = shortfall === 0 ? 100 : Math.min(99, Math.floor((subtotal / FREE_DELIVERY_THRESHOLD) * 100));
+  const shortfall = Math.max(0, freeDeliveryThreshold - subtotal);
+  const progress = shortfall === 0 ? 100 : Math.min(99, Math.floor((subtotal / freeDeliveryThreshold) * 100));
 
   return (
     <div className="fixed inset-0 z-[60]" role="dialog" aria-modal="true" aria-label="Your cart">

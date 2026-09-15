@@ -1,13 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MessageCircle } from 'lucide-react';
+import { cachedGet } from '../utils/api';
 
 const WhatsAppButton = () => {
   const [isHovered, setIsHovered] = useState(false);
-  const phoneNumber = '919993248054';
+  const [phone, setPhone] = useState('919993248054');
   const message = 'Hello! I need help with Fresh Veggies products.';
 
+  useEffect(() => {
+    cachedGet('/settings')
+      .then(res => {
+        const num = res?.data?.data?.store?.whatsappNumber;
+        if (num) {
+          const clean = num.replace(/\D/g, '');
+          setPhone(clean.startsWith('91') ? clean : `91${clean.slice(-10)}`);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const handleClick = () => {
-    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 

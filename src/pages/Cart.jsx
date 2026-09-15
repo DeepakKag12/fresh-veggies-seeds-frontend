@@ -1,10 +1,27 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Minus, Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { cachedGet } from '../utils/api';
 
 const Cart = () => {
   const { cartItems, updateQuantity, removeFromCart, getCartTotal, removedItems, clearRemovedNotice } = useCart();
+
+  const [deliveryRules, setDeliveryRules] = useState({ freeDeliveryThreshold: 300, deliveryCharge: 50 });
+
+  useEffect(() => {
+    cachedGet('/settings')
+      .then(res => {
+        const d = res?.data?.data?.delivery;
+        if (d) {
+          setDeliveryRules({
+            freeDeliveryThreshold: typeof d.freeDeliveryThreshold === 'number' ? d.freeDeliveryThreshold : 300,
+            deliveryCharge: typeof d.deliveryCharge === 'number' ? d.deliveryCharge : 50,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Shown in both the empty and populated branches: a shrunken cart needs an
   // explanation either way.
@@ -43,9 +60,8 @@ const Cart = () => {
     );
   }
 
-  const FREE_DELIVERY_THRESHOLD = 300;
   const total = getCartTotal();
-  const shippingFee = total >= FREE_DELIVERY_THRESHOLD ? 0 : 50;
+  const shippingFee = total >= deliveryRules.freeDeliveryThreshold ? 0 : deliveryRules.deliveryCharge;
   const finalTotal = total + shippingFee;
 
   return (
@@ -158,7 +174,7 @@ const Cart = () => {
                 )}
                 {shippingFee > 0 && (
                   <p className="text-xs text-amber-600 dark:text-amber-400">
-                    Add ₹{FREE_DELIVERY_THRESHOLD - total} more for free delivery
+                    Add ₹{deliveryRules.freeDeliveryThreshold - total} more for free delivery
                   </p>
                 )}
                 <div className="border-t border-fv-border  pt-4">

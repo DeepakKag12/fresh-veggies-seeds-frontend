@@ -14,15 +14,19 @@ function AdminReviews() {
   const [showResponseDialog, setShowResponseDialog] = useState(false);
   const [actionType, setActionType] = useState(''); // approve or reject
 
+  const isPending = (r) => r.status === 'pending' || (r.status === undefined && r.isApproved === false);
+  const isApproved = (r) => r.status === 'approved' || r.isApproved === true;
+  const isRejected = (r) => r.status === 'rejected';
+
   const applyFilter = useCallback(() => {
     if (filter === 'all') {
       setFilteredReviews(reviews);
     } else if (filter === 'pending') {
-      setFilteredReviews(reviews.filter(r => r.isApproved === null));
+      setFilteredReviews(reviews.filter(isPending));
     } else if (filter === 'approved') {
-      setFilteredReviews(reviews.filter(r => r.isApproved === true));
+      setFilteredReviews(reviews.filter(isApproved));
     } else if (filter === 'rejected') {
-      setFilteredReviews(reviews.filter(r => r.isApproved === false));
+      setFilteredReviews(reviews.filter(isRejected));
     }
   }, [reviews, filter]);
 
@@ -107,9 +111,9 @@ function AdminReviews() {
   };
 
   const getStatusBadge = (review) => {
-    if (review.isApproved === null) {
+    if (isPending(review)) {
       return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">Pending</span>;
-    } else if (review.isApproved === true) {
+    } else if (isApproved(review)) {
       return <span className="px-3 py-1 bg-fv-cream text-green-800 rounded-full text-xs font-semibold">Approved</span>;
     } else {
       return <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold">Rejected</span>;
@@ -127,8 +131,8 @@ function AdminReviews() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-fv-heading  mb-2">Review Management</h1>
-        <p className="text-fv-muted ">Moderate customer reviews and provide responses</p>
+        <h1 className="text-3xl font-bold text-fv-heading mb-2">Review Management</h1>
+        <p className="text-fv-muted">Moderate customer reviews and provide responses</p>
       </div>
 
       {/* Filter Tabs */}
@@ -138,7 +142,7 @@ function AdminReviews() {
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
             filter === 'all'
               ? 'bg-fv-primary text-white'
-              : 'bg-gray-200 text-fv-ink hover:bg-gray-300  '
+              : 'bg-gray-200 text-fv-ink hover:bg-gray-300'
           }`}
         >
           All Reviews ({reviews.length})
@@ -148,30 +152,30 @@ function AdminReviews() {
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
             filter === 'pending'
               ? 'bg-yellow-600 text-white'
-              : 'bg-gray-200 text-fv-ink hover:bg-gray-300  '
+              : 'bg-gray-200 text-fv-ink hover:bg-gray-300'
           }`}
         >
-          Pending ({reviews.filter(r => r.isApproved === null).length})
+          Pending ({reviews.filter(isPending).length})
         </button>
         <button
           onClick={() => setFilter('approved')}
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
             filter === 'approved'
               ? 'bg-fv-primary text-white'
-              : 'bg-gray-200 text-fv-ink hover:bg-gray-300  '
+              : 'bg-gray-200 text-fv-ink hover:bg-gray-300'
           }`}
         >
-          Approved ({reviews.filter(r => r.isApproved === true).length})
+          Approved ({reviews.filter(isApproved).length})
         </button>
         <button
           onClick={() => setFilter('rejected')}
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
             filter === 'rejected'
               ? 'bg-red-600 text-white'
-              : 'bg-gray-200 text-fv-ink hover:bg-gray-300  '
+              : 'bg-gray-200 text-fv-ink hover:bg-gray-300'
           }`}
         >
-          Rejected ({reviews.filter(r => r.isApproved === false).length})
+          Rejected ({reviews.filter(isRejected).length})
         </button>
       </div>
 

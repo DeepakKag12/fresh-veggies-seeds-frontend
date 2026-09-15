@@ -38,6 +38,8 @@ import AdminCoupons from './pages/admin/AdminCoupons';
 import AdminReviews from './pages/admin/AdminReviews';
 import AdminBanners from './pages/admin/AdminBanners';
 import AdminDangerZone from './pages/admin/AdminDangerZone';
+import AdminSettings from './pages/admin/AdminSettings';
+import AdminHeader from './components/admin/AdminHeader';
 import PrivateRoute from './components/PrivateRoute';
 import AdminRoute from './components/AdminRoute';
 
@@ -47,15 +49,12 @@ const ShopRedirect = () => {
   return <Navigate to={{ pathname: '/', search }} replace />;
 };
 
-// ScrollToTop component to handle page scroll on route change
+// Scroll to top on route change
 function ScrollToTop() {
   const { pathname } = useLocation();
-
   useEffect(() => {
-    // Scroll to top with instant behavior for consistent experience
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    window.scrollTo(0, 0);
   }, [pathname]);
-
   return null;
 }
 
@@ -77,6 +76,7 @@ function App() {
       <CartDrawer />
       <ScrollToTop />
       {!isAuthPage && <NavbarNew />}
+      {!isAuthPage && isAdmin && location.pathname.startsWith('/admin') && <AdminHeader />}
       <main className="flex-grow overflow-x-hidden pb-20 md:pb-0">
         <Routes>
           {/* Public Routes */}
@@ -117,6 +117,7 @@ function App() {
           <Route path="/admin/reviews" element={<AdminRoute><AdminReviews /></AdminRoute>} />
           <Route path="/admin/banners" element={<AdminRoute><AdminBanners /></AdminRoute>} />
           <Route path="/admin/danger-zone" element={<AdminRoute><AdminDangerZone /></AdminRoute>} />
+          <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
 
           {/* Catch-all — must stay last. */}
           <Route path="*" element={<NotFound />} />

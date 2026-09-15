@@ -12,7 +12,8 @@ import {
   Ticket,
   Users,
   Layers,
-  Home
+  Home,
+  Settings
 } from 'lucide-react';
 import api from '../utils/api';
 import AdminNotificationBell from './AdminNotificationBell';
@@ -47,14 +48,31 @@ const AdminBottomNav = () => {
     { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   ];
 
-  const moreNavItems = [
-    { path: '/admin/products', label: 'Products', icon: Package },
-    { path: '/admin/categories', label: 'Categories', icon: Layers },
-    { path: '/admin/users', label: 'Users', icon: Users },
-    { path: '/admin/combos', label: 'Combos', icon: Tag },
-    { path: '/admin/coupons', label: 'Coupons', icon: Ticket },
-    { path: '/admin/banners', label: 'Banners', icon: Image },
-    { path: '/admin/reviews', label: 'Reviews', icon: Star },
+  const moreNavGroups = [
+    {
+      title: 'Products & Inventory',
+      items: [
+        { path: '/admin/products', label: 'Products', icon: Package },
+        { path: '/admin/categories', label: 'Categories', icon: Layers },
+        { path: '/admin/combos', label: 'Combos', icon: Tag },
+        { path: '/admin/products?lowstock=true', label: 'Low Stock', icon: Tag },
+      ]
+    },
+    {
+      title: 'Marketing & Feedback',
+      items: [
+        { path: '/admin/coupons', label: 'Coupons', icon: Ticket },
+        { path: '/admin/banners', label: 'Banners', icon: Image },
+        { path: '/admin/reviews', label: 'Reviews', icon: Star },
+      ]
+    },
+    {
+      title: 'Management & Settings',
+      items: [
+        { path: '/admin/users', label: 'Customers', icon: Users },
+        { path: '/admin/settings', label: 'Store Settings', icon: Settings },
+      ]
+    }
   ];
 
   const isActive = (path) => {
@@ -67,41 +85,58 @@ const AdminBottomNav = () => {
       {/* More Menu Overlay */}
       {showMore && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-xs"
           onClick={() => setShowMore(false)}
         />
       )}
 
       {/* More Menu Panel */}
       {showMore && (
-        <div className="fixed bottom-16 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700 rounded-t-2xl p-4 md:hidden animate-slide-up">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-white font-semibold">Admin Options</h3>
-            <button onClick={() => setShowMore(false)} className="text-gray-400">
+        <div className="fixed bottom-16 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700 rounded-t-3xl p-5 md:hidden animate-slide-up max-h-[80vh] overflow-y-auto shadow-2xl">
+          <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-800">
+            <div>
+              <h3 className="text-white font-bold text-base">Admin Navigation</h3>
+              <p className="text-xs text-gray-400">Quick access to store management</p>
+            </div>
+            <button 
+              onClick={() => setShowMore(false)} 
+              className="p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            {moreNavItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.path);
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => {
-                    navigate(item.path);
-                    setShowMore(false);
-                  }}
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl transition-colors"
-                  style={{ backgroundColor: active ? '#16a34a' : '#374151' }}
-                >
-                  <Icon className={`w-5 h-5 ${active ? 'text-white' : 'text-gray-300'}`} />
-                  <span className={`text-[10px] font-medium ${active ? 'text-white' : 'text-gray-300'}`}>
-                    {item.label}
-                  </span>
-                </button>
-              );
-            })}
+
+          <div className="space-y-4">
+            {moreNavGroups.map((group) => (
+              <div key={group.title}>
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2 px-1">
+                  {group.title}
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActive(item.path);
+                    return (
+                      <button
+                        key={item.path}
+                        onClick={() => {
+                          navigate(item.path);
+                          setShowMore(false);
+                        }}
+                        className={`flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
+                          active
+                            ? 'bg-fv-primary text-white font-semibold shadow-md'
+                            : 'bg-gray-800/80 hover:bg-gray-800 text-gray-300'
+                        }`}
+                      >
+                        <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-white' : 'text-fv-primary'}`} />
+                        <span className="text-xs font-medium truncate">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

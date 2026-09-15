@@ -8,24 +8,45 @@ import {
   Truck,
   XCircle,
   PackageCheck,
-  Phone,
-  Mail,
   MapPin,
   ChevronDown,
   ChevronUp,
   User,
   Package,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  Search,
+  MoreVertical,
+  CheckCircle2,
+  Boxes
 } from 'lucide-react';
 import api from '../../utils/api';
 
+// Enforce single source of truth for order transitions matching backend ALLOWED_TRANSITIONS
+const ALLOWED_TRANSITIONS = {
+  Pending:               ['Confirmed', 'Cancelled'],
+  Confirmed:             ['Packed', 'Cancelled'],
+  Packed:                ['Shipped', 'Cancelled'],
+  Shipped:               ['Delivered'],
+  Delivered:             [],
+  Cancelled:             [],
+  CancellationRequested: ['Cancelled', 'Confirmed'],
+};
+
+const NEXT_PRIMARY_ACTION = {
+  Pending:   { target: 'Confirmed', label: 'Confirm Order', icon: CheckCircle2, color: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
+  Confirmed: { target: 'Packed',    label: 'Mark as Packed', icon: Boxes,        color: 'bg-blue-600 hover:bg-blue-700 text-white' },
+  Packed:    { target: 'Shipped',   label: 'Ship Order',    icon: Truck,        color: 'bg-purple-600 hover:bg-purple-700 text-white' },
+  Shipped:   { target: 'Delivered', label: 'Mark Delivered', icon: PackageCheck, color: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
+};
+
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
-  const [filteredOrders, setFilteredOrders] = useState([]);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [paymentFilter, setPaymentFilter] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -33,44 +54,36 @@ const AdminOrders = () => {
   const [searchParams] = useSearchParams();
   const LIMIT = 20;
 
-  const statusOptions = ['All', 'Pending', 'Confirmed', 'Packed', 'Shipped', 'Delivered', 'Cancelled', 'CancellationRequested'];
+  const statusOptions = [
+    { id: 'All', label: 'All Orders' },
+    { id: 'action_required', label: '⚡ Action Required' },
+    { id: 'Pending', label: 'Pending' },
+    { id: 'Confirmed', label: 'Confirmed' },
+    { id: 'Packed', label: 'Packed' },
+    { id: 'Shipped', label: 'Shipped' },
+    { id: 'Delivered', label: 'Delivered' },
+    { id: 'Cancelled', label: 'Cancelled' },
+    { id: 'CancellationRequested', label: 'Cancellation Req' }
+  ];
 
-  const filterOrders = useCallback(() => {
-    if (statusFilter === 'All') {
-      setFilteredOrders(orders);
-    } else {
-      setFilteredOrders(orders.filter(order => order.orderStatus === statusFilter));
-    }
-  }, [statusFilter, orders]);
-
-  useEffect(() => {
-    fetchOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, statusFilter]);
-
-  useEffect(() => {
-    api.get('/admin/stats')
-      .then(r => setOrderCounts(r.data.data))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    const statusFromUrl = searchParams.get('status');
-    if (statusFromUrl) {
-      setStatusFilter(statusFromUrl);
-      setPage(1);
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    filterOrders();
-  }, [filterOrders]);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page, limit: LIMIT });
-      if (statusFilter !== 'All') params.set('status', statusFilter);
+      if (statusFilter && statusFilter !== 'All') {
+        params.set('status', statusFilter);
+      }
+      if (searchQuery.trim()) {
+        params.set('search', searchQuery.trim());
+      }
+      if (paymentFilter) {
+        params.set('paymentStatus', paymentFilter);
+      }
+      const period = searchParams.get('period');
+      if (period) {
+        params.set('period', period);
+      }
+
       const response = await api.get(`/orders?${params.toString()}`);
       const ordersData = response.data?.data || [];
       setOrders(Array.isArray(ordersData) ? ordersData : []);
@@ -82,16 +95,39 @@ const AdminOrders = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, statusFilter, searchQuery, paymentFilter, searchParams]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
+
+  useEffect(() => {
+    api.get('/admin/stats')
+      .then(r => setOrderCounts(r.data.data))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const statusFromUrl = searchParams.get('status');
+    const paymentFromUrl = searchParams.get('paymentStatus');
+    if (statusFromUrl) {
+      setStatusFilter(statusFromUrl);
+      setPage(1);
+    }
+    if (paymentFromUrl) {
+      setPaymentFilter(paymentFromUrl);
+      setPage(1);
+    }
+  }, [searchParams]);
 
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
       await api.put(`/orders/${orderId}/status`, { orderStatus: newStatus });
-      toast.success('Order status updated!');
+      toast.success(`Order moved to ${newStatus}!`);
       fetchOrders();
     } catch (error) {
       console.error('Error updating status:', error);
-      toast.error('Failed to update order status');
+      toast.error(error.response?.data?.message || 'Failed to update order status');
     }
   };
 
@@ -148,118 +184,124 @@ const AdminOrders = () => {
 
   const stats = {
     all:                  orderCounts?.totalOrders          ?? total,
+    actionRequired:       orderCounts?.actionRequiredCount  ?? ((orderCounts?.pendingOrders || 0) + (orderCounts?.cancellationRequests || 0)),
     pending:              orderCounts?.pendingOrders         ?? orders.filter(o => o.orderStatus === 'Pending').length,
     confirmed:            orderCounts?.confirmedOrders       ?? orders.filter(o => o.orderStatus === 'Confirmed').length,
+    packed:               orderCounts?.packedOrders          ?? orders.filter(o => o.orderStatus === 'Packed').length,
     shipped:              orderCounts?.shippedOrders         ?? orders.filter(o => o.orderStatus === 'Shipped').length,
     delivered:            orderCounts?.deliveredOrders       ?? orders.filter(o => o.orderStatus === 'Delivered').length,
+    cancelled:            orderCounts?.cancelledOrders       ?? orders.filter(o => o.orderStatus === 'Cancelled').length,
     cancellationRequests: orderCounts?.cancellationRequests  ?? orders.filter(o => o.orderStatus === 'CancellationRequested').length,
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-fv-page p-4 lg:p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-48 mb-8" />
-            <div className="h-64 bg-gray-200 rounded" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-fv-page p-4 md:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-fv-page p-3 md:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-4">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-fv-heading mb-2">
-            Order Management
-          </h1>
-          <p className="text-sm md:text-base text-fv-muted">
-            Manage and track all customer orders
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-fv-heading flex items-center gap-2">
+              Orders Management
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-fv-primary/10 text-fv-primary font-bold">
+                {total} orders
+              </span>
+            </h1>
+            <p className="text-xs text-fv-muted mt-0.5">
+              Track fulfillment, verify payments, and handle customer requests
+            </p>
+          </div>
+
+          {/* Search and Filters Bar */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
+              <Search className="w-4 h-4 text-fv-muted absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search order #, customer, phone..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                className="w-full pl-9 pr-3 py-2 text-xs md:text-sm bg-white dark:bg-gray-800 border border-fv-border rounded-xl focus:outline-hidden focus:ring-2 focus:ring-fv-primary text-fv-heading"
+              />
+            </div>
+            {searchQuery && (
+              <button
+                onClick={() => { setSearchQuery(''); setPage(1); }}
+                className="text-xs text-fv-muted hover:text-fv-heading px-2 py-1.5"
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6">
-          <div
-            onClick={() => { setStatusFilter('All'); setPage(1); }}
-            className={`p-3 md:p-4 rounded-lg md:rounded-[12px] cursor-pointer transition-all ${
-              statusFilter === 'All'
-                ? 'bg-fv-primary text-white '
-                : 'bg-white text-fv-heading  hover:'
-            }`}
-          >
-            <p className="text-xs md:text-sm opacity-90 mb-1">All Orders</p>
-            <p className="text-xl md:text-2xl font-bold">{stats.all}</p>
-          </div>
-          <div
-            onClick={() => { setStatusFilter('Pending'); setPage(1); }}
-            className={`p-3 md:p-4 rounded-lg md:rounded-[12px] cursor-pointer transition-all ${
-              statusFilter === 'Pending'
-                ? 'bg-yellow-600 text-white '
-                : 'bg-white text-fv-heading  hover:'
-            }`}
-          >
-            <p className="text-xs md:text-sm opacity-90 mb-1">Pending</p>
-            <p className="text-xl md:text-2xl font-bold">{stats.pending}</p>
-          </div>
-          <div
-            onClick={() => { setStatusFilter('Confirmed'); setPage(1); }}
-            className={`p-3 md:p-4 rounded-lg md:rounded-[12px] cursor-pointer transition-all ${
-              statusFilter === 'Confirmed'
-                ? 'bg-fv-primary text-white '
-                : 'bg-white text-fv-heading  hover:'
-            }`}
-          >
-            <p className="text-xs md:text-sm opacity-90 mb-1">Confirmed</p>
-            <p className="text-xl md:text-2xl font-bold">{stats.confirmed}</p>
-          </div>
-          <div
-            onClick={() => { setStatusFilter('Shipped'); setPage(1); }}
-            className={`p-3 md:p-4 rounded-lg md:rounded-[12px] cursor-pointer transition-all ${
-              statusFilter === 'Shipped'
-                ? 'bg-indigo-600 text-white '
-                : 'bg-white text-fv-heading  hover:'
-            }`}
-          >
-            <p className="text-xs md:text-sm opacity-90 mb-1">Shipped</p>
-            <p className="text-xl md:text-2xl font-bold">{stats.shipped}</p>
-          </div>
-          <div
-            onClick={() => { setStatusFilter('Delivered'); setPage(1); }}
-            className={`p-3 md:p-4 rounded-lg md:rounded-[12px] cursor-pointer transition-all ${
-              statusFilter === 'Delivered'
-                ? 'bg-fv-primary text-white '
-                : 'bg-white text-fv-heading  hover:'
-            }`}
-          >
-            <p className="text-xs md:text-sm opacity-90 mb-1">Delivered</p>
-            <p className="text-xl md:text-2xl font-bold">{stats.delivered}</p>
-          </div>
-          <div
-            onClick={() => { setStatusFilter('CancellationRequested'); setPage(1); }}
-            className={`p-3 md:p-4 rounded-lg md:rounded-[12px] cursor-pointer transition-all ${
-              statusFilter === 'CancellationRequested'
-                ? 'bg-orange-500 text-white '
-                : 'bg-orange-50 text-orange-900  hover:'
-            }`}
-          >
-            <p className="text-xs md:text-sm opacity-90 mb-1">Cancel Requests</p>
-            <p className="text-xl md:text-2xl font-bold">{stats.cancellationRequests}</p>
-          </div>
+        {/* Filter Pills (Scrollable horizontally) */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar -mx-1 px-1">
+          {statusOptions.map((tab) => {
+            const isActive = statusFilter === tab.id;
+            let badgeCount = null;
+            if (tab.id === 'All') badgeCount = stats.all;
+            else if (tab.id === 'action_required') badgeCount = stats.actionRequired;
+            else if (tab.id === 'Pending') badgeCount = stats.pending;
+            else if (tab.id === 'Confirmed') badgeCount = stats.confirmed;
+            else if (tab.id === 'Packed') badgeCount = stats.packed;
+            else if (tab.id === 'Shipped') badgeCount = stats.shipped;
+            else if (tab.id === 'Delivered') badgeCount = stats.delivered;
+            else if (tab.id === 'Cancelled') badgeCount = stats.cancelled;
+            else if (tab.id === 'CancellationRequested') badgeCount = stats.cancellationRequests;
+
+            return (
+              <button
+                key={tab.id}
+                onClick={() => { setStatusFilter(tab.id); setPage(1); }}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${
+                  isActive
+                    ? 'bg-fv-heading text-white shadow-xs'
+                    : 'bg-white dark:bg-gray-800 text-fv-muted hover:text-fv-heading border border-fv-border'
+                }`}
+              >
+                <span>{tab.label}</span>
+                {badgeCount !== null && (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      isActive
+                        ? 'bg-white/20 text-white'
+                        : tab.id === 'action_required' && badgeCount > 0
+                        ? 'bg-red-500 text-white'
+                        : 'bg-fv-surface text-fv-muted'
+                    }`}
+                  >
+                    {badgeCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Orders List */}
-        <div className="space-y-4">
-          {filteredOrders.length === 0 ? (
-            <div className="bg-white rounded-[12px]  p-8 text-center">
-              <Package className="w-16 h-16 text-fv-muted mx-auto mb-4" />
-              <p className="text-fv-muted">No orders found</p>
-            </div>
-          ) : (
-            filteredOrders.map((order) => (
+        {loading ? (
+          <div className="space-y-3">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-28 bg-white dark:bg-gray-800 rounded-2xl border border-fv-border animate-pulse" />
+            ))}
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-fv-border p-12 text-center">
+            <Package className="w-12 h-12 text-fv-muted mx-auto mb-3" />
+            <p className="text-base font-semibold text-fv-heading">No orders match your criteria</p>
+            <p className="text-xs text-fv-muted mt-1">Try clearing your search query or filter</p>
+            {(statusFilter !== 'All' || searchQuery) && (
+              <button
+                onClick={() => { setStatusFilter('All'); setSearchQuery(''); setPage(1); }}
+                className="mt-4 px-4 py-2 bg-fv-surface hover:bg-fv-surface text-xs font-semibold rounded-xl"
+              >
+                Reset Filters
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {orders.map((order) => (
               <OrderCard
                 key={order._id}
                 order={order}
@@ -270,29 +312,28 @@ const AdminOrders = () => {
                 onRejectCancel={handleRejectCancel}
                 getStatusColor={getStatusColor}
                 getStatusIcon={getStatusIcon}
-                statusOptions={statusOptions}
               />
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 mt-6">
+          <div className="flex justify-center items-center gap-2 pt-4">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1.5 text-sm border border-fv-border rounded-lg hover:bg-fv-surface disabled:opacity-40 transition-colors"
+              className="px-3 py-1.5 text-xs font-medium border border-fv-border rounded-lg hover:bg-fv-surface disabled:opacity-40 transition-colors"
             >
               ← Prev
             </button>
-            <span className="text-sm text-fv-muted px-2">
-              Page {page} of {totalPages} &bull; {total} orders
+            <span className="text-xs text-fv-muted px-2">
+              Page {page} of {totalPages} &bull; {total} total orders
             </span>
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="px-3 py-1.5 text-sm border border-fv-border rounded-lg hover:bg-fv-surface disabled:opacity-40 transition-colors"
+              className="px-3 py-1.5 text-xs font-medium border border-fv-border rounded-lg hover:bg-fv-surface disabled:opacity-40 transition-colors"
             >
               Next →
             </button>
@@ -304,15 +345,29 @@ const AdminOrders = () => {
 };
 
 // Order Card Component
-const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, onApproveCancel, onRejectCancel, getStatusColor, getStatusIcon, statusOptions }) => {
+const OrderCard = ({
+  order,
+  isExpanded,
+  onToggleExpand,
+  onUpdateStatus,
+  onApproveCancel,
+  onRejectCancel,
+  getStatusColor,
+  getStatusIcon
+}) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+
+  const allowedNext = ALLOWED_TRANSITIONS[order.orderStatus] || [];
+  const primaryAction = NEXT_PRIMARY_ACTION[order.orderStatus];
 
   const handleStatusChange = async (newStatus) => {
     if (newStatus === order.orderStatus) return;
     setIsUpdating(true);
+    setShowMoreMenu(false);
     await onUpdateStatus(order._id, newStatus);
     setIsUpdating(false);
   };
@@ -337,296 +392,270 @@ const OrderCard = ({ order, isExpanded, onToggleExpand, onUpdateStatus, onApprov
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-[12px]  overflow-hidden"
+      className="bg-white dark:bg-gray-800 rounded-2xl border border-fv-border shadow-xs overflow-hidden"
     >
-      {/* Card Header - Always Visible */}
-      <div 
-        className="p-4 md:p-6 cursor-pointer hover:bg-fv-page transition-colors"
+      {/* Card Header */}
+      <div
+        className="p-4 md:p-5 cursor-pointer hover:bg-fv-surface/40 transition-colors"
         onClick={onToggleExpand}
       >
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          {/* Left Section */}
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs md:text-sm font-mono font-semibold text-fv-heading">
-                {order.orderNumber || `#${order._id.slice(-8).toUpperCase()}`}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          {/* Left section */}
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1.5">
+              <span className="font-mono text-sm font-bold text-fv-heading">
+                #{order.orderNumber || order._id.slice(-6).toUpperCase()}
               </span>
-              <span className={`px-2 md:px-3 py-1 inline-flex items-center gap-1 text-xs font-semibold rounded-full border ${getStatusColor(order.orderStatus)}`}>
+              <span className={`px-2.5 py-0.5 inline-flex items-center gap-1 text-[11px] font-bold rounded-full border ${getStatusColor(order.orderStatus)}`}>
                 {getStatusIcon(order.orderStatus)}
                 {order.orderStatus}
               </span>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-fv-surface text-fv-muted">
+                {order.paymentMode} · {order.paymentStatus || 'Pending'}
+              </span>
             </div>
-            <div className="text-xs md:text-sm text-fv-muted">
-              {new Date(order.createdAt).toLocaleDateString('en-IN', { 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
+            <div className="flex items-center gap-2 text-xs text-fv-muted truncate">
+              <span className="font-medium text-fv-heading">
+                {order.shippingAddress?.name || order.userId?.name || 'Customer'}
+              </span>
+              <span>•</span>
+              <span>{order.shippingAddress?.phone || order.userId?.phone || 'No phone'}</span>
+              <span>•</span>
+              <span>
+                {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </span>
             </div>
           </div>
 
-          {/* Right Section */}
-          <div className="flex items-center justify-between md:justify-end gap-4">
-            <div className="text-right">
-              <div className="text-xs md:text-sm text-fv-muted mb-1">
-                {order.orderItems?.length || 0} items
-              </div>
-              <div className="text-lg md:text-xl font-bold text-fv-primary">
-                ₹{order.totalAmount}
-              </div>
+          {/* Right section with Price + Consolidated Action Button */}
+          <div
+            className="flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-fv-border"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-left md:text-right">
+              <div className="text-[11px] text-fv-muted">{order.orderItems?.length || 0} items</div>
+              <div className="text-base md:text-lg font-bold text-fv-primary">₹{order.totalAmount}</div>
             </div>
-            <div>
-              {isExpanded ? (
-                <ChevronUp className="w-5 h-5 md:w-6 md:h-6 text-fv-muted" />
-              ) : (
-                <ChevronDown className="w-5 h-5 md:w-6 md:h-6 text-fv-muted" />
+
+            {/* Smart Consolidated Next Action */}
+            <div className="flex items-center gap-1.5 relative">
+              {order.orderStatus === 'CancellationRequested' ? (
+                <button
+                  onClick={handleApprove}
+                  disabled={processing}
+                  className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1 disabled:opacity-50"
+                >
+                  {processing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : 'Review Cancel'}
+                </button>
+              ) : primaryAction && allowedNext.includes(primaryAction.target) ? (
+                <button
+                  onClick={() => handleStatusChange(primaryAction.target)}
+                  disabled={isUpdating}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50 ${primaryAction.color}`}
+                >
+                  {isUpdating ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <>
+                      <primaryAction.icon className="w-3.5 h-3.5" />
+                      <span>{primaryAction.label}</span>
+                    </>
+                  )}
+                </button>
+              ) : null}
+
+              {/* More Options Dropdown (Secondary actions, e.g. Cancel) */}
+              {allowedNext.length > 1 && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowMoreMenu(!showMoreMenu)}
+                    className="p-1.5 text-fv-muted hover:text-fv-heading hover:bg-fv-surface rounded-lg transition-colors"
+                    title="More actions"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+
+                  {showMoreMenu && (
+                    <div className="absolute right-0 top-full mt-1 w-36 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-fv-border p-1 z-20">
+                      {allowedNext
+                        .filter(target => !primaryAction || target !== primaryAction.target)
+                        .map(target => (
+                          <button
+                            key={target}
+                            onClick={() => handleStatusChange(target)}
+                            className="w-full text-left px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          >
+                            Mark as {target}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
               )}
+
+              {/* Accordion expander */}
+              <button
+                onClick={onToggleExpand}
+                className="p-1.5 text-fv-muted hover:text-fv-heading rounded-lg"
+              >
+                {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Expanded Details */}
+      {/* Expanded Order Details */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="border-t border-fv-border"
+            transition={{ duration: 0.25 }}
+            className="border-t border-fv-border p-4 md:p-6 space-y-5 bg-fv-surface/20"
           >
-            <div className="p-4 md:p-6 space-y-6">
-              {/* Customer Information */}
-              <div className="bg-fv-cream rounded-lg p-4">
-                <h3 className="text-sm md:text-base font-semibold text-fv-heading mb-3 flex items-center gap-2">
-                  <User className="w-4 h-4 md:w-5 md:h-5 text-fv-primary" />
-                  Customer Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="flex items-start gap-2">
-                    <User className="w-4 h-4 text-fv-muted mt-0.5" />
-                    <div>
-                      <div className="text-xs text-fv-muted">Name</div>
-                      <div className="text-sm font-medium text-fv-heading">
-                        {order.userId?.name || order.shippingAddress?.name || 'Guest'}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Phone className="w-4 h-4 text-fv-muted mt-0.5" />
-                    <div>
-                      <div className="text-xs text-fv-muted">Phone</div>
-                      <a 
-                        href={`tel:${order.userId?.phone || order.shippingAddress?.phone}`}
-                        className="text-sm font-medium text-fv-primary hover:text-fv-primary-dark"
-                      >
-                        {order.userId?.phone || order.shippingAddress?.phone || 'N/A'}
-                      </a>
-                    </div>
-                  </div>
+            {/* Customer & Address Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-fv-border">
+                <h4 className="text-xs font-bold text-fv-muted uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-fv-primary" /> Customer Info
+                </h4>
+                <div className="text-sm space-y-1">
+                  <p className="font-semibold text-fv-heading">
+                    {order.userId?.name || order.shippingAddress?.name || 'Guest'}
+                  </p>
+                  <p className="text-xs text-fv-muted">
+                    Phone: <a href={`tel:${order.shippingAddress?.phone || order.userId?.phone}`} className="text-fv-primary font-medium hover:underline">{order.shippingAddress?.phone || order.userId?.phone || 'N/A'}</a>
+                  </p>
                   {order.userId?.email && (
-                    <div className="flex items-start gap-2 md:col-span-2">
-                      <Mail className="w-4 h-4 text-fv-muted mt-0.5" />
-                      <div>
-                        <div className="text-xs text-fv-muted">Email</div>
-                        <a 
-                          href={`mailto:${order.userId.email}`}
-                          className="text-sm font-medium text-fv-primary hover:text-fv-primary-dark break-all"
-                        >
-                          {order.userId.email}
-                        </a>
-                      </div>
-                    </div>
+                    <p className="text-xs text-fv-muted">Email: {order.userId.email}</p>
                   )}
                 </div>
               </div>
 
-              {/* Shipping Address */}
-              <div className="bg-blue-50 rounded-lg p-4">
-                <h3 className="text-sm md:text-base font-semibold text-fv-heading mb-3 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
-                  Shipping Address
-                </h3>
-                <div className="text-sm text-fv-ink space-y-1">
-                  <div className="font-medium">{order.shippingAddress?.name}</div>
-                  <div>{order.shippingAddress?.street}</div>
-                  <div>
-                    {order.shippingAddress?.city}, {order.shippingAddress?.state} - {order.shippingAddress?.pincode}
-                  </div>
-                  <div>{order.shippingAddress?.country || 'India'}</div>
-                </div>
-              </div>
-
-              {/* Order Items */}
-              <div>
-                <h3 className="text-sm md:text-base font-semibold text-fv-heading mb-3 flex items-center gap-2">
-                  <Package className="w-4 h-4 md:w-5 md:h-5 text-fv-muted" />
-                  Order Items
-                </h3>
-                <div className="space-y-3">
-                  {order.orderItems?.map((item, index) => (
-                    <div key={index} className="flex gap-3 p-3 bg-fv-page rounded-lg">
-                      {item.image && (
-                        <img 
-                          src={item.image} 
-                          alt={item.name}
-                          className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-md"
-                        />
-                      )}
-                      <div className="flex-1">
-                        <div className="text-sm md:text-base font-medium text-fv-heading">
-                          {item.name}
-                        </div>
-                        <div className="text-xs md:text-sm text-fv-muted mt-1">
-                          Quantity: {item.quantity}
-                        </div>
-                        <div className="text-sm md:text-base font-semibold text-fv-primary mt-1">
-                          ₹{item.price} × {item.quantity} = ₹{item.price * item.quantity}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Order Summary */}
-              <div className="border-t pt-4">
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-fv-muted">Items Price:</span>
-                    <span className="font-medium">₹{order.itemsPrice || 0}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-fv-muted">Shipping:</span>
-                    <span className="font-medium">₹{order.shippingPrice || 0}</span>
-                  </div>
-                  {order.discountAmount > 0 && (
-                    <div className="flex justify-between text-fv-primary">
-                      <span>Discount:</span>
-                      <span className="font-medium">-₹{order.discountAmount}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-base md:text-lg font-bold pt-2 border-t">
-                    <span>Total Amount:</span>
-                    <span className="text-fv-primary">₹{order.totalAmount}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-fv-muted">Payment Method:</span>
-                    <span className="font-medium">{order.paymentMode}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Cancellation Request Banner */}
-              {order.orderStatus === 'CancellationRequested' && (
-                <div className="bg-orange-50 border border-orange-300 rounded-lg p-4">
-                  <div className="flex items-start gap-3 mb-3">
-                    <AlertTriangle className="w-5 h-5 text-orange-500 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1">
-                      <h3 className="text-sm font-bold text-orange-800 mb-1">Cancellation Request</h3>
-                      {order.cancellationRequest?.reason && (
-                        <p className="text-sm text-orange-700 mb-1">
-                          <span className="font-medium">Customer reason:</span> "{order.cancellationRequest.reason}"
-                        </p>
-                      )}
-                      {order.cancellationRequest?.requestedAt && (
-                        <p className="text-xs text-orange-600">
-                          Requested: {new Date(order.cancellationRequest.requestedAt).toLocaleString('en-IN')}
-                        </p>
-                      )}
-                      {order.paymentMode === 'Online' && order.paymentStatus === 'Paid' && (
-                        <div className="mt-2 flex items-center gap-1 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-1">
-                          <RefreshCw className="w-3 h-3" />
-                          Approving will auto-refund ₹{order.totalAmount} to customer's bank account
-                        </div>
-                      )}
-                      {order.paymentMode === 'COD' && (
-                        <div className="mt-2 flex items-center gap-1 text-xs text-fv-muted bg-fv-surface border border-fv-border rounded px-2 py-1">
-                          💵 COD order — customer hasn't paid yet, no refund required
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {!showRejectInput ? (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleApprove}
-                        disabled={processing}
-                        className="flex-1 py-2 bg-fv-primary hover:bg-fv-primary-dark text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
-                      >
-                        {processing
-                          ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          : order.paymentMode === 'Online' && order.paymentStatus === 'Paid'
-                            ? '✅ Approve & Refund'
-                            : '✅ Approve Cancellation'
-                        }
-                      </button>
-                      <button
-                        onClick={() => setShowRejectInput(true)}
-                        disabled={processing}
-                        className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
-                      >
-                        ❌ Reject
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <textarea
-                        value={rejectionReason}
-                        onChange={(e) => setRejectionReason(e.target.value)}
-                        placeholder="Enter rejection reason for the customer..."
-                        rows={2}
-                        className="w-full px-3 py-2 text-sm border border-fv-border rounded-lg mb-2 focus:ring-2 focus:ring-red-400 focus:border-transparent resize-none"
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => { setShowRejectInput(false); setRejectionReason(''); }}
-                          className="flex-1 py-2 border border-fv-border text-fv-ink text-sm font-semibold rounded-lg hover:bg-fv-page"
-                        >
-                          Back
-                        </button>
-                        <button
-                          onClick={handleReject}
-                          disabled={processing}
-                          className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-lg disabled:opacity-50 flex items-center justify-center gap-1"
-                        >
-                          {processing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Confirm Reject'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Status Update Section */}
-              <div className="bg-fv-page rounded-lg p-4">
-                <h3 className="text-sm md:text-base font-semibold text-fv-heading mb-3">
-                  Update Order Status
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-                  {statusOptions.filter(s => s !== 'All' && s !== 'CancellationRequested').map((status) => (
-                    <button
-                      key={status}
-                      onClick={() => handleStatusChange(status)}
-                      disabled={isUpdating || status === order.orderStatus}
-                      className={`px-3 py-2 text-xs md:text-sm font-medium rounded-lg transition-all ${
-                        status === order.orderStatus
-                          ? 'bg-fv-primary text-white cursor-default'
-                          : 'bg-white text-fv-ink hover:bg-fv-cream hover:text-fv-primary-dark border border-fv-border'
-                      } ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      {status}
-                    </button>
-                  ))}
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-fv-border">
+                <h4 className="text-xs font-bold text-fv-muted uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-blue-600" /> Delivery Address
+                </h4>
+                <div className="text-xs text-fv-heading leading-relaxed">
+                  <p>{order.shippingAddress?.addressLine1 || order.shippingAddress?.street || 'N/A'}</p>
+                  {order.shippingAddress?.addressLine2 && <p>{order.shippingAddress.addressLine2}</p>}
+                  <p>
+                    {order.shippingAddress?.city}, {order.shippingAddress?.state} - <span className="font-bold">{order.shippingAddress?.pincode}</span>
+                  </p>
                 </div>
               </div>
             </div>
+
+            {/* Order Items */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-fv-border">
+              <h4 className="text-xs font-bold text-fv-muted uppercase tracking-wider mb-3">Order Items ({order.orderItems?.length || 0})</h4>
+              <div className="divide-y divide-fv-border">
+                {order.orderItems?.map((item, idx) => (
+                  <div key={idx} className="py-2.5 flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-3">
+                      {item.image && (
+                        <img src={item.image} alt={item.name} className="w-10 h-10 object-cover rounded-lg border border-fv-border flex-shrink-0" />
+                      )}
+                      <div>
+                        <p className="font-semibold text-fv-heading">{item.name}</p>
+                        <p className="text-[11px] text-fv-muted">Qty: {item.quantity} × ₹{item.price}</p>
+                      </div>
+                    </div>
+                    <span className="font-bold text-fv-heading">₹{(item.quantity || 1) * (item.price || 0)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Price Summary */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-fv-border space-y-1.5 text-xs">
+              <div className="flex justify-between text-fv-muted">
+                <span>Items Subtotal:</span>
+                <span className="font-medium text-fv-heading">₹{order.itemsPrice || 0}</span>
+              </div>
+              <div className="flex justify-between text-fv-muted">
+                <span>Delivery Charge:</span>
+                <span className="font-medium text-fv-heading">₹{order.shippingPrice || 0}</span>
+              </div>
+              {order.discountAmount > 0 && (
+                <div className="flex justify-between text-emerald-600 font-medium">
+                  <span>Discount Applied:</span>
+                  <span>-₹{order.discountAmount}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm font-bold text-fv-heading pt-2 border-t border-fv-border">
+                <span>Total Amount:</span>
+                <span className="text-fv-primary">₹{order.totalAmount}</span>
+              </div>
+            </div>
+
+            {/* Cancellation Request Actions */}
+            {order.orderStatus === 'CancellationRequested' && (
+              <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 rounded-xl p-4 space-y-3">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs text-red-900 dark:text-red-200">
+                    <p className="font-bold">Cancellation Request from Customer</p>
+                    {order.cancellationRequest?.reason && (
+                      <p className="mt-0.5 italic">"{order.cancellationRequest.reason}"</p>
+                    )}
+                  </div>
+                </div>
+
+                {!showRejectInput ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleApprove}
+                      disabled={processing}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs disabled:opacity-50"
+                    >
+                      {processing ? 'Processing...' : 'Approve & Refund'}
+                    </button>
+                    <button
+                      onClick={() => setShowRejectInput(true)}
+                      disabled={processing}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold shadow-xs disabled:opacity-50"
+                    >
+                      Reject Request
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <textarea
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                      placeholder="Reason for rejection (sent to customer)..."
+                      className="w-full text-xs p-2.5 bg-white dark:bg-gray-800 border border-fv-border rounded-xl focus:ring-1 focus:ring-fv-primary"
+                      rows={2}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleReject}
+                        disabled={processing}
+                        className="px-3 py-1.5 bg-red-600 text-white rounded-xl text-xs font-semibold disabled:opacity-50"
+                      >
+                        Confirm Rejection
+                      </button>
+                      <button
+                        onClick={() => setShowRejectInput(false)}
+                        className="px-3 py-1.5 bg-fv-surface text-fv-heading rounded-xl text-xs font-semibold"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

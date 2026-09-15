@@ -9,7 +9,7 @@ import Pagination from '../components/Pagination';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Upload, X, ShoppingBag } from 'lucide-react';
+import { Plus, Upload, X, ShoppingBag, Search } from 'lucide-react';
 import api, { cachedGet } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -276,6 +276,34 @@ const Storefront = () => {
     <div className="bg-fv-page">
       <CollectionBanner />
 
+      {/* Mobile-First Search Bar: Always visible near the top on mobile, completely separate from filter drawer */}
+      <div className="px-4 pt-3 pb-1 sm:px-6 lg:hidden">
+        <div className="mx-auto max-w-[1500px]">
+          <div className="relative flex items-center">
+            <Search className="pointer-events-none absolute left-4 h-4 w-4 text-fv-muted" aria-hidden="true" />
+            <input
+              id="mobile-shop-search"
+              type="search"
+              value={filters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+              placeholder="Search for seeds, soil, tools…"
+              className="h-11 w-full rounded-full border border-fv-border bg-white pl-11 pr-10 text-[14px] text-fv-heading shadow-xs
+                         placeholder:text-fv-muted focus:border-fv-primary focus:outline-none focus:ring-2 focus:ring-fv-primary/20"
+            />
+            {filters.search && (
+              <button
+                type="button"
+                onClick={() => handleFilterChange('search', '')}
+                className="absolute right-3 flex h-7 w-7 items-center justify-center rounded-full text-fv-muted hover:text-fv-heading focus:outline-none"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       <CategoryCircleRow
         categories={categories}
         activeId={filters.category}
@@ -291,30 +319,29 @@ const Storefront = () => {
         filtersOpen={filtersOpen}
       />
 
-      {/* Search and season live behind FILTER so the bar stays uncluttered,
-          but they stay mounted once opened so typing is not interrupted. */}
+      {/* Season and attribute filters live behind FILTER so the bar stays uncluttered */}
       {filtersOpen && (
         <div className="px-4 sm:px-6 lg:px-10">
           <div className="mx-auto flex max-w-[1500px] flex-wrap items-end gap-4 border-b border-fv-border py-4">
-            <p className="min-w-[220px] flex-1">
-              <label htmlFor="shop-search" className="block text-[13px] font-medium text-fv-muted">Search</label>
+            <p className="hidden min-w-[220px] flex-1 lg:block">
+              <label htmlFor="shop-search" className="block text-[13px] font-medium text-fv-muted">Search in catalogue</label>
               <input
                 id="shop-search"
                 type="search"
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
                 placeholder="Search for seeds, soil, tools…"
-                className="mt-1 h-11 w-full rounded-[50px] border border-fv-border bg-white px-4 text-[15px]
+                className="mt-1 h-11 w-full rounded-[50px] border border-fv-border bg-white px-4 text-[14px]
                            focus:border-fv-primary focus:outline-none focus:ring-2 focus:ring-fv-primary"
               />
             </p>
-            <p className="min-w-[180px]">
+            <p className="min-w-[180px] flex-1 sm:flex-none">
               <label htmlFor="shop-season" className="block text-[13px] font-medium text-fv-muted">Season</label>
               <select
                 id="shop-season"
                 value={filters.season}
                 onChange={(e) => handleFilterChange('season', e.target.value)}
-                className="mt-1 h-11 w-full rounded-[50px] border border-fv-border bg-white px-4 text-[15px]
+                className="mt-1 h-11 w-full rounded-[50px] border border-fv-border bg-white px-4 text-[14px]
                            focus:border-fv-primary focus:outline-none focus:ring-2 focus:ring-fv-primary"
               >
                 <option value="">All seasons</option>

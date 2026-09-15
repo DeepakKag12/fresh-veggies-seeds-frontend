@@ -2,10 +2,11 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Package, MapPin, CreditCard, Truck, CheckCircle,
-  Clock, XCircle, AlertTriangle, RefreshCw, ArrowLeft
+  Clock, XCircle, AlertTriangle, RefreshCw, ArrowLeft, Star
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
+import WriteReviewModal from '../components/storefront/WriteReviewModal';
 
 const OrderDetail = () => {
   const { id } = useParams();
@@ -15,6 +16,7 @@ const OrderDetail = () => {
   const [cancelling, setCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [reviewingProduct, setReviewingProduct] = useState(null);
 
   const fetchOrder = useCallback(async () => {
     try {
@@ -228,26 +230,39 @@ const OrderDetail = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Left — Items + Address */}
           <div className="md:col-span-2 space-y-4">
-
             {/* Order Items */}
             <div className="bg-white rounded-[12px] shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-fv-heading  mb-4 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-fv-heading mb-4 flex items-center gap-2">
                 <Package className="w-5 h-5 text-fv-primary" /> Order Items
               </h2>
               <div className="space-y-4">
                 {order.orderItems.map((item, index) => (
-                  <div key={index} className="flex gap-4 py-3 border-b border-fv-border  last:border-0">
-                    <img
-                      src={item.image || 'https://via.placeholder.com/80'}
-                      alt={item.name}
-                     className="w-16 h-16 object-cover rounded-lg bg-gray-100 flex-shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-fv-heading  truncate">{item.name}</p>
-                      <p className="text-sm text-fv-muted ">Qty: {item.quantity}</p>
-                      <p className="text-sm text-fv-muted ">₹{item.price} × {item.quantity}</p>
+                  <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-3 border-b border-fv-border last:border-0">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <img
+                        src={item.image || 'https://via.placeholder.com/80'}
+                        alt={item.name}
+                        className="w-16 h-16 object-cover rounded-lg bg-gray-100 flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-fv-heading truncate">{item.name}</p>
+                        <p className="text-sm text-fv-muted">Qty: {item.quantity}</p>
+                        <p className="text-sm text-fv-muted">₹{item.price} × {item.quantity}</p>
+                      </div>
                     </div>
-                    <p className="font-semibold text-fv-heading  flex-shrink-0">₹{item.price * item.quantity}</p>
+                    <div className="flex items-center justify-between sm:justify-end gap-3">
+                      <p className="font-semibold text-fv-heading">₹{item.price * item.quantity}</p>
+                      {order.orderStatus === 'Delivered' && item.productType === 'Product' && (
+                        <button
+                          type="button"
+                          onClick={() => setReviewingProduct(item)}
+                          className="px-3 py-1.5 bg-fv-surface hover:bg-fv-cream border border-fv-border hover:border-fv-primary/50 text-fv-heading text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5"
+                        >
+                          <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
+                          <span>Review</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -434,6 +449,20 @@ const OrderDetail = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Review Modal for Delivered Items */}
+      {reviewingProduct && (
+        <WriteReviewModal
+          isOpen={!!reviewingProduct}
+          onClose={() => setReviewingProduct(null)}
+          productId={reviewingProduct.product}
+          productName={reviewingProduct.name}
+          orderId={order._id}
+          onSuccess={() => {
+            fetchOrder();
+          }}
+        />
       )}
     </div>
   );
