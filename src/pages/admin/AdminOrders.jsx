@@ -194,7 +194,7 @@ const AdminOrders = () => {
   };
 
   return (
-    <div className="min-h-screen bg-fv-page p-3 md:p-6 lg:p-8">
+    <div className="min-h-screen bg-fv-page p-3 md:p-6 lg:p-8 pb-28 md:pb-8">
       <div className="max-w-7xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

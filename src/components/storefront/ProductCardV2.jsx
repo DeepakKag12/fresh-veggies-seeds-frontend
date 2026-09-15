@@ -105,8 +105,8 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
         )}
       </Link>
 
-      <div className="flex flex-1 flex-col p-4 pt-3.5">
-        <h3 className="truncate font-serif text-[19px] font-semibold leading-snug text-fv-heading">
+      <div className="flex flex-1 flex-col p-3 sm:p-4 pt-2.5 sm:pt-3.5">
+        <h3 className="truncate font-serif text-[15px] sm:text-[19px] font-semibold leading-snug text-fv-heading">
           <Link
             to={`/product/${_id}`}
             className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary"
@@ -114,19 +114,19 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
             {name}
           </Link>
         </h3>
-        {description && <p className="mt-1 truncate text-[14px] text-fv-muted">{description}</p>}
+        {description && <p className="mt-0.5 sm:mt-1 truncate text-[13px] sm:text-[14px] text-fv-muted">{description}</p>}
 
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <p className="flex shrink-0 items-baseline gap-1.5">
-            <span className="text-[19px] font-semibold text-fv-deep">₹{price?.toLocaleString('en-IN')}</span>
-            {hasDiscount && <s className="text-[15px] text-fv-muted">₹{originalPrice.toLocaleString('en-IN')}</s>}
+        <div className="mt-2.5 sm:mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <p className="flex shrink-0 items-baseline gap-1 sm:gap-1.5">
+            <span className="text-[16px] sm:text-[19px] font-semibold text-fv-deep">₹{price?.toLocaleString('en-IN')}</span>
+            {hasDiscount && <s className="text-[12px] sm:text-[15px] text-fv-muted">₹{originalPrice.toLocaleString('en-IN')}</s>}
           </p>
 
           <Link
             to={`/product/${_id}`}
-            className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-[50px] bg-fv-primary
-                       px-6 text-[15px] font-semibold text-white transition-colors duration-200
-                       hover:bg-fv-primary-dark focus-visible:outline-none focus-visible:ring-2
+            className="inline-flex h-9 sm:h-11 w-full shrink-0 items-center justify-center rounded-[50px] bg-fv-primary
+                       px-3 sm:px-6 text-[13px] sm:text-[15px] font-semibold text-white transition-all duration-200
+                       hover:bg-fv-primary-dark active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2
                        focus-visible:ring-fv-primary focus-visible:ring-offset-2 motion-reduce:transition-none sm:w-auto"
           >
             View Product<span className="sr-only"> — {name}</span>

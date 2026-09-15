@@ -278,8 +278,8 @@ const AdminProducts = () => {
   };
 
   return (
-    <div className="min-h-screen bg-fv-page py-6 md:py-8">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen bg-fv-page py-6 md:py-8 pb-28 md:pb-8">
+      <div className="container mx-auto px-3 sm:px-4">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
@@ -482,21 +482,21 @@ const AdminProducts = () => {
             <div className="bg-white  rounded-[12px] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
               <form onSubmit={handleSubmit}>
                 {/* Modal Header */}
-                <div className="flex justify-between items-center p-6 border-b border-fv-border ">
-                  <h2 className="text-2xl font-bold text-fv-heading ">
+                <div className="flex justify-between items-center p-4 sm:p-6 border-b border-fv-border">
+                  <h2 className="text-xl sm:text-2xl font-bold text-fv-heading">
                     {editMode ? 'Edit Product' : 'Add New Product'}
                   </h2>
                   <button
                     type="button"
                     onClick={handleClose}
-                    className="p-2 hover:bg-fv-surface  rounded-lg transition-colors"
+                    className="p-2 hover:bg-fv-surface rounded-lg transition-colors"
                   >
-                    <X className="w-6 h-6" />
+                    <X className="w-5 h-5 sm:w-6 sm:h-6" />
                   </button>
                 </div>
 
                 {/* Modal Content */}
-                <div className="p-6 space-y-6">
+                <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                   {/* Message */}
                   {message.text && (
                     <div className={`p-4 rounded-lg ${message.type === 'success' ? 'bg-fv-cream dark:bg-green-900/20 text-fv-primary-dark dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'}`}>
@@ -789,17 +789,17 @@ const AdminProducts = () => {
                 </div>
 
                 {/* Modal Footer */}
-                <div className="flex justify-end gap-3 p-6 border-t border-fv-border ">
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 p-4 sm:p-6 border-t border-fv-border">
                   <button
                     type="button"
                     onClick={handleClose}
-                    className="px-6 py-3 border border-fv-border  text-fv-ink  rounded-lg hover:bg-fv-surface  transition-colors"
+                    className="w-full sm:w-auto px-6 py-2.5 sm:py-3 border border-fv-border text-fv-ink rounded-xl hover:bg-fv-surface text-sm font-semibold transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-3 bg-fv-primary hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-semibold transition-all"
+                    className="w-full sm:w-auto px-6 py-2.5 sm:py-3 bg-fv-primary hover:bg-fv-primary-dark text-white rounded-xl text-sm font-semibold shadow-xs transition-all"
                   >
                     {editMode ? 'Update Product' : 'Create Product'}
                   </button>

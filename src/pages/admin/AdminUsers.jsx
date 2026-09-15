@@ -43,19 +43,80 @@ const AdminUsers = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <h1 className="text-2xl md:text-3xl font-bold text-fv-heading  mb-6">
-        Manage Users
-      </h1>
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 pb-28 md:pb-6">
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
+        <div>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-fv-heading">
+            Manage Customers
+          </h1>
+          <p className="text-xs text-fv-muted mt-0.5">
+            {totalUsers} registered customer accounts
+          </p>
+        </div>
+      </div>
 
-      <div className="bg-white  rounded-[12px] shadow-sm border border-fv-border  overflow-x-auto">
+      {/* Mobile Cards View */}
+      <div className="space-y-3 md:hidden">
+        {users.map((user) => (
+          <div
+            key={user._id}
+            className="bg-white rounded-[16px] p-4 border border-fv-border shadow-xs space-y-2.5"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-bold text-fv-heading">{user.name}</h3>
+                <p className="text-xs text-fv-muted">{user.email}</p>
+                {user.phone && <p className="text-xs text-fv-muted mt-0.5">📞 {user.phone}</p>}
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <span
+                  className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                    user.role === 'admin'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                      : 'bg-fv-surface text-fv-muted'
+                  }`}
+                >
+                  {user.role}
+                </span>
+                <span
+                  className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                    user.isActive
+                      ? 'bg-fv-cream text-fv-primary-dark dark:bg-green-900/40 dark:text-green-300'
+                      : 'bg-fv-surface text-fv-muted'
+                  }`}
+                >
+                  {user.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-fv-border text-xs text-fv-muted">
+              <span>Joined: {new Date(user.createdAt).toLocaleDateString('en-IN')}</span>
+              {user.role !== 'admin' && (
+                <button
+                  type="button"
+                  onClick={() => handleDelete(user._id)}
+                  aria-label={`Remove ${user.name}`}
+                  className="px-3 py-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 text-xs font-semibold flex items-center gap-1 active:scale-95 transition-all"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Deactivate / Delete
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden md:block bg-white rounded-[12px] shadow-sm border border-fv-border overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-fv-page ">
+          <thead className="bg-fv-page">
             <tr>
               {['Name', 'Email', 'Phone', 'Role', 'Joined', 'Status', 'Actions'].map((h) => (
                 <th
                   key={h}
-                  className="px-4 py-3 text-left text-xs font-semibold text-fv-muted  uppercase tracking-wider"
+                  className="px-4 py-3 text-left text-xs font-semibold text-fv-muted uppercase tracking-wider"
                 >
                   {h}
                 </th>
@@ -64,22 +125,22 @@ const AdminUsers = () => {
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {users.map((user) => (
-              <tr key={user._id} className="hover:bg-fv-page /40 transition-colors">
-                <td className="px-4 py-3 text-sm text-fv-heading ">{user.name}</td>
-                <td className="px-4 py-3 text-sm text-fv-muted ">{user.email}</td>
-                <td className="px-4 py-3 text-sm text-fv-muted ">{user.phone}</td>
+              <tr key={user._id} className="hover:bg-fv-page/40 transition-colors">
+                <td className="px-4 py-3 text-sm text-fv-heading">{user.name}</td>
+                <td className="px-4 py-3 text-sm text-fv-muted">{user.email}</td>
+                <td className="px-4 py-3 text-sm text-fv-muted">{user.phone || '—'}</td>
                 <td className="px-4 py-3">
                   <span
                     className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-full ${
                       user.role === 'admin'
                         ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-                        : 'bg-fv-surface text-fv-muted  '
+                        : 'bg-fv-surface text-fv-muted'
                     }`}
                   >
                     {user.role}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm text-fv-muted ">
+                <td className="px-4 py-3 text-sm text-fv-muted">
                   {new Date(user.createdAt).toLocaleDateString('en-IN')}
                 </td>
                 <td className="px-4 py-3">
@@ -87,7 +148,7 @@ const AdminUsers = () => {
                     className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-full ${
                       user.isActive
                         ? 'bg-fv-cream text-fv-primary-dark dark:bg-green-900/40 dark:text-green-300'
-                        : 'bg-fv-surface text-fv-muted  '
+                        : 'bg-fv-surface text-fv-muted'
                     }`}
                   >
                     {user.isActive ? 'Active' : 'Inactive'}

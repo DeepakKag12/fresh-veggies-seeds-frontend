@@ -438,9 +438,9 @@ const Checkout = () => {
 
   /* ─────────────────────────────────── RENDER ─────────────────────────────── */
   return (
-    <div className="min-h-screen bg-fv-page pb-24 pt-8">
-      <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-10">
-        <h1 className="mb-6 font-serif text-[30px] font-semibold text-fv-heading sm:text-[38px]">
+    <div className="min-h-screen bg-fv-page pb-32 pt-6 sm:pt-8">
+      <div className="mx-auto max-w-[1200px] px-3 sm:px-6 lg:px-10">
+        <h1 className="mb-4 sm:mb-6 font-serif text-[24px] font-semibold text-fv-heading sm:text-[32px] lg:text-[38px]">
           Checkout
         </h1>
 
@@ -456,11 +456,11 @@ const Checkout = () => {
             <div className="lg:col-span-2 space-y-6">
 
               {/* ── Shipping Address ──────────────────────────────── */}
-              <div className="rounded-[18px] border border-fv-border bg-white p-6">
-                <div className="flex items-center justify-between mb-5">
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-6 h-6 text-fv-primary" />
-                    <h2 className="font-serif text-[20px] font-semibold text-fv-heading">
+              <div className="rounded-[18px] border border-fv-border bg-white p-4 sm:p-6 shadow-xs">
+                <div className="flex items-center justify-between mb-4 sm:mb-5">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-fv-primary" />
+                    <h2 className="font-serif text-[18px] sm:text-[20px] font-semibold text-fv-heading">
                       Delivery Address
                     </h2>
                   </div>
@@ -473,7 +473,7 @@ const Checkout = () => {
                       <label
                         key={addr._id}
                         onClick={() => { setMode('saved'); setSelectedSavedId(addr._id); }}
-                        className={`flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all
+                        className={`flex items-start gap-3 p-3 sm:p-4 border-2 rounded-xl cursor-pointer transition-all
                           ${mode === 'saved' && selectedSavedId === addr._id
                             ? 'border-fv-primary bg-fv-cream dark:bg-green-900/20'
                             : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}
@@ -555,17 +555,17 @@ const Checkout = () => {
               </div>
 
               {/* ── Payment Method ───────────────────────────────── */}
-              <div className="rounded-[18px] border border-fv-border bg-white p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <CreditCard className="w-6 h-6 text-fv-primary" />
-                  <h2 className="font-serif text-[20px] font-semibold text-fv-heading">
+              <div className="rounded-[18px] border border-fv-border bg-white p-4 sm:p-6 shadow-xs">
+                <div className="flex items-center gap-2.5 sm:gap-3 mb-4 sm:mb-6">
+                  <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-fv-primary" />
+                  <h2 className="font-serif text-[18px] sm:text-[20px] font-semibold text-fv-heading">
                     Payment Method
                   </h2>
                 </div>
 
                 <div className="space-y-3">
                   {COD_AVAILABLE ? (
-                    <label className={`flex items-center justify-between p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    <label className={`flex items-center justify-between p-3.5 sm:p-4 border-2 rounded-xl cursor-pointer transition-all ${
                       paymentMode === 'COD' ? 'border-fv-primary bg-fv-cream dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-700'
                     }`}>
                       <div className="flex items-center gap-3">
@@ -574,15 +574,15 @@ const Checkout = () => {
                           onChange={e => setPaymentMode(e.target.value)}
                           className="w-5 h-5 text-fv-primary" />
                         <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold text-gray-900 dark:text-white">Cash on Delivery (COD)</p>
+                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                            <p className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">Cash on Delivery (COD)</p>
                             {COD_EXTRA_CHARGE > 0 && (
                               <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
                                 +₹{COD_EXTRA_CHARGE} fee
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                             Pay when you receive your order {COD_MAX_ORDER ? `(up to ₹${COD_MAX_ORDER.toLocaleString()})` : ''}
                           </p>
                         </div>
@@ -595,7 +595,7 @@ const Checkout = () => {
                   )}
 
                   {ONLINE_AVAILABLE ? (
-                    <label className={`flex items-center justify-between p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    <label className={`flex items-center justify-between p-3.5 sm:p-4 border-2 rounded-xl cursor-pointer transition-all ${
                       paymentMode === 'Online' ? 'border-fv-primary bg-fv-cream dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-700'
                     }`}>
                       <div className="flex items-center gap-3">
@@ -604,15 +604,15 @@ const Checkout = () => {
                           onChange={e => setPaymentMode(e.target.value)}
                           className="w-5 h-5 text-fv-primary" />
                         <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold text-gray-900 dark:text-white">Online Payment (Razorpay)</p>
+                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                            <p className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white">Online Payment (Razorpay)</p>
                             {ONLINE_DISCOUNT_VALUE > 0 && (
                               <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
                                 {ONLINE_DISCOUNT_TYPE === 'percentage' ? `${ONLINE_DISCOUNT_VALUE}% Extra OFF` : `₹${ONLINE_DISCOUNT_VALUE} Extra OFF`}
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Pay securely using UPI, Cards & Net Banking</p>
+                          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">Pay securely using UPI, Cards & Net Banking</p>
                         </div>
                       </div>
                     </label>
@@ -627,10 +627,10 @@ const Checkout = () => {
 
             {/* ── Order Summary ─────────────────────────────────── */}
             <div className="lg:col-span-1">
-              <div className="sticky top-24 rounded-[18px] border border-fv-border bg-white p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <Package className="w-6 h-6 text-fv-primary" />
-                  <h2 className="font-serif text-[20px] font-semibold text-fv-heading">Order Summary</h2>
+              <div className="sticky top-24 rounded-[18px] border border-fv-border bg-white p-4 sm:p-6 shadow-xs">
+                <div className="flex items-center gap-2.5 sm:gap-3 mb-4 sm:mb-6">
+                  <Package className="w-5 h-5 sm:w-6 sm:h-6 text-fv-primary" />
+                  <h2 className="font-serif text-[18px] sm:text-[20px] font-semibold text-fv-heading">Order Summary</h2>
                 </div>
 
                 <div className="space-y-3 mb-6">

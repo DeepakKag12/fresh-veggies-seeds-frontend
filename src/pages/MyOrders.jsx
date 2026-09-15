@@ -74,8 +74,8 @@ const MyOrders = () => {
   }
 
   return (
-    <div className="min-h-screen bg-fv-page py-10">
-      <div className="max-w-2xl mx-auto px-4">
+    <div className="min-h-screen bg-fv-page py-8 pb-28">
+      <div className="max-w-2xl mx-auto px-3 sm:px-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-fv-heading  mb-6">
           My Orders
         </h1>

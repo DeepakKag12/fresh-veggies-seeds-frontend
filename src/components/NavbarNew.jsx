@@ -30,6 +30,7 @@ const OFFERS = [
 
 const NavbarNew = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const { cartItems, openCart } = useCart();
@@ -148,6 +149,20 @@ const NavbarNew = () => {
               </>
             )}
             
+            {/* Mobile Search Trigger */}
+            <button
+              type="button"
+              onClick={() => {
+                setMobileSearchOpen((prev) => !prev);
+                setMobileMenuOpen(false);
+              }}
+              aria-label="Search products"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-fv-primary
+                         hover:bg-fv-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary lg:hidden"
+            >
+              <Search className="h-5 w-5" aria-hidden="true" />
+            </button>
+
             {/* Cart Button - Only for non-admin users */}
             {user?.role !== 'admin' && (
               <button
@@ -335,6 +350,49 @@ const NavbarNew = () => {
             </Button>
           </div>
         </div>
+
+        {/* Mobile Search Dropdown */}
+        <AnimatePresence>
+          {mobileSearchOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="border-t border-fv-border bg-white px-3 py-2.5 lg:hidden overflow-hidden"
+            >
+              <form
+                role="search"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const q = new FormData(e.currentTarget).get('q');
+                  navigate(q ? `/?search=${encodeURIComponent(q)}` : '/');
+                  setMobileSearchOpen(false);
+                }}
+              >
+                <div className="relative flex items-center">
+                  <Search className="pointer-events-none absolute left-3.5 h-4 w-4 text-fv-muted" aria-hidden="true" />
+                  <input
+                    name="q"
+                    type="search"
+                    autoFocus
+                    placeholder="Search seeds, soil, tools…"
+                    className="h-10 w-full rounded-full bg-fv-surface pl-10 pr-9 text-[14px] text-fv-heading
+                               placeholder:text-fv-muted focus:outline-none focus:ring-2 focus:ring-fv-primary/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMobileSearchOpen(false)}
+                    className="absolute right-2.5 flex h-7 w-7 items-center justify-center rounded-full text-fv-muted hover:text-fv-heading"
+                    aria-label="Close search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Category row, centred beneath the search bar. */}
         <nav aria-label="Product categories" className="hidden border-t border-fv-border md:block">

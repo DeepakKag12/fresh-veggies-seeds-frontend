@@ -133,9 +133,9 @@ const RegisterPage = () => {
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: [0.6, -0.05, 0.01, 0.99] }}
-        className="flex-1 flex items-center justify-center bg-white p-8"
+        className="flex-1 flex items-center justify-center bg-white p-5 sm:p-8"
       >
-        <div className="w-full max-w-md py-8">
+        <div className="w-full max-w-md py-4 sm:py-8">
           {/* Logo */}
           <motion.div
             initial={{ scale: 0.8, opacity: 0, y: -20 }}

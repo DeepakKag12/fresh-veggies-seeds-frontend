@@ -104,7 +104,7 @@ const LoginPage = () => {
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: [0.6, -0.05, 0.01, 0.99] }}
-        className="flex-1 flex items-center justify-center p-8 bg-white dark:bg-gray-900"
+        className="flex-1 flex items-center justify-center p-5 sm:p-8 bg-white dark:bg-gray-900"
       >
         <div className="w-full max-w-md">
           {/* Logo */}

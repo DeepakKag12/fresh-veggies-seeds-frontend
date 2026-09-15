@@ -304,11 +304,11 @@ const OrderDetail = () => {
 
         {/* Progress Tracker — hide for cancelled/cancellationRequested */}
         {!['Cancelled', 'CancellationRequested'].includes(order.orderStatus) && (
-          <div className="bg-white rounded-[12px] shadow-sm p-6 mb-4">
+          <div className="bg-white rounded-[16px] shadow-xs border border-fv-border p-4 sm:p-6 mb-4">
             <div className="flex items-center justify-between relative">
-              <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-200  z-0" />
+              <div className="absolute top-4 sm:top-5 left-0 right-0 h-0.5 bg-gray-200 z-0" />
               <div
-               className="absolute top-5 left-0 h-0.5 bg-fv-cream0 z-0 transition-all duration-500"
+                className="absolute top-4 sm:top-5 left-0 h-0.5 bg-fv-primary z-0 transition-all duration-500"
                 style={{ width: activeStep < 0 ? '0%' : `${(activeStep / (steps.length - 1)) * 100}%` }}
               />
               {steps.map((step, index) => {
@@ -317,13 +317,15 @@ const OrderDetail = () => {
                 const isCurrent = activeStep === index;
                 return (
                   <div key={step} className="flex flex-col items-center z-10">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all
-                      ${isCompleted ? 'bg-fv-cream0 text-white' : 'bg-gray-200  text-gray-400'}
-                      ${isCurrent ? 'ring-4 ring-green-200 dark:ring-green-900' : ''}`}
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all
+                      ${isCompleted ? 'bg-fv-primary text-white shadow-xs' : 'bg-gray-100 text-gray-400'}
+                      ${isCurrent ? 'ring-4 ring-green-100 dark:ring-green-900' : ''}`}
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
-                    <span className={`text-xs mt-2 font-medium hidden sm:block ${isCompleted ? 'text-fv-primary dark:text-green-400' : 'text-gray-400'}`}>
+                    <span className={`text-[10px] sm:text-xs mt-1.5 font-medium text-center truncate max-w-[56px] sm:max-w-none ${
+                      isCompleted ? 'text-fv-primary dark:text-green-400 font-semibold' : 'text-gray-400'
+                    }`}>
                       {step}
                     </span>
                   </div>
