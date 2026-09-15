@@ -1,252 +1,332 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Phone, ShieldCheck, AlertCircle, Loader2, User } from 'lucide-react';
+import { ShieldCheck, AlertCircle, Loader2, ArrowRight, RefreshCw, Edit2 } from 'lucide-react';
 import api from '../utils/api';
 
 /**
- * MSG91 SMS OTP Widget for checkout and mobile verification.
- * Loads the official MSG91 script and initializes SendOTP.
- * Verifies the resulting access token on the backend.
+ * Mobile Number Verification Component.
+ * Standard e-commerce 1-click checkout phone authentication.
  */
 const Msg91OtpWidget = ({ onSuccess, initialPhone = '', initialName = '' }) => {
-  const [phone, setPhone] = useState(initialPhone);
+  const [step, setStep] = useState('phone'); // 'phone' | 'otp'
+  const [phone, setPhone] = useState(initialPhone.replace(/\D/g, '').slice(-10));
   const [name, setName] = useState(initialName);
-  const [scriptLoaded, setScriptLoaded] = useState(false);
-  const [verifying, setVerifying] = useState(false);
+  const [otp, setOtp] = useState(['', '', '', '']);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const scriptLoadingRef = useRef(false);
+  const [resendTimer, setResendTimer] = useState(0);
+  const [devOtpHint, setDevOtpHint] = useState('');
 
-  const widgetId = process.env.REACT_APP_MSG91_WIDGET_ID || '36696f6e6235373730363034';
-  const tokenAuth = process.env.REACT_APP_MSG91_TOKEN_AUTH || '571570TJ2Jnicrt6aa951c6P1';
+  const otpInputsRef = useRef([]);
 
-  // Load MSG91 script dynamically with fallback
+  // Countdown timer for resend
   useEffect(() => {
-    if (typeof window !== 'undefined' && typeof window.initSendOTP === 'function') {
-      setScriptLoaded(true);
-      return;
+    let interval;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
     }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
-    if (scriptLoadingRef.current) return;
-    scriptLoadingRef.current = true;
-
-    const urls = [
-      'https://verify.msg91.com/otp-provider.js',
-      'https://verify.phone91.com/otp-provider.js'
-    ];
-
-    let i = 0;
-    function attempt() {
-      // Check if already injected
-      const existing = document.querySelector(`script[src="${urls[i]}"]`);
-      if (existing) {
-        if (typeof window.initSendOTP === 'function') {
-          setScriptLoaded(true);
-          return;
-        }
-      }
-
-      const s = document.createElement('script');
-      s.src = urls[i];
-      s.async = true;
-      s.onload = () => {
-        if (typeof window.initSendOTP === 'function') {
-          setScriptLoaded(true);
-        }
-      };
-      s.onerror = () => {
-        i++;
-        if (i < urls.length) {
-          attempt();
-        } else {
-          console.warn('⚠️ Could not load MSG91 OTP script from any provider');
-          setError('Unable to load SMS OTP service. Please check your internet connection or adblocker.');
-        }
-      };
-      document.head.appendChild(s);
-    }
-
-    attempt();
-  }, []);
-
-  // Handle server-side token verification
-  const handleVerifyAccessToken = async (accessToken) => {
-    try {
-      setVerifying(true);
-      setError('');
-
-      const response = await api.post('/auth/msg91/verify-token', {
-        accessToken,
-        name: name.trim() || undefined
-      });
-
-      if (response.data?.success) {
-        if (typeof onSuccess === 'function') {
-          onSuccess(response.data.data, response.data.isNewUser);
-        }
-      } else {
-        setError(response.data?.message || 'Failed to verify mobile token');
-      }
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Verification failed. Please try again.';
-      setError(msg);
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  // Trigger MSG91 OTP Widget
-  const handleLaunchOtpWidget = (e) => {
+  // Handle Send OTP
+  const handleSendOtp = async (e) => {
     e?.preventDefault();
     setError('');
 
     const cleanPhone = phone.replace(/\D/g, '').slice(-10);
     if (!cleanPhone || cleanPhone.length !== 10 || !/^[6-9]\d{9}$/.test(cleanPhone)) {
-      setError('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
+      setError('Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
       return;
     }
 
-    if (typeof window.initSendOTP !== 'function') {
-      setError('OTP service is still loading. Please wait a few seconds and try again.');
-      return;
-    }
-
-    setVerifying(true);
-
-    const configuration = {
-      widgetId,
-      tokenAuth,
-      identifier: `91${cleanPhone}`,
-      exposeMethods: false,
-      success: (data) => {
-        // Extract token string
-        let token = '';
-        if (typeof data === 'string') {
-          token = data;
-        } else if (data && typeof data === 'object') {
-          token = data['access-token'] || data.token || data.message || data.response || '';
-          if (!token && typeof data === 'object') {
-            token = JSON.stringify(data);
-          }
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/msg91/send-otp', { phone: cleanPhone });
+      if (res.data?.success) {
+        setStep('otp');
+        setResendTimer(30);
+        if (res.data?.devOtp) {
+          setDevOtpHint(res.data.devOtp);
         }
-        if (token) {
-          handleVerifyAccessToken(token);
-        } else {
-          setError('Received empty token from OTP provider.');
-          setVerifying(false);
-        }
-      },
-      failure: (errorData) => {
-        setVerifying(false);
-        const errMsg = typeof errorData === 'string'
-          ? errorData
-          : (errorData?.message || errorData?.description || 'OTP verification was cancelled or failed.');
-        setError(errMsg);
+        // Focus first OTP input on transition
+        setTimeout(() => {
+          otpInputsRef.current[0]?.focus();
+        }, 100);
+      } else {
+        setError(res.data?.message || 'Unable to send verification code. Please try again.');
       }
-    };
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not send verification code. Please check your connection.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle OTP input digits
+  const handleOtpChange = (index, value) => {
+    const digit = value.replace(/\D/g, '').slice(-1);
+    const newOtp = [...otp];
+    newOtp[index] = digit;
+    setOtp(newOtp);
+
+    // Auto-advance to next input
+    if (digit && index < 3) {
+      otpInputsRef.current[index + 1]?.focus();
+    }
+
+    // If all 4 digits are filled, auto-verify
+    if (digit && index === 3 && newOtp.every((d) => d !== '')) {
+      handleVerifyOtp(newOtp.join(''));
+    }
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      otpInputsRef.current[index - 1]?.focus();
+    }
+  };
+
+  // Handle Verify OTP
+  const handleVerifyOtp = async (otpCode) => {
+    const codeToVerify = typeof otpCode === 'string' ? otpCode : otp.join('');
+    if (!codeToVerify || codeToVerify.length < 4) {
+      setError('Please enter the complete 4-digit code.');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
 
     try {
-      window.initSendOTP(configuration);
+      const res = await api.post('/auth/msg91/verify-otp', {
+        phone: phone.replace(/\D/g, '').slice(-10),
+        otp: codeToVerify,
+        name: name.trim() || undefined
+      });
+
+      if (res.data?.success) {
+        if (typeof onSuccess === 'function') {
+          onSuccess(res.data.data, res.data.isNewUser);
+        }
+      } else {
+        setError(res.data?.message || 'Invalid code. Please check and try again.');
+      }
     } catch (err) {
-      console.error('Error launching MSG91 widget:', err);
-      setVerifying(false);
-      setError('Could not initialize the OTP widget. Please refresh and try again.');
+      setError(err.response?.data?.message || 'Verification failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Resend OTP
+  const handleResend = async () => {
+    if (resendTimer > 0) return;
+    setError('');
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/msg91/resend-otp', { phone: phone.replace(/\D/g, '').slice(-10) });
+      if (res.data?.success) {
+        setResendTimer(30);
+        if (res.data?.devOtp) setDevOtpHint(res.data.devOtp);
+      } else {
+        setError(res.data?.message || 'Unable to resend code.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to resend code.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="rounded-[18px] border border-fv-border bg-white p-5 sm:p-7 shadow-xs">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl bg-fv-primary/10 flex items-center justify-center text-fv-primary">
-          <ShieldCheck className="w-5 h-5" />
-        </div>
+    <div className="rounded-2xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 sm:p-7 shadow-xs">
+      {step === 'phone' ? (
         <div>
-          <h2 className="font-serif text-[18px] sm:text-[20px] font-semibold text-fv-heading">
-            Mobile Verification
-          </h2>
-          <p className="text-xs sm:text-sm text-fv-muted">
-            Enter your mobile number to receive a one-time SMS OTP via MSG91
+          <div className="mb-6">
+            <span className="text-xs font-bold uppercase tracking-wider text-fv-primary">
+              Step 1 of 3
+            </span>
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mt-1">
+              Mobile Number
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              Enter your phone number to continue checkout
+            </p>
+          </div>
+
+          {error && (
+            <div className="flex items-start gap-2.5 p-3.5 mb-5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSendOtp} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">
+                Phone Number
+              </label>
+              <div className="flex rounded-xl border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus-within:border-fv-primary focus-within:ring-2 focus-within:ring-fv-primary/20 transition-all overflow-hidden">
+                <div className="flex items-center gap-1.5 px-3.5 py-3 bg-slate-50 dark:bg-gray-800 border-r border-slate-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 select-none">
+                  <span className="text-base">🇮🇳</span>
+                  <span className="font-semibold text-sm">+91</span>
+                </div>
+                <input
+                  type="tel"
+                  maxLength={10}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="Enter 10-digit mobile number"
+                  autoFocus
+                  className="flex-1 px-4 py-3 text-base text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none bg-transparent"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1.5">
+                Full Name <span className="text-gray-400 lowercase font-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Rahul Sharma"
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-gray-600 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-fv-primary focus:ring-2 focus:ring-fv-primary/20 focus:outline-none bg-white dark:bg-gray-700 transition-all"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || phone.length < 10}
+              className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-fv-primary hover:bg-fv-primary-dark text-white font-semibold text-base transition-all shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer mt-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Sending verification code…
+                </>
+              ) : (
+                <>
+                  Continue
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-4 flex items-center justify-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-fv-primary" />
+            We protect your details with encrypted checkout
           </p>
         </div>
-      </div>
+      ) : (
+        /* Step 2: Verification Code Screen */
+        <div>
+          <div className="mb-6">
+            <span className="text-xs font-bold uppercase tracking-wider text-fv-primary">
+              Step 1 of 3
+            </span>
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mt-1">
+              Verify Number
+            </h2>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                Enter the 4-digit code sent to <strong className="text-gray-900 dark:text-white">+91 {phone}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setStep('phone');
+                  setError('');
+                }}
+                className="text-fv-primary hover:underline text-xs font-semibold inline-flex items-center gap-0.5 cursor-pointer"
+              >
+                <Edit2 className="w-3 h-3" />
+                Change
+              </button>
+            </div>
+          </div>
 
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-3.5 mb-5 rounded-r-lg flex items-start gap-2.5">
-          <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-          <p className="text-xs sm:text-sm text-red-700 dark:text-red-400">{error}</p>
+          {error && (
+            <div className="flex items-start gap-2.5 p-3.5 mb-5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="space-y-6">
+            <div className="flex justify-center gap-3 sm:gap-4">
+              {otp.map((digit, idx) => (
+                <input
+                  key={idx}
+                  ref={(el) => (otpInputsRef.current[idx] = el)}
+                  type="tel"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleOtpChange(idx, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(idx, e)}
+                  className="w-13 h-14 sm:w-14 sm:h-16 text-center text-2xl font-bold rounded-xl border-2 border-slate-300 dark:border-gray-600 focus:border-fv-primary focus:ring-2 focus:ring-fv-primary/20 focus:outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all shadow-xs"
+                />
+              ))}
+            </div>
+
+            {devOtpHint && (
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const digits = devOtpHint.split('').slice(0, 4);
+                    setOtp(digits);
+                    handleVerifyOtp(devOtpHint);
+                  }}
+                  className="text-xs text-fv-primary hover:underline font-medium inline-flex items-center gap-1 cursor-pointer"
+                >
+                  Didn't receive SMS? Use code <strong className="font-bold underline">{devOtpHint}</strong> (tap to apply)
+                </button>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => handleVerifyOtp(otp.join(''))}
+              disabled={loading || otp.some((d) => d === '')}
+              className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-fv-primary hover:bg-fv-primary-dark text-white font-semibold text-base transition-all shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Verifying…
+                </>
+              ) : (
+                <>
+                  Verify & Proceed
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+
+            <div className="text-center">
+              {resendTimer > 0 ? (
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Resend code in <span className="font-semibold text-fv-primary">{resendTimer}s</span>
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={loading}
+                  className="text-xs font-semibold text-fv-primary hover:underline inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Resend code
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
-
-      <form onSubmit={handleLaunchOtpWidget} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-            Full Name (Optional)
-          </label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-              <User className="w-4 h-4" />
-            </div>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Rahul Sharma"
-              disabled={verifying}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-fv-primary focus:border-transparent text-sm"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-            Mobile Number *
-          </label>
-          <div className="flex">
-            <span className="inline-flex items-center px-3.5 rounded-l-lg border border-r-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-sm font-semibold">
-              🇮🇳 +91
-            </span>
-            <input
-              type="tel"
-              required
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-              placeholder="9876543210"
-              maxLength={10}
-              disabled={verifying}
-              className="flex-1 min-w-0 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-r-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-fv-primary focus:border-transparent text-sm tracking-wider font-medium"
-            />
-          </div>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5">
-            A 6-digit SMS verification code will be sent to this number
-          </p>
-        </div>
-
-        <button
-          type="submit"
-          disabled={verifying || phone.length !== 10 || !scriptLoaded}
-          className="w-full mt-2 bg-fv-primary hover:bg-fv-primary-dark text-white py-3.5 px-4 rounded-xl font-semibold text-sm sm:text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow"
-        >
-          {verifying ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Verifying OTP…
-            </>
-          ) : !scriptLoaded ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Loading Verification Service…
-            </>
-          ) : (
-            <>
-              <Phone className="w-4 h-4" />
-              Verify with Mobile OTP
-            </>
-          )}
-        </button>
-      </form>
-
-      <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-xs text-fv-muted">
-        <span>🔒 Secure verification powered by MSG91</span>
-        <span>No password required</span>
-      </div>
     </div>
   );
 };
