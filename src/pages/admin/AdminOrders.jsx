@@ -16,22 +16,21 @@ import {
   AlertTriangle,
   RefreshCw,
   Search,
-  MoreVertical,
   CheckCircle2,
-  Boxes
+  Boxes,
+  History
 } from 'lucide-react';
 import api from '../../utils/api';
 
-// Enforce single source of truth for order transitions matching backend ALLOWED_TRANSITIONS
-const ALLOWED_TRANSITIONS = {
-  Pending:               ['Confirmed', 'Cancelled'],
-  Confirmed:             ['Packed', 'Cancelled'],
-  Packed:                ['Shipped', 'Cancelled'],
-  Shipped:               ['Delivered'],
-  Delivered:             [],
-  Cancelled:             [],
-  CancellationRequested: ['Cancelled', 'Confirmed'],
-};
+// All valid order statuses that admin can change to at any time
+export const ALL_STATUS_OPTIONS = [
+  'Pending',
+  'Confirmed',
+  'Packed',
+  'Shipped',
+  'Delivered',
+  'Cancelled',
+];
 
 const NEXT_PRIMARY_ACTION = {
   Pending:   { target: 'Confirmed', label: 'Confirm Order', icon: CheckCircle2, color: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
@@ -120,9 +119,9 @@ const AdminOrders = () => {
     }
   }, [searchParams]);
 
-  const handleUpdateStatus = async (orderId, newStatus) => {
+  const handleUpdateStatus = async (orderId, newStatus, note) => {
     try {
-      await api.put(`/orders/${orderId}/status`, { orderStatus: newStatus });
+      await api.put(`/orders/${orderId}/status`, { orderStatus: newStatus, note });
       toast.success(`Order moved to ${newStatus}!`);
       fetchOrders();
     } catch (error) {
@@ -359,17 +358,16 @@ const OrderCard = ({
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [customNote, setCustomNote] = useState('');
 
-  const allowedNext = ALLOWED_TRANSITIONS[order.orderStatus] || [];
   const primaryAction = NEXT_PRIMARY_ACTION[order.orderStatus];
 
-  const handleStatusChange = async (newStatus) => {
+  const handleStatusChange = async (newStatus, note) => {
     if (newStatus === order.orderStatus) return;
     setIsUpdating(true);
-    setShowMoreMenu(false);
-    await onUpdateStatus(order._id, newStatus);
+    await onUpdateStatus(order._id, newStatus, note || customNote);
     setIsUpdating(false);
+    setCustomNote('');
   };
 
   const handleApprove = async () => {
@@ -434,7 +432,7 @@ const OrderCard = ({
             </div>
           </div>
 
-          {/* Right section with Price + Consolidated Action Button */}
+          {/* Right section with Price + Status Selector & Actions */}
           <div
             className="flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-fv-border"
             onClick={(e) => e.stopPropagation()}
@@ -444,66 +442,62 @@ const OrderCard = ({
               <div className="text-base md:text-lg font-bold text-fv-primary">₹{order.totalAmount}</div>
             </div>
 
-            {/* Smart Consolidated Next Action */}
-            <div className="flex items-center gap-1.5 relative">
+            {/* Quick Actions & Universal Status Dropdown */}
+            <div className="flex items-center gap-1.5 relative flex-wrap justify-end">
               {order.orderStatus === 'CancellationRequested' ? (
                 <button
                   onClick={handleApprove}
                   disabled={processing}
                   className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1 disabled:opacity-50"
+                  title="Review customer cancellation"
                 >
                   {processing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : 'Review Cancel'}
                 </button>
-              ) : primaryAction && allowedNext.includes(primaryAction.target) ? (
+              ) : primaryAction ? (
                 <button
                   onClick={() => handleStatusChange(primaryAction.target)}
                   disabled={isUpdating}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50 ${primaryAction.color}`}
+                  title={`Quick move to ${primaryAction.target}`}
                 >
                   {isUpdating ? (
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <>
                       <primaryAction.icon className="w-3.5 h-3.5" />
-                      <span>{primaryAction.label}</span>
+                      <span className="hidden sm:inline">{primaryAction.label}</span>
                     </>
                   )}
                 </button>
               ) : null}
 
-              {/* More Options Dropdown (Secondary actions, e.g. Cancel) */}
-              {allowedNext.length > 1 && (
-                <div className="relative">
-                  <button
-                    onClick={() => setShowMoreMenu(!showMoreMenu)}
-                    className="p-1.5 text-fv-muted hover:text-fv-heading hover:bg-fv-surface rounded-lg transition-colors"
-                    title="More actions"
-                  >
-                    <MoreVertical className="w-4 h-4" />
-                  </button>
-
-                  {showMoreMenu && (
-                    <div className="absolute right-0 top-full mt-1 w-36 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-fv-border p-1 z-20">
-                      {allowedNext
-                        .filter(target => !primaryAction || target !== primaryAction.target)
-                        .map(target => (
-                          <button
-                            key={target}
-                            onClick={() => handleStatusChange(target)}
-                            className="w-full text-left px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                          >
-                            Mark as {target}
-                          </button>
-                        ))}
-                    </div>
+              {/* Direct Status Selector: Allows switching to ANY status */}
+              <div className="relative">
+                <select
+                  value={order.orderStatus}
+                  disabled={isUpdating}
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                  className="text-xs font-semibold py-1.5 pl-2.5 pr-6 rounded-xl border border-fv-border bg-white dark:bg-gray-800 text-fv-heading hover:border-fv-primary focus:outline-none focus:ring-1 focus:ring-fv-primary cursor-pointer disabled:opacity-50 transition-all shadow-xs"
+                  title="Change status to anything"
+                >
+                  {ALL_STATUS_OPTIONS.map((st) => (
+                    <option key={st} value={st}>
+                      {st === order.orderStatus ? `✓ ${st}` : st}
+                    </option>
+                  ))}
+                  {order.orderStatus === 'CancellationRequested' && (
+                    <option value="CancellationRequested" disabled>
+                      ● CancellationRequested
+                    </option>
                   )}
-                </div>
-              )}
+                </select>
+              </div>
 
               {/* Accordion expander */}
               <button
                 onClick={onToggleExpand}
-                className="p-1.5 text-fv-muted hover:text-fv-heading rounded-lg"
+                className="p-1.5 text-fv-muted hover:text-fv-heading rounded-lg transition-colors"
+                title={isExpanded ? 'Collapse details' : 'Expand details'}
               >
                 {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
               </button>
@@ -596,6 +590,78 @@ const OrderCard = ({
                 <span>Total Amount:</span>
                 <span className="text-fv-primary">₹{order.totalAmount}</span>
               </div>
+            </div>
+
+            {/* Admin Order Status Control Panel & Audit History */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-fv-border space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h4 className="text-xs font-bold text-fv-muted uppercase tracking-wider flex items-center gap-1.5">
+                  <PackageCheck className="w-3.5 h-3.5 text-fv-primary" /> Admin Order Status Control
+                </h4>
+                <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full border ${getStatusColor(order.orderStatus)}`}>
+                  Current: {order.orderStatus}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5">
+                {ALL_STATUS_OPTIONS.map((st) => {
+                  const isCurrent = order.orderStatus === st;
+                  return (
+                    <button
+                      key={st}
+                      type="button"
+                      disabled={isUpdating || isCurrent}
+                      onClick={() => handleStatusChange(st, customNote)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+                        isCurrent
+                          ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 cursor-default opacity-90'
+                          : 'bg-fv-surface hover:bg-fv-border/50 text-fv-heading border border-fv-border hover:border-fv-primary'
+                      } disabled:opacity-50`}
+                    >
+                      {isCurrent && <CheckCircle2 className="w-3 h-3 text-emerald-400" />}
+                      {st}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <input
+                  type="text"
+                  value={customNote}
+                  onChange={(e) => setCustomNote(e.target.value)}
+                  placeholder="Optional admin note for this status update..."
+                  className="flex-1 text-xs px-3 py-1.5 bg-fv-surface/40 border border-fv-border rounded-lg text-fv-heading placeholder:text-fv-muted focus:outline-none focus:ring-1 focus:ring-fv-primary"
+                />
+              </div>
+
+              {/* Status Audit History */}
+              {order.statusHistory && order.statusHistory.length > 0 && (
+                <div className="pt-2 border-t border-fv-border">
+                  <p className="text-[11px] font-bold text-fv-muted uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <History className="w-3 h-3 text-fv-muted" /> Status History ({order.statusHistory.length})
+                  </p>
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                    {order.statusHistory.slice().reverse().map((h, idx) => (
+                      <div key={idx} className="text-[11px] flex items-start justify-between gap-2 p-1.5 bg-fv-surface/40 rounded-lg border border-fv-border/60">
+                        <div>
+                          <span className="font-semibold text-fv-heading">{h.status}</span>
+                          {h.from && <span className="text-fv-muted"> (from {h.from})</span>}
+                          {h.note && <p className="text-fv-muted italic text-[10px] mt-0.5">{h.note}</p>}
+                        </div>
+                        <span className="text-[10px] text-fv-muted whitespace-nowrap">
+                          {new Date(h.changedAt).toLocaleString('en-IN', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Cancellation Request Actions */}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
@@ -33,19 +33,21 @@ import api from '../../utils/api';
 const fmt = (n) => (n || 0).toLocaleString('en-IN');
 const pct = (part, total) => (total > 0 ? Math.round((part / total) * 100) : 0);
 
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 // last 24 calendar months for the month picker
 const buildMonthOptions = () => {
-  const opts = [];
+  const options = [];
   const now = new Date();
   for (let i = 0; i < 24; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    opts.push({
-      label: d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }),
+    options.push({
       year: d.getFullYear(),
       month: d.getMonth() + 1,
+      label: `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`,
     });
   }
-  return opts;
+  return options;
 };
 const MONTH_OPTIONS = buildMonthOptions();
 
@@ -53,6 +55,7 @@ const MONTH_OPTIONS = buildMonthOptions();
 
 // ── Main component ─────────────────────────────────────────────────────────
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalOrders: 0,
     totalUsers: 0,
@@ -96,6 +99,19 @@ const AdminDashboard = () => {
   const [showAllMonths, setShowAllMonths] = useState(false);
   const [showAllOrders, setShowAllOrders] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
+
+  const handleQuickStatusChange = async (orderId, newStatus) => {
+    setActionLoadingId(orderId);
+    try {
+      await api.put(`/orders/${orderId}/status`, { orderStatus: newStatus });
+      toast.success(`Order status updated to ${newStatus}!`);
+      fetchDashboardData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update order status');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   const handleQuickConfirm = async (orderId) => {
     setActionLoadingId(orderId);
@@ -308,7 +324,7 @@ const AdminDashboard = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => (tab.id === 'orders' ? navigate('/admin/orders') : setActiveTab(tab.id))}
                 className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold border-b-2 whitespace-nowrap transition-all ${
                   isActive
                     ? 'border-gray-900 dark:border-white text-fv-heading '
@@ -759,11 +775,25 @@ const AdminDashboard = () => {
                         <span className="text-xs font-mono font-semibold text-fv-heading ">
                           #{order._id.slice(-6).toUpperCase()}
                         </span>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                           {order.paymentMode && getPaymentModeLabel(order.paymentMode)}
-                          <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${getStatusColor(order.orderStatus)}`}>
-                            {order.orderStatus}
-                          </span>
+                          <select
+                            value={order.orderStatus}
+                            disabled={actionLoadingId === order._id}
+                            onChange={(e) => {
+                              e.preventDefault();
+                              handleQuickStatusChange(order._id, e.target.value);
+                            }}
+                            className={`px-2 py-0.5 text-[10px] font-semibold rounded-full border cursor-pointer focus:outline-none ${getStatusColor(order.orderStatus)}`}
+                            title="Quick change status"
+                          >
+                            {['Pending', 'Confirmed', 'Packed', 'Shipped', 'Delivered', 'Cancelled'].map((s) => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                            {order.orderStatus === 'CancellationRequested' && (
+                              <option value="CancellationRequested" disabled>CancellationRequested</option>
+                            )}
+                          </select>
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
@@ -794,11 +824,25 @@ const AdminDashboard = () => {
                         {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                       </span>
                       <span className="col-span-2 font-bold text-fv-heading ">₹{fmt(order.totalAmount)}</span>
-                      <span className="col-span-2">
-                        <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${getStatusColor(order.orderStatus)}`}>
-                          {order.orderStatus}
-                        </span>
-                      </span>
+                      <div className="col-span-2" onClick={(e) => e.stopPropagation()}>
+                        <select
+                          value={order.orderStatus}
+                          disabled={actionLoadingId === order._id}
+                          onChange={(e) => {
+                            e.preventDefault();
+                            handleQuickStatusChange(order._id, e.target.value);
+                          }}
+                          className={`px-2 py-0.5 text-[10px] font-semibold rounded-full border cursor-pointer focus:outline-none ${getStatusColor(order.orderStatus)}`}
+                          title="Quick change status"
+                        >
+                          {['Pending', 'Confirmed', 'Packed', 'Shipped', 'Delivered', 'Cancelled'].map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                          {order.orderStatus === 'CancellationRequested' && (
+                            <option value="CancellationRequested" disabled>CancellationRequested</option>
+                          )}
+                        </select>
+                      </div>
                       <span className="col-span-1">{getPaymentModeLabel(order.paymentMode)}</span>
                     </div>
                   </Link>

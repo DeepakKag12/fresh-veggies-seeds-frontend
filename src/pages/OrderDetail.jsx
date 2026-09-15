@@ -2,21 +2,31 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Package, MapPin, CreditCard, Truck, CheckCircle,
-  Clock, XCircle, AlertTriangle, RefreshCw, ArrowLeft, Star
+  Clock, XCircle, AlertTriangle, RefreshCw, ArrowLeft, Star,
+  ShieldAlert
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 import WriteReviewModal from '../components/storefront/WriteReviewModal';
 
 const OrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, isAdmin } = useAuth();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [reviewingProduct, setReviewingProduct] = useState(null);
+
+  // Admin status control state
+  const [adminUpdating, setAdminUpdating] = useState(false);
+  const [adminSelectedStatus, setAdminSelectedStatus] = useState('');
+  const [adminNote, setAdminNote] = useState('');
+  const [adminRejectReason, setAdminRejectReason] = useState('');
+  const [showAdminReject, setShowAdminReject] = useState(false);
 
   const fetchOrder = useCallback(async () => {
     try {
@@ -49,6 +59,62 @@ const OrderDetail = () => {
       toast.error(error.response?.data?.message || 'Failed to submit cancellation request');
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleAdminStatusChange = async (newStatus) => {
+    const statusToSet = newStatus || adminSelectedStatus;
+    if (!statusToSet) {
+      toast.error('Please select a status');
+      return;
+    }
+    setAdminUpdating(true);
+    try {
+      const res = await api.put(`/orders/${id}/status`, {
+        orderStatus: statusToSet,
+        note: adminNote.trim() || undefined
+      });
+      setOrder(res.data.data);
+      setAdminNote('');
+      setAdminSelectedStatus('');
+      toast.success(`Order status updated to ${statusToSet}!`);
+    } catch (err) {
+      console.error('Admin status update failed:', err);
+      toast.error(err.response?.data?.message || 'Failed to update status');
+    } finally {
+      setAdminUpdating(false);
+    }
+  };
+
+  const handleAdminApproveCancel = async () => {
+    setAdminUpdating(true);
+    try {
+      const res = await api.put(`/orders/${id}/approve-cancel`);
+      setOrder(res.data.data);
+      toast.success('Cancellation approved! Refund initiated.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to approve cancellation');
+    } finally {
+      setAdminUpdating(false);
+    }
+  };
+
+  const handleAdminRejectCancel = async () => {
+    if (!adminRejectReason.trim()) {
+      toast.error('Please enter a rejection reason');
+      return;
+    }
+    setAdminUpdating(true);
+    try {
+      const res = await api.put(`/orders/${id}/reject-cancel`, { rejectionReason: adminRejectReason });
+      setOrder(res.data.data);
+      setShowAdminReject(false);
+      setAdminRejectReason('');
+      toast.success('Cancellation request rejected.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to reject cancellation');
+    } finally {
+      setAdminUpdating(false);
     }
   };
 
@@ -95,6 +161,123 @@ const OrderDetail = () => {
   return (
     <div className="min-h-screen bg-fv-page pb-24">
       <div className="container mx-auto px-4 max-w-4xl pt-20">
+
+        {/* Admin Order Management Bar (Visible to Admin Users) */}
+        {(isAdmin || user?.role === 'admin') && (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-emerald-500/40 p-4 sm:p-5 mb-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-fv-border">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 flex items-center gap-1.5">
+                  <ShieldAlert className="w-3.5 h-3.5" /> Admin Control
+                </span>
+                <span className="text-xs text-fv-muted">
+                  Update order status directly from this page
+                </span>
+              </div>
+              <button
+                onClick={() => navigate('/admin/orders')}
+                className="text-xs font-semibold text-fv-primary hover:underline self-start sm:self-auto"
+              >
+                ← Go to Admin Orders Dashboard
+              </button>
+            </div>
+
+            {/* Status selector & actions */}
+            <div className="pt-3 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-semibold text-fv-heading">Status:</span>
+                <select
+                  value={adminSelectedStatus || order.orderStatus}
+                  onChange={(e) => setAdminSelectedStatus(e.target.value)}
+                  disabled={adminUpdating}
+                  className="text-xs font-semibold py-1.5 px-3 rounded-xl border border-fv-border bg-fv-surface text-fv-heading hover:border-fv-primary focus:outline-none focus:ring-1 focus:ring-fv-primary cursor-pointer disabled:opacity-50"
+                >
+                  {['Pending', 'Confirmed', 'Packed', 'Shipped', 'Delivered', 'Cancelled'].map((st) => (
+                    <option key={st} value={st}>
+                      {st === order.orderStatus ? `✓ Current: ${st}` : st}
+                    </option>
+                  ))}
+                  {order.orderStatus === 'CancellationRequested' && (
+                    <option value="CancellationRequested" disabled>
+                      ● CancellationRequested
+                    </option>
+                  )}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => handleAdminStatusChange()}
+                  disabled={adminUpdating || (adminSelectedStatus && adminSelectedStatus === order.orderStatus)}
+                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {adminUpdating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : 'Apply Status'}
+                </button>
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={adminNote}
+                  onChange={(e) => setAdminNote(e.target.value)}
+                  placeholder="Optional admin note (reason, courier note, etc.)..."
+                  className="w-full text-xs p-2 bg-fv-surface/40 border border-fv-border rounded-xl text-fv-heading placeholder:text-fv-muted focus:ring-1 focus:ring-fv-primary"
+                />
+              </div>
+
+              {/* Cancellation request review buttons for Admin */}
+              {order.orderStatus === 'CancellationRequested' && (
+                <div className="pt-2 border-t border-red-200 dark:border-red-900/40">
+                  <p className="text-xs font-bold text-red-700 dark:text-red-300 mb-2">
+                    Action Required: Review Customer Cancellation Request
+                  </p>
+                  {!showAdminReject ? (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAdminApproveCancel}
+                        disabled={adminUpdating}
+                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl disabled:opacity-50 shadow-xs"
+                      >
+                        Approve Cancellation & Refund
+                      </button>
+                      <button
+                        onClick={() => setShowAdminReject(true)}
+                        disabled={adminUpdating}
+                        className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-xl disabled:opacity-50 shadow-xs"
+                      >
+                        Reject Request
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-w-md">
+                      <input
+                        type="text"
+                        value={adminRejectReason}
+                        onChange={(e) => setAdminRejectReason(e.target.value)}
+                        placeholder="Enter rejection reason to send to customer..."
+                        className="w-full text-xs p-2 bg-fv-surface border border-fv-border rounded-xl"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleAdminRejectCancel}
+                          disabled={adminUpdating}
+                          className="px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-xl"
+                        >
+                          Confirm Reject
+                        </button>
+                        <button
+                          onClick={() => setShowAdminReject(false)}
+                          className="px-3 py-1.5 bg-fv-surface text-fv-heading text-xs font-semibold rounded-xl"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Header */}
         <div className="flex items-start gap-3 mb-6">
