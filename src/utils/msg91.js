@@ -11,6 +11,7 @@
 
 let scriptPromise = null;
 let isInitialized = false;
+let lastRenderedContainer = null;
 
 /**
  * Loads the MSG91 script and initializes the widget once.
@@ -18,8 +19,46 @@ let isInitialized = false;
  * and window.verifyOtp are ready to be invoked.
  */
 export const initMsg91 = () => {
-  if (isInitialized && typeof window.sendOtp === 'function') {
+  const containerId = 'msg91-captcha-container';
+  const container = typeof document !== 'undefined' ? document.getElementById(containerId) : null;
+
+  // If already initialized and currently mounted container is already rendered, resolve immediately (idempotent)
+  if (isInitialized && typeof window.sendOtp === 'function' && container && container === lastRenderedContainer) {
     return Promise.resolve();
+  }
+
+  // If script already loaded and methods exposed, but we have a newly mounted container (e.g. after SPA navigation)
+  if (typeof window.initSendOTP === 'function' && container && container !== lastRenderedContainer) {
+    try {
+      const widgetId = process.env.REACT_APP_MSG91_WIDGET_ID;
+      const tokenAuth = process.env.REACT_APP_MSG91_TOKEN_AUTH;
+      if (widgetId && tokenAuth) {
+        const configuration = {
+          widgetId,
+          tokenAuth,
+          exposeMethods: true,
+          captchaRenderId: containerId,
+          success: (data) => {
+            console.log('MSG91 global success event:', data);
+          },
+          failure: (error) => {
+            console.warn('MSG91 global failure event:', error);
+          },
+          captchaVerified: (status) => {
+            console.log('MSG91 captcha verification status:', status);
+            if (typeof window.onMsg91CaptchaVerified === 'function') {
+              window.onMsg91CaptchaVerified(status);
+            }
+          }
+        };
+        window.initSendOTP(configuration);
+        lastRenderedContainer = container;
+        isInitialized = true;
+        return Promise.resolve();
+      }
+    } catch (e) {
+      console.warn('MSG91 container re-render notice:', e);
+    }
   }
 
   if (scriptPromise) {
@@ -70,6 +109,7 @@ export const initMsg91 = () => {
         };
 
         window.initSendOTP(configuration);
+        lastRenderedContainer = container;
 
         // Wait for window.sendOtp and window.verifyOtp to be exposed on window
         const checkInterval = setInterval(() => {
@@ -94,26 +134,55 @@ export const initMsg91 = () => {
       }
     };
 
-    // Check if script already in document
-    const existingScript = document.querySelector('script[src="https://verify.msg91.com/otp-provider.js"]');
-    if (existingScript) {
+    let widgetInitialized = false;
+    const safeInitWidget = () => {
+      if (widgetInitialized) return;
       if (typeof window.initSendOTP === 'function') {
+        widgetInitialized = true;
         initWidget();
-      } else {
-        existingScript.addEventListener('load', initWidget);
-        existingScript.addEventListener('error', () => reject(new Error('Failed to load MSG91 script.')));
       }
+    };
+
+    // 1. If window.initSendOTP is already available on window, initialize immediately
+    if (typeof window.initSendOTP === 'function') {
+      safeInitWidget();
       return;
     }
 
+    // 2. Fallback polling: catches case where script already loaded before addEventListener was attached
+    const pollInterval = setInterval(() => {
+      if (typeof window.initSendOTP === 'function') {
+        clearInterval(pollInterval);
+        safeInitWidget();
+      }
+    }, 50);
+
+    setTimeout(() => {
+      clearInterval(pollInterval);
+    }, 10000);
+
+    // 3. Listen on existing script tag if already in document (e.g. from index.html)
+    const existingScript = document.querySelector(
+      'script[src*="verify.msg91.com/otp-provider.js"], script[src*="verify.phone91.com/otp-provider.js"]'
+    );
+    if (existingScript) {
+      existingScript.addEventListener('load', safeInitWidget);
+      existingScript.addEventListener('error', () => {
+        clearInterval(pollInterval);
+        scriptPromise = null;
+        reject(new Error('Failed to load MSG91 script.'));
+      });
+      return;
+    }
+
+    // 4. Inject script if not found in DOM
     const script = document.createElement('script');
     script.type = 'text/javascript';
     script.src = 'https://verify.msg91.com/otp-provider.js';
     script.async = true;
-    script.onload = () => {
-      initWidget();
-    };
+    script.onload = safeInitWidget;
     script.onerror = () => {
+      clearInterval(pollInterval);
       scriptPromise = null;
       reject(new Error('Could not load MSG91 verification script. Please check your connection.'));
     };

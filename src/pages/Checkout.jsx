@@ -13,8 +13,8 @@ import GuestMobileOtpStep from '../components/checkout/GuestMobileOtpStep';
 /* ─── Standardized Proportional Input & Label Styles ───────────────────── */
 const inputCls =
   'w-full h-11 sm:h-12 px-3.5 border border-gray-300 dark:border-gray-600 rounded-xl ' +
-  'bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-base sm:text-sm ' +
-  'focus:ring-2 focus:ring-fv-primary focus:border-transparent transition-all shadow-2xs';
+  'bg-white dark:bg-gray-700/80 text-gray-900 dark:text-white text-base sm:text-sm ' +
+  'placeholder:text-gray-400 focus:ring-2 focus:ring-fv-primary/30 focus:border-fv-primary transition-all shadow-2xs';
 
 const labelCls = 'block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
 
