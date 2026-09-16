@@ -170,11 +170,26 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
     }
   };
 
-  // Send Phone OTP with Direct Backend Fallback
-  const handleSendPhoneOtp = async (e) => {
+  // Safely extract string error message from any format (same as GuestMobileOtpStep)
+  const extractErrMsg = (err) => {
+    if (!err) return 'Unable to send OTP. Please check the mobile number and try again.';
+    if (typeof err === 'string') return err;
+    if (typeof err.message === 'string') return err.message;
+    if (typeof err.error === 'string') return err.error;
+    if (typeof err.status === 'string') return err.status;
+    if (typeof err.message === 'object') return extractErrMsg(err.message);
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return 'An error occurred. Please try again.';
+    }
+  };
+
+  // Send Phone OTP via MSG91 window.sendOtp (exact match with GuestMobileOtpStep)
+  const handleSendPhoneOtp = (e) => {
     if (e) {
-      e.preventDefault();
-      e.stopPropagation();
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+      if (typeof e.stopPropagation === 'function') e.stopPropagation();
     }
     if (phoneLoading) return;
 
@@ -186,199 +201,136 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
     setPhoneError('');
     setPhoneLoading(true);
 
-    const onOtpSentSuccess = (data) => {
-      setPhoneLoading(false);
-      const extractedReqId =
-        data?.reqId ||
-        (data && typeof data === 'object' && (data.request_id || data.requestId || data.message)) ||
-        (typeof data === 'string' && data.length > 10 ? data : null);
-      if (extractedReqId && typeof extractedReqId === 'string' && !extractedReqId.includes(' ')) {
-        setReqId(extractedReqId);
-      }
-
-      const widgetData = typeof window.getWidgetData === 'function' ? window.getWidgetData() : null;
-      const len = Number(widgetData?.otpLength) || (typeof data === 'object' && Number(data?.otpLength)) || 4;
-      setOtpLength(len);
-      setOtpDigits(new Array(len).fill(''));
-      setPhoneStep('otp');
-      setCooldown(RESEND_COOLDOWN_SECONDS);
-      toast.success(`OTP sent to +91 ${signInPhone}`);
-
-      setTimeout(() => {
-        digitInputRefs.current[0]?.focus();
-      }, 100);
-    };
-
-    // Try MSG91 client widget first
     try {
       sendMsg91Otp(
         signInPhone,
         (data) => {
-          onOtpSentSuccess(data);
-        },
-        async (err) => {
-          // If client widget fails, use direct backend MSG91 SMS endpoint
-          try {
-            const serverRes = await api.post('/auth/msg91/send-otp', { phone: signInPhone });
-            if (serverRes.data?.success) {
-              onOtpSentSuccess(serverRes.data);
-            } else {
-              setPhoneLoading(false);
-              setPhoneError(serverRes.data?.message || (typeof err === 'string' ? err : err?.message) || 'Failed to send OTP.');
-            }
-          } catch (serverErr) {
-            setPhoneLoading(false);
-            setPhoneError(serverErr.response?.data?.message || (typeof err === 'string' ? err : err?.message) || 'Failed to send OTP.');
+          console.log('MSG91 sendOtp success callback:', data);
+          setPhoneLoading(false);
+          const extractedReqId =
+            data?.reqId ||
+            (data && typeof data === 'object' && (data.request_id || data.message)) ||
+            (typeof data === 'string' && data.length > 10 ? data : null);
+          if (extractedReqId && typeof extractedReqId === 'string' && !extractedReqId.includes(' ')) {
+            setReqId(extractedReqId);
           }
+
+          const widgetData = typeof window.getWidgetData === 'function' ? window.getWidgetData() : null;
+          const len = Number(widgetData?.otpLength) || (typeof data === 'object' && Number(data?.otpLength)) || 4;
+          setOtpLength(len);
+          setOtpDigits(new Array(len).fill(''));
+          setPhoneStep('otp');
+          setCooldown(RESEND_COOLDOWN_SECONDS);
+          toast.success(`OTP sent to +91 ${signInPhone}`);
+
+          setTimeout(() => {
+            if (digitInputRefs.current[0]) {
+              digitInputRefs.current[0].focus();
+            }
+          }, 100);
+        },
+        (err) => {
+          console.error('MSG91 sendOtp error callback:', err);
+          setPhoneLoading(false);
+          setPhoneError(extractErrMsg(err));
         }
       );
     } catch (unexpected) {
-      // Direct server fallback on unexpected widget exception
-      try {
-        const serverRes = await api.post('/auth/msg91/send-otp', { phone: signInPhone });
-        if (serverRes.data?.success) {
-          onOtpSentSuccess(serverRes.data);
-        } else {
-          setPhoneLoading(false);
-          setPhoneError(serverRes.data?.message || unexpected?.message || 'Failed to send OTP.');
-        }
-      } catch (fallbackErr) {
-        setPhoneLoading(false);
-        setPhoneError(fallbackErr.response?.data?.message || 'Failed to initiate OTP.');
-      }
+      console.error('Unexpected error in handleSendPhoneOtp:', unexpected);
+      setPhoneLoading(false);
+      setPhoneError(unexpected?.message || 'Failed to initiate OTP. Please try again.');
     }
   };
 
-  // Resend Phone OTP with Direct Backend Fallback
-  const handleResendPhoneOtp = async () => {
-    if (cooldown > 0 || phoneLoading) return;
+  // Resend Phone OTP via MSG91 window.retryOtp (exact match with GuestMobileOtpStep)
+  const handleResendPhoneOtp = () => {
+    if (phoneLoading || cooldown > 0) return;
+
     setPhoneError('');
     setPhoneLoading(true);
 
-    const onResendSuccess = () => {
-      setPhoneLoading(false);
-      setCooldown(RESEND_COOLDOWN_SECONDS);
-      setOtpDigits(new Array(otpLength).fill(''));
-      toast.success(`New OTP sent to +91 ${signInPhone}`);
-      setTimeout(() => {
-        digitInputRefs.current[0]?.focus();
-      }, 100);
-    };
-
-    try {
-      retryMsg91Otp(
-        () => {
-          onResendSuccess();
-        },
-        async (err) => {
-          // Fallback to server resend
-          try {
-            const serverRes = await api.post('/auth/msg91/resend-otp', { phone: signInPhone });
-            if (serverRes.data?.success) {
-              onResendSuccess();
-            } else {
-              setPhoneLoading(false);
-              setPhoneError(serverRes.data?.message || (typeof err === 'string' ? err : err?.message) || 'Failed to resend OTP.');
-            }
-          } catch (serverErr) {
-            setPhoneLoading(false);
-            setPhoneError(serverErr.response?.data?.message || (typeof err === 'string' ? err : err?.message) || 'Failed to resend OTP.');
-          }
-        },
-        reqId
-      );
-    } catch (unexpected) {
-      try {
-        const serverRes = await api.post('/auth/msg91/resend-otp', { phone: signInPhone });
-        if (serverRes.data?.success) {
-          onResendSuccess();
-        } else {
-          setPhoneLoading(false);
-          setPhoneError(serverRes.data?.message || unexpected?.message || 'Failed to resend OTP.');
-        }
-      } catch (fallbackErr) {
+    retryMsg91Otp(
+      (data) => {
         setPhoneLoading(false);
-        setPhoneError(fallbackErr.response?.data?.message || 'Failed to resend OTP.');
-      }
-    }
+        const extractedReqId =
+          data?.reqId ||
+          (data && typeof data === 'object' && (data.request_id || data.message)) ||
+          reqId;
+        if (extractedReqId && typeof extractedReqId === 'string' && !extractedReqId.includes(' ')) {
+          setReqId(extractedReqId);
+        }
+
+        setCooldown(RESEND_COOLDOWN_SECONDS);
+        toast.success('OTP resent successfully! 📲');
+        digitInputRefs.current[0]?.focus();
+      },
+      (err) => {
+        setPhoneLoading(false);
+        setPhoneError(extractErrMsg(err));
+      },
+      reqId
+    );
   };
 
-  // Core OTP Verification with Digits Array & Direct Backend Verification Fallback
+  // Verify Phone OTP via MSG91 window.verifyOtp (exact match with GuestMobileOtpStep)
   const executeVerifyOtp = (digitsArr) => {
-    const entered = (digitsArr || otpDigits).join('');
-    if (entered.length !== otpLength) {
-      setPhoneError(`Please enter all ${otpLength} digits of your OTP.`);
+    const fullOtp = (digitsArr || otpDigits).join('').trim();
+    if (fullOtp.length < otpLength) {
+      setPhoneError(`Please enter the complete ${otpLength}-digit OTP.`);
       return;
     }
 
     setPhoneError('');
     setPhoneLoading(true);
 
-    // Direct Server Verification Helper
-    const verifyDirectlyWithServer = async () => {
-      try {
-        const backendRes = await api.post('/auth/msg91/verify-otp', {
-          phone: signInPhone,
-          otp: entered
-        });
-
-        if (backendRes.data?.success && backendRes.data?.data) {
-          loginWithData(backendRes.data.data);
-          cleanupMsg91Captcha();
-          navigateToDestination();
-        } else {
-          setPhoneError(backendRes.data?.message || 'Verification failed on server.');
-        }
-      } catch (apiErr) {
-        setPhoneError(apiErr.response?.data?.message || 'Invalid OTP. Please check the code.');
-      } finally {
-        setPhoneLoading(false);
-      }
-    };
-
     try {
       verifyMsg91Otp(
-        entered,
-        async (res) => {
+        fullOtp,
+        async (data) => {
+          const accessToken =
+            (typeof data === 'string' ? data : null) ||
+            data?.['access-token'] ||
+            data?.token ||
+            data?.jwt ||
+            data?.data?.['access-token'] ||
+            data?.message;
+
+          if (!accessToken) {
+            setPhoneLoading(false);
+            setPhoneError('Could not retrieve access token from OTP provider.');
+            return;
+          }
+
           try {
-            const accessToken =
-              res?.token ||
-              res?.access_token ||
-              (res && typeof res === 'object' && (res.data?.token || res.data?.access_token)) ||
-              (typeof res === 'string' && res.length > 20 ? res : null);
-
-            if (!accessToken) {
-              // If no access token in widget callback, verify via server-side direct OTP API
-              await verifyDirectlyWithServer();
-              return;
-            }
-
-            const backendRes = await api.post('/auth/msg91/verify-token', {
-              accessToken,
-              phone: signInPhone
+            const response = await api.post('/auth/msg91-verify', {
+              accessToken
             });
 
-            if (backendRes.data?.success && backendRes.data?.data) {
-              loginWithData(backendRes.data.data);
+            if (response.data?.success && response.data?.data) {
+              loginWithData(response.data.data);
               cleanupMsg91Captcha();
               navigateToDestination();
             } else {
-              // Fallback to server verify-otp endpoint
-              await verifyDirectlyWithServer();
+              setPhoneError(response.data?.message || 'Authentication failed. Please try again.');
+              setPhoneLoading(false);
             }
-          } catch (apiErr) {
-            await verifyDirectlyWithServer();
+          } catch (serverErr) {
+            setPhoneLoading(false);
+            const serverMsg =
+              serverErr.response?.data?.message || 'Server verification failed. Please try again.';
+            setPhoneError(serverMsg);
           }
         },
-        async (err) => {
-          // Widget failed; attempt direct server-side verification with the entered OTP
-          console.warn('Widget verification failed, falling back to server verify-otp:', err);
-          await verifyDirectlyWithServer();
+        (err) => {
+          setPhoneLoading(false);
+          setPhoneError(extractErrMsg(err) || 'Invalid OTP. Please check and try again.');
         },
         reqId
       );
-    } catch (err) {
-      verifyDirectlyWithServer();
+    } catch (unexpected) {
+      console.error('Unexpected error in handleVerifyOtp:', unexpected);
+      setPhoneLoading(false);
+      setPhoneError(unexpected?.message || 'Verification failed. Please try again.');
     }
   };
 
@@ -1154,14 +1106,14 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
               )}
 
               {/* EMAIL / PHONE & PASSWORD LOGIN */}
-              {signInMethod === 'email' && (
+              <div className={signInMethod === 'email' ? 'w-full flex flex-col items-center' : 'hidden'}>
                 <form onSubmit={handleSignInSubmit} className="w-full flex flex-col items-center">
                   <div className="fv-input-field">
                     <div className="fv-icon"><Mail className="w-4 h-4" /></div>
                     <input
                       type="text"
                       placeholder="Email or 10-digit Phone"
-                      required
+                      required={signInMethod === 'email'}
                       autoComplete="username"
                       value={signInIdentifier}
                       onChange={(e) => setSignInIdentifier(e.target.value)}
@@ -1187,7 +1139,7 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                     <input
                       type={showPassword ? 'text' : 'password'}
                       placeholder="Password"
-                      required
+                      required={signInMethod === 'email'}
                       autoComplete="current-password"
                       value={signInPassword}
                       onChange={(e) => setSignInPassword(e.target.value)}
@@ -1214,47 +1166,49 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                     )}
                   </button>
                 </form>
-              )}
+              </div>
 
               {/* PHONE & OTP LOGIN */}
-              {signInMethod === 'phone' && (
-                <div className="w-full flex flex-col items-center">
-                  {phoneStep === 'phone' ? (
-                    <form onSubmit={handleSendPhoneOtp} className="w-full flex flex-col items-center">
-                      <div className="fv-input-field">
-                        <div className="fv-icon"><Phone className="w-4 h-4" /></div>
-                        <input
-                          type="tel"
-                          placeholder="10-digit Mobile number"
-                          maxLength={10}
-                          required
-                          autoComplete="tel"
-                          value={signInPhone}
-                          onChange={(e) => setSignInPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                        />
-                      </div>
+              <div className={signInMethod === 'phone' ? 'w-full flex flex-col items-center' : 'hidden'}>
+                {phoneStep === 'phone' ? (
+                  <form onSubmit={handleSendPhoneOtp} className="w-full flex flex-col items-center">
+                    <div className="fv-input-field">
+                      <div className="fv-icon"><Phone className="w-4 h-4" /></div>
+                      <input
+                        type="tel"
+                        placeholder="10-digit Mobile number"
+                        maxLength={10}
+                        required={signInMethod === 'phone'}
+                        autoComplete="tel"
+                        value={signInPhone}
+                        onChange={(e) => setSignInPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      />
+                    </div>
 
-                      {/* In-card CAPTCHA container */}
-                      <div className="w-full max-w-[350px] my-1">
-                        <div
-                          id="msg91-captcha-container"
-                          className="min-h-[74px] flex items-center justify-center p-1 rounded-xl bg-gray-50 border border-gray-200 text-xs overflow-x-auto"
-                        />
-                      </div>
+                    {/* In-card CAPTCHA container */}
+                    <div className="w-full max-w-[350px] my-1">
+                      <div
+                        id="msg91-captcha-container"
+                        className="min-h-[78px] flex items-center justify-center p-2 rounded-xl bg-gray-50 border border-gray-200 transition-all overflow-x-auto"
+                      />
+                      <p className="text-[11px] text-center text-gray-500 mt-1">
+                        Complete the security check above to request your OTP
+                      </p>
+                    </div>
 
-                      <button
-                        type="submit"
-                        className="fv-btn"
-                        disabled={phoneLoading || signInPhone.length !== 10}
-                      >
-                        {phoneLoading ? (
-                          <><Loader2 className="w-4 h-4 animate-spin" /> Sending OTP...</>
-                        ) : (
-                          <>Send OTP <ArrowRight className="w-4 h-4" /></>
-                        )}
-                      </button>
-                    </form>
-                  ) : (
+                    <button
+                      type="submit"
+                      className="fv-btn"
+                      disabled={phoneLoading || signInPhone.length !== 10}
+                    >
+                      {phoneLoading ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Sending OTP...</>
+                      ) : (
+                        <>Send OTP <ArrowRight className="w-4 h-4" /></>
+                      )}
+                    </button>
+                  </form>
+                ) : (
                     <form onSubmit={handleVerifyPhoneOtp} className="w-full flex flex-col items-center">
                       <div className="w-full max-w-[350px] flex items-center justify-between px-1 mb-2 text-xs">
                         <span className="text-gray-600 font-medium">
