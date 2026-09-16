@@ -1,8 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, Phone, ArrowRight, Sprout, CheckCircle2, ShieldCheck, Sparkles, ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, Phone, ArrowRight, Sprout, CheckCircle2, ShieldCheck, Sparkles, ArrowLeft, Loader2, Eye, EyeOff, RotateCw, Edit3 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import api from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { validatePassword, PASSWORD_RULE_TEXT } from '../../utils/passwordPolicy';
+import {
+  initMsg91,
+  sendMsg91Otp,
+  retryMsg91Otp,
+  verifyMsg91Otp,
+  isValidIndianMobile,
+  cleanupMsg91Captcha
+} from '../../utils/msg91';
 
 /* ─── Real Customer Name Check ─────────────────────────────────────────── */
 const isPlaceholderName = (name) => {
@@ -12,21 +22,73 @@ const isPlaceholderName = (name) => {
   return /^customer(\s*\d+)?$/i.test(trimmed);
 };
 
+const RESEND_COOLDOWN_SECONDS = 30;
+
 export default function AuthSwitch({ initialMode = 'signin' }) {
   const [isSignUp, setIsSignUp] = useState(initialMode === 'signup');
   const [showPassword, setShowPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
 
   // Auth Context & Navigation
-  const { login, register } = useAuth();
+  const { login, register, loginWithData } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Sign In State
+  // Sign In Mode: 'email' | 'phone'
+  const [signInMethod, setSignInMethod] = useState('email');
+
+  // Sign In (Email) State
   const [signInEmail, setSignInEmail] = useState('');
   const [signInPassword, setSignInPassword] = useState('');
   const [signInLoading, setSignInLoading] = useState(false);
   const [signInError, setSignInError] = useState('');
+
+  // Sign In (Phone OTP) State
+  const [signInPhone, setSignInPhone] = useState('');
+  const [phoneStep, setPhoneStep] = useState('phone'); // 'phone' | 'otp'
+  const [otpLength, setOtpLength] = useState(4);
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '']);
+  const [reqId, setReqId] = useState(null);
+  const [phoneLoading, setPhoneLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+  const [captchaVerified, setCaptchaVerified] = useState(false);
+  const timerRef = useRef(null);
+  const digitInputRefs = useRef([]);
+
+  // Pre-load MSG91 script & listen to captcha
+  useEffect(() => {
+    window.onMsg91CaptchaVerified = (status) => {
+      setCaptchaVerified(Boolean(status));
+      if (status) setPhoneError('');
+    };
+
+    initMsg91().catch(() => {});
+
+    return () => {
+      window.onMsg91CaptchaVerified = null;
+      if (timerRef.current) clearInterval(timerRef.current);
+      cleanupMsg91Captcha();
+    };
+  }, []);
+
+  // Cooldown countdown timer
+  useEffect(() => {
+    if (cooldown > 0) {
+      timerRef.current = setInterval(() => {
+        setCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [cooldown]);
 
   // Sign Up State
   const [signUpName, setSignUpName] = useState('');
@@ -37,7 +99,13 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
   const [signUpError, setSignUpError] = useState('');
   const [signUpSuccess, setSignUpSuccess] = useState('');
 
-  // Sign In Handler
+  // Destination redirect helper
+  const navigateToDestination = () => {
+    const nextParam = new URLSearchParams(location.search).get('next');
+    navigate(location.state?.from?.pathname || nextParam || '/', { replace: true });
+  };
+
+  // Sign In (Email) Handler
   const handleSignInSubmit = async (e) => {
     e.preventDefault();
     setSignInError('');
@@ -55,8 +123,7 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
     try {
       const result = await login(signInEmail.trim(), signInPassword);
       if (result.success) {
-        const nextParam = new URLSearchParams(location.search).get('next');
-        navigate(location.state?.from?.pathname || nextParam || '/', { replace: true });
+        navigateToDestination();
       } else {
         setSignInError(result.message || 'Login failed. Please check your credentials.');
       }
@@ -64,6 +131,147 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
       setSignInError(err.response?.data?.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setSignInLoading(false);
+    }
+  };
+
+  // Send Phone OTP
+  const handleSendPhoneOtp = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (phoneLoading) return;
+
+    if (!isValidIndianMobile(signInPhone)) {
+      setPhoneError('Please enter a valid 10-digit Indian mobile number');
+      return;
+    }
+
+    if (typeof window.isCaptchaVerified === 'function' && !window.isCaptchaVerified() && !captchaVerified) {
+      setPhoneError('Please complete the security check above.');
+      return;
+    }
+
+    setPhoneError('');
+    setPhoneLoading(true);
+
+    try {
+      sendMsg91Otp(
+        signInPhone,
+        (data) => {
+          setPhoneLoading(false);
+          const extractedReqId =
+            data?.reqId ||
+            (data && typeof data === 'object' && (data.request_id || data.message)) ||
+            (typeof data === 'string' && data.length > 10 ? data : null);
+          if (extractedReqId && typeof extractedReqId === 'string' && !extractedReqId.includes(' ')) {
+            setReqId(extractedReqId);
+          }
+
+          const widgetData = typeof window.getWidgetData === 'function' ? window.getWidgetData() : null;
+          const len = Number(widgetData?.otpLength) || (typeof data === 'object' && Number(data?.otpLength)) || 4;
+          setOtpLength(len);
+          setOtpDigits(new Array(len).fill(''));
+          setPhoneStep('otp');
+          setCooldown(RESEND_COOLDOWN_SECONDS);
+          toast.success(`OTP sent to +91 ${signInPhone}`);
+
+          setTimeout(() => {
+            digitInputRefs.current[0]?.focus();
+          }, 100);
+        },
+        (err) => {
+          setPhoneLoading(false);
+          setPhoneError(typeof err === 'string' ? err : err?.message || 'Failed to send OTP. Please try again.');
+        }
+      );
+    } catch (err) {
+      setPhoneLoading(false);
+      setPhoneError(err?.message || 'Failed to initiate OTP.');
+    }
+  };
+
+  // Resend Phone OTP
+  const handleResendPhoneOtp = () => {
+    if (cooldown > 0 || phoneLoading) return;
+    setPhoneError('');
+    setPhoneLoading(true);
+
+    retryMsg91Otp(
+      () => {
+        setPhoneLoading(false);
+        setCooldown(RESEND_COOLDOWN_SECONDS);
+        setOtpDigits(new Array(otpLength).fill(''));
+        toast.success(`New OTP sent to +91 ${signInPhone}`);
+        digitInputRefs.current[0]?.focus();
+      },
+      (err) => {
+        setPhoneLoading(false);
+        setPhoneError(typeof err === 'string' ? err : err?.message || 'Failed to resend OTP.');
+      },
+      reqId
+    );
+  };
+
+  // Verify Phone OTP
+  const handleVerifyPhoneOtp = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const entered = otpDigits.join('');
+    if (entered.length !== otpLength) {
+      setPhoneError(`Please enter all ${otpLength} digits of your OTP.`);
+      return;
+    }
+
+    setPhoneError('');
+    setPhoneLoading(true);
+
+    try {
+      verifyMsg91Otp(
+        entered,
+        async (res) => {
+          try {
+            const accessToken =
+              res?.token ||
+              res?.access_token ||
+              (res && typeof res === 'object' && (res.data?.token || res.data?.access_token)) ||
+              (typeof res === 'string' && res.length > 20 ? res : null);
+
+            if (!accessToken) {
+              setPhoneLoading(false);
+              setPhoneError('Could not obtain verified token from OTP widget.');
+              return;
+            }
+
+            const backendRes = await api.post('/auth/msg91/verify-token', {
+              accessToken,
+              phone: signInPhone
+            });
+
+            if (backendRes.data?.success && backendRes.data?.data) {
+              loginWithData(backendRes.data.data);
+              cleanupMsg91Captcha();
+              navigateToDestination();
+            } else {
+              setPhoneError(backendRes.data?.message || 'Verification failed on server.');
+            }
+          } catch (apiErr) {
+            setPhoneError(apiErr.response?.data?.message || 'Server error during mobile login.');
+          } finally {
+            setPhoneLoading(false);
+          }
+        },
+        (err) => {
+          setPhoneLoading(false);
+          setPhoneError(typeof err === 'string' ? err : err?.message || 'Invalid OTP. Please check the code.');
+        },
+        reqId
+      );
+    } catch (err) {
+      setPhoneLoading(false);
+      setPhoneError(err?.message || 'Failed to verify OTP.');
     }
   };
 
@@ -242,6 +450,44 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
           color: #64748b;
           margin-bottom: 16px;
           text-align: center;
+        }
+
+        .fv-auth-tabs {
+          display: flex;
+          background: #f1f5f9;
+          padding: 3px;
+          border-radius: 12px;
+          margin-bottom: 14px;
+          width: 100%;
+          max-width: 350px;
+          gap: 4px;
+        }
+
+        .fv-auth-tab {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 8px 10px;
+          border-radius: 9px;
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: #64748b;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .fv-auth-tab:hover {
+          color: #15803d;
+        }
+
+        .fv-auth-tab.active {
+          background: #ffffff;
+          color: #15803d;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
         }
 
         .fv-input-field {
@@ -627,61 +873,203 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
         <div className="fv-forms-container">
           <div className="fv-signin-signup">
             {/* ── SIGN IN FORM ── */}
-            <form className="fv-form sign-in-form" onSubmit={handleSignInSubmit}>
+            <div className="fv-form sign-in-form">
               <div className="flex items-center gap-2 mb-1">
                 <Sprout className="w-6 h-6 text-green-600" />
                 <h2 className="fv-title">Welcome Back</h2>
               </div>
-              <p className="fv-subtitle">Sign in to manage your orders & seeds</p>
+              <p className="fv-subtitle">Sign in via Email or instant Mobile OTP</p>
 
-              {signInError && (
-                <div className="fv-error-banner">{signInError}</div>
-              )}
-
-              <div className="fv-input-field">
-                <div className="fv-icon"><Mail className="w-4 h-4" /></div>
-                <input
-                  type="email"
-                  placeholder="Email address"
-                  required
-                  autoComplete="email"
-                  value={signInEmail}
-                  onChange={(e) => setSignInEmail(e.target.value)}
-                />
-              </div>
-
-              <div className="fv-input-field">
-                <div className="fv-icon"><Lock className="w-4 h-4" /></div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Password"
-                  required
-                  autoComplete="current-password"
-                  value={signInPassword}
-                  onChange={(e) => setSignInPassword(e.target.value)}
-                />
+              {/* Login Method Segmented Switcher */}
+              <div className="fv-auth-tabs">
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="fv-toggle-pass"
-                  aria-label="Toggle password visibility"
+                  className={`fv-auth-tab ${signInMethod === 'email' ? 'active' : ''}`}
+                  onClick={() => { setSignInMethod('email'); setSignInError(''); setPhoneError(''); }}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  <Mail className="w-3.5 h-3.5" /> Email & Password
+                </button>
+                <button
+                  type="button"
+                  className={`fv-auth-tab ${signInMethod === 'phone' ? 'active' : ''}`}
+                  onClick={() => { setSignInMethod('phone'); setSignInError(''); setPhoneError(''); }}
+                >
+                  <Phone className="w-3.5 h-3.5" /> Phone & OTP
                 </button>
               </div>
 
-              <Link to="/forgot-password" className="fv-forgot-link">
-                Forgot password?
-              </Link>
+              {/* Error Banners */}
+              {signInMethod === 'email' && signInError && (
+                <div className="fv-error-banner">{signInError}</div>
+              )}
+              {signInMethod === 'phone' && phoneError && (
+                <div className="fv-error-banner">{phoneError}</div>
+              )}
 
-              <button type="submit" className="fv-btn" disabled={signInLoading}>
-                {signInLoading ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Signing in...</>
-                ) : (
-                  <>Sign In <ArrowRight className="w-4 h-4" /></>
-                )}
-              </button>
-            </form>
+              {/* EMAIL & PASSWORD LOGIN */}
+              {signInMethod === 'email' && (
+                <form onSubmit={handleSignInSubmit} className="w-full flex flex-col items-center">
+                  <div className="fv-input-field">
+                    <div className="fv-icon"><Mail className="w-4 h-4" /></div>
+                    <input
+                      type="email"
+                      placeholder="Email address"
+                      required
+                      autoComplete="email"
+                      value={signInEmail}
+                      onChange={(e) => setSignInEmail(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="fv-input-field">
+                    <div className="fv-icon"><Lock className="w-4 h-4" /></div>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Password"
+                      required
+                      autoComplete="current-password"
+                      value={signInPassword}
+                      onChange={(e) => setSignInPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="fv-toggle-pass"
+                      aria-label="Toggle password visibility"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+
+                  <Link to="/forgot-password" className="fv-forgot-link">
+                    Forgot password?
+                  </Link>
+
+                  <button type="submit" className="fv-btn" disabled={signInLoading}>
+                    {signInLoading ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Signing in...</>
+                    ) : (
+                      <>Sign In <ArrowRight className="w-4 h-4" /></>
+                    )}
+                  </button>
+                </form>
+              )}
+
+              {/* PHONE & OTP LOGIN */}
+              {signInMethod === 'phone' && (
+                <div className="w-full flex flex-col items-center">
+                  {phoneStep === 'phone' ? (
+                    <form onSubmit={handleSendPhoneOtp} className="w-full flex flex-col items-center">
+                      <div className="fv-input-field">
+                        <div className="fv-icon"><Phone className="w-4 h-4" /></div>
+                        <input
+                          type="tel"
+                          placeholder="10-digit Mobile number"
+                          maxLength={10}
+                          required
+                          autoComplete="tel"
+                          value={signInPhone}
+                          onChange={(e) => setSignInPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        />
+                      </div>
+
+                      {/* In-card CAPTCHA container if required */}
+                      <div className="w-full max-w-[350px] my-1">
+                        <div
+                          id="msg91-captcha-container"
+                          className="min-h-[74px] flex items-center justify-center p-1 rounded-xl bg-gray-50 border border-gray-200 text-xs overflow-x-auto"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="fv-btn"
+                        disabled={phoneLoading || signInPhone.length !== 10}
+                      >
+                        {phoneLoading ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" /> Sending OTP...</>
+                        ) : (
+                          <>Send OTP <ArrowRight className="w-4 h-4" /></>
+                        )}
+                      </button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleVerifyPhoneOtp} className="w-full flex flex-col items-center">
+                      <div className="w-full max-w-[350px] flex items-center justify-between px-1 mb-2 text-xs">
+                        <span className="text-gray-600 font-medium">
+                          OTP sent to <strong>+91 {signInPhone}</strong>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { setPhoneStep('phone'); setPhoneError(''); }}
+                          className="text-green-700 font-bold hover:underline flex items-center gap-1"
+                        >
+                          <Edit3 className="w-3 h-3" /> Edit
+                        </button>
+                      </div>
+
+                      {/* Digit Boxes */}
+                      <div className="flex gap-2 justify-center mb-3">
+                        {otpDigits.map((digit, idx) => (
+                          <input
+                            key={idx}
+                            ref={(el) => (digitInputRefs.current[idx] = el)}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={1}
+                            value={digit}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, '').slice(-1);
+                              const copy = [...otpDigits];
+                              copy[idx] = val;
+                              setOtpDigits(copy);
+                              if (val && idx < otpLength - 1) {
+                                digitInputRefs.current[idx + 1]?.focus();
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Backspace' && !otpDigits[idx] && idx > 0) {
+                                digitInputRefs.current[idx - 1]?.focus();
+                              }
+                            }}
+                            className="w-11 h-12 text-center text-lg font-bold rounded-xl border border-gray-300 bg-gray-50 text-gray-900 focus:bg-white focus:border-green-600 focus:ring-2 focus:ring-green-500/20 focus:outline-none transition-all"
+                          />
+                        ))}
+                      </div>
+
+                      {/* Resend button / countdown */}
+                      <div className="mb-3 text-xs">
+                        {cooldown > 0 ? (
+                          <span className="text-gray-500">Resend OTP in <strong>{cooldown}s</strong></span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleResendPhoneOtp}
+                            disabled={phoneLoading}
+                            className="text-green-700 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <RotateCw className="w-3.5 h-3.5" /> Resend OTP
+                          </button>
+                        )}
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="fv-btn"
+                        disabled={phoneLoading || otpDigits.join('').length !== otpLength}
+                      >
+                        {phoneLoading ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" /> Verifying...</>
+                        ) : (
+                          <>Verify & Sign In <CheckCircle2 className="w-4 h-4" /></>
+                        )}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* ── SIGN UP FORM ── */}
             <form className="fv-form sign-up-form" onSubmit={handleSignUpSubmit}>
