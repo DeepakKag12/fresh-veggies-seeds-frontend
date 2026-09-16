@@ -37,8 +37,10 @@ export function useAdminDashboard() {
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [recentOrders, setRecentOrders] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
-  const [analytics, setAnalytics] = useState(null);
+  const [revenueData, setRevenueData] = useState(null);
+  const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [revenueLoading, setRevenueLoading] = useState(false);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [period, setPeriod] = useState('30days');
   const [specificMonth, setSpecificMonth] = useState(null);
@@ -64,13 +66,27 @@ export function useAdminDashboard() {
     }
   }, []);
 
+  const fetchRevenue = useCallback(async (p, sm) => {
+    setRevenueLoading(true);
+    try {
+      let url = `/admin/revenue?period=${p}`;
+      if (p === 'specificmonth' && sm) url += `&year=${sm.year}&month=${sm.month}`;
+      const res = await api.get(url);
+      setRevenueData(res.data?.data || null);
+    } catch (err) {
+      console.error('Revenue fetch error:', err);
+    } finally {
+      setRevenueLoading(false);
+    }
+  }, []);
+
   const fetchAnalytics = useCallback(async (p, sm) => {
     setAnalyticsLoading(true);
     try {
       let url = `/admin/analytics?period=${p}`;
       if (p === 'specificmonth' && sm) url += `&year=${sm.year}&month=${sm.month}`;
       const res = await api.get(url);
-      setAnalytics(res.data?.data || null);
+      setAnalyticsData(res.data?.data || null);
     } catch (err) {
       console.error('Analytics fetch error:', err);
     } finally {
@@ -80,6 +96,7 @@ export function useAdminDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+    fetchRevenue('30days', null);
     fetchAnalytics('30days', null);
     const interval = setInterval(fetchDashboardData, 30000);
     const handleVisibility = () => {
@@ -90,7 +107,7 @@ export function useAdminDashboard() {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [fetchDashboardData, fetchAnalytics]);
+  }, [fetchDashboardData, fetchRevenue, fetchAnalytics]);
 
   const handlePeriodChange = (p) => {
     if (p === 'specificmonth') {
@@ -100,7 +117,12 @@ export function useAdminDashboard() {
     setShowMonthPicker(false);
     setSpecificMonth(null);
     setPeriod(p);
-    fetchAnalytics(p, null);
+    if (activeTab === 'revenue') fetchRevenue(p, null);
+    else if (activeTab === 'analytics') fetchAnalytics(p, null);
+    else {
+      fetchRevenue(p, null);
+      fetchAnalytics(p, null);
+    }
   };
 
   const handleMonthSelect = (opt) => {
@@ -108,7 +130,12 @@ export function useAdminDashboard() {
     setSpecificMonth(sm);
     setPeriod('specificmonth');
     setShowMonthPicker(false);
-    fetchAnalytics('specificmonth', sm);
+    if (activeTab === 'revenue') fetchRevenue('specificmonth', sm);
+    else if (activeTab === 'analytics') fetchAnalytics('specificmonth', sm);
+    else {
+      fetchRevenue('specificmonth', sm);
+      fetchAnalytics('specificmonth', sm);
+    }
   };
 
   const handleQuickStatusChange = async (orderId, newStatus) => {
@@ -117,6 +144,7 @@ export function useAdminDashboard() {
       await api.put(`/orders/${orderId}/status`, { orderStatus: newStatus });
       toast.success(`Order status updated to ${newStatus}!`);
       fetchDashboardData();
+      fetchRevenue(period, specificMonth);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update order status');
     } finally {
@@ -130,6 +158,7 @@ export function useAdminDashboard() {
       await api.put(`/orders/${orderId}/status`, { orderStatus: 'Confirmed' });
       toast.success('Order confirmed!');
       fetchDashboardData();
+      fetchRevenue(period, specificMonth);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to confirm order');
     } finally {
@@ -143,6 +172,7 @@ export function useAdminDashboard() {
       await api.put(`/orders/${orderId}/approve-cancel`);
       toast.success('Cancellation approved! Refund initiated.');
       fetchDashboardData();
+      fetchRevenue(period, specificMonth);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to approve cancellation');
     } finally {
@@ -155,8 +185,10 @@ export function useAdminDashboard() {
     actionLoadingId,
     recentOrders,
     lowStockProducts,
-    analytics,
+    revenueData,
+    analyticsData,
     loading,
+    revenueLoading,
     analyticsLoading,
     period,
     specificMonth,
@@ -169,6 +201,7 @@ export function useAdminDashboard() {
     activeTab,
     setActiveTab,
     fetchDashboardData,
+    fetchRevenue,
     fetchAnalytics,
     handlePeriodChange,
     handleMonthSelect,

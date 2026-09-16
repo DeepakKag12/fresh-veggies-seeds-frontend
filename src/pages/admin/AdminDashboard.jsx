@@ -7,7 +7,8 @@ import { UrgentOrdersBanner } from '../../components/admin/dashboard/UrgentOrder
 import { RevenueSnapshot } from '../../components/admin/dashboard/RevenueSnapshot';
 import { OrderPipelineSection } from '../../components/admin/dashboard/OrderPipelineSection';
 import { RecentOrdersTable } from '../../components/admin/dashboard/RecentOrdersTable';
-import { RevenueAnalyticsTab } from '../../components/admin/dashboard/RevenueAnalyticsTab';
+import { RevenueTab } from '../../components/admin/dashboard/RevenueTab';
+import { AnalyticsTab } from '../../components/admin/dashboard/AnalyticsTab';
 
 const TABS = [
   { id: 'home',      label: 'Home',      icon: CheckCircle },
@@ -23,8 +24,10 @@ const AdminDashboard = () => {
     actionLoadingId,
     recentOrders,
     lowStockProducts,
-    analytics,
+    revenueData,
+    analyticsData,
     loading,
+    revenueLoading,
     analyticsLoading,
     period,
     specificMonth,
@@ -36,6 +39,7 @@ const AdminDashboard = () => {
     activeTab,
     setActiveTab,
     fetchDashboardData,
+    fetchRevenue,
     fetchAnalytics,
     handlePeriodChange,
     handleMonthSelect,
@@ -81,7 +85,15 @@ const AdminDashboard = () => {
             </p>
           </div>
           <button
-            onClick={() => { fetchDashboardData(); fetchAnalytics(period, specificMonth); }}
+            onClick={() => {
+              fetchDashboardData();
+              if (activeTab === 'revenue') fetchRevenue(period, specificMonth);
+              else if (activeTab === 'analytics') fetchAnalytics(period, specificMonth);
+              else {
+                fetchRevenue(period, specificMonth);
+                fetchAnalytics(period, specificMonth);
+              }
+            }}
             className="flex items-center gap-1.5 px-3 py-2 bg-fv-surface hover:bg-fv-border text-fv-heading rounded-xl text-xs font-semibold transition-colors min-h-[44px]"
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -150,11 +162,25 @@ const AdminDashboard = () => {
           </>
         )}
 
-        {/* REVENUE & ANALYTICS TAB */}
-        {(activeTab === 'revenue' || activeTab === 'analytics') && (
-          <RevenueAnalyticsTab
-            analytics={analytics}
-            analyticsLoading={analyticsLoading}
+        {/* REVENUE TAB */}
+        {activeTab === 'revenue' && (
+          <RevenueTab
+            revenueData={revenueData}
+            loading={revenueLoading}
+            period={period}
+            specificMonth={specificMonth}
+            showMonthPicker={showMonthPicker}
+            setShowMonthPicker={setShowMonthPicker}
+            onPeriodChange={handlePeriodChange}
+            onMonthSelect={handleMonthSelect}
+          />
+        )}
+
+        {/* ANALYTICS TAB */}
+        {activeTab === 'analytics' && (
+          <AnalyticsTab
+            analyticsData={analyticsData}
+            loading={analyticsLoading}
             period={period}
             specificMonth={specificMonth}
             showMonthPicker={showMonthPicker}
