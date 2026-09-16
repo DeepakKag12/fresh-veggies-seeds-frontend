@@ -1,43 +1,125 @@
-"use client";
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Mail, Lock, User, Phone, ArrowRight, Sprout, CheckCircle2, ShieldCheck, Sparkles, ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { validatePassword, PASSWORD_RULE_TEXT } from '../../utils/passwordPolicy';
 
-import React, { useState } from "react";
-import { Mail, Lock, User, Phone, ArrowRight, Sprout, CheckCircle2, ShieldCheck, Sparkles } from "lucide-react";
+/* ─── Real Customer Name Check ─────────────────────────────────────────── */
+const isPlaceholderName = (name) => {
+  if (!name || typeof name !== 'string') return true;
+  const trimmed = name.trim();
+  if (trimmed.length < 2) return true;
+  return /^customer(\s*\d+)?$/i.test(trimmed);
+};
 
-export default function AuthSwitch({
-  initialMode = 'signin',
-  onSignIn,
-  onSignUp,
-  loading = false,
-  error = ''
-}) {
+export default function AuthSwitch({ initialMode = 'signin' }) {
   const [isSignUp, setIsSignUp] = useState(initialMode === 'signup');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+
+  // Auth Context & Navigation
+  const { login, register } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Sign In State
   const [signInEmail, setSignInEmail] = useState('');
   const [signInPassword, setSignInPassword] = useState('');
+  const [signInLoading, setSignInLoading] = useState(false);
+  const [signInError, setSignInError] = useState('');
 
   // Sign Up State
   const [signUpName, setSignUpName] = useState('');
   const [signUpEmail, setSignUpEmail] = useState('');
   const [signUpPhone, setSignUpPhone] = useState('');
   const [signUpPassword, setSignUpPassword] = useState('');
+  const [signUpLoading, setSignUpLoading] = useState(false);
+  const [signUpError, setSignUpError] = useState('');
+  const [signUpSuccess, setSignUpSuccess] = useState('');
 
-  const handleSignInSubmit = (event) => {
-    event.preventDefault();
-    if (onSignIn) {
-      onSignIn({ email: signInEmail, password: signInPassword });
+  // Sign In Handler
+  const handleSignInSubmit = async (e) => {
+    e.preventDefault();
+    setSignInError('');
+
+    if (!signInEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signInEmail.trim())) {
+      setSignInError('Please enter a valid email address.');
+      return;
+    }
+    if (!signInPassword) {
+      setSignInError('Please enter your password.');
+      return;
+    }
+
+    setSignInLoading(true);
+    try {
+      const result = await login(signInEmail.trim(), signInPassword);
+      if (result.success) {
+        const nextParam = new URLSearchParams(location.search).get('next');
+        navigate(location.state?.from?.pathname || nextParam || '/', { replace: true });
+      } else {
+        setSignInError(result.message || 'Login failed. Please check your credentials.');
+      }
+    } catch (err) {
+      setSignInError(err.response?.data?.message || 'An unexpected error occurred. Please try again.');
+    } finally {
+      setSignInLoading(false);
     }
   };
 
-  const handleSignUpSubmit = (event) => {
-    event.preventDefault();
-    if (onSignUp) {
-      onSignUp({
-        name: signUpName,
-        email: signUpEmail,
-        phone: signUpPhone,
-        password: signUpPassword
+  // Sign Up Handler
+  const handleSignUpSubmit = async (e) => {
+    e.preventDefault();
+    setSignUpError('');
+    setSignUpSuccess('');
+
+    const cleanName = signUpName.trim();
+    if (!cleanName || isPlaceholderName(cleanName)) {
+      setSignUpError('Please enter your actual Full Name (e.g. Rahul Sharma).');
+      return;
+    }
+
+    const cleanEmail = signUpEmail.trim();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setSignUpError('Please enter a valid email address.');
+      return;
+    }
+
+    const cleanPhone = signUpPhone.replace(/\D/g, '').slice(0, 10);
+    if (!cleanPhone || !/^[6-9]\d{9}$/.test(cleanPhone)) {
+      setSignUpError('Please enter a valid 10-digit Indian mobile number.');
+      return;
+    }
+
+    const passCheck = validatePassword(signUpPassword);
+    if (!passCheck.valid) {
+      setSignUpError(passCheck.message || PASSWORD_RULE_TEXT);
+      return;
+    }
+
+    setSignUpLoading(true);
+    try {
+      const result = await register({
+        name: cleanName,
+        email: cleanEmail,
+        phone: cleanPhone,
+        password: signUpPassword,
       });
+
+      if (result.success) {
+        setSignUpSuccess('Registration successful! You can now sign in.');
+        setSignInEmail(cleanEmail);
+        setTimeout(() => {
+          setIsSignUp(false);
+          setSignUpSuccess('');
+        }, 1500);
+      } else {
+        setSignUpError(result.message || 'Registration failed. Please try again.');
+      }
+    } catch (err) {
+      setSignUpError(err.response?.data?.message || 'Registration failed. Please try again.');
+    } finally {
+      setSignUpLoading(false);
     }
   };
 
@@ -54,20 +136,52 @@ export default function AuthSwitch({
           min-height: 100vh;
           width: 100%;
           display: flex;
+          flex-direction: column;
           justify-content: center;
           align-items: center;
-          padding: 16px;
+          padding: 24px 16px;
           background: radial-gradient(circle at 10% 20%, rgba(22, 163, 74, 0.08) 0%, rgba(240, 253, 244, 0.6) 90%);
+        }
+
+        .fv-nav-container {
+          width: 100%;
+          max-width: 960px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 14px;
+        }
+
+        .fv-back-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: #ffffff;
+          border: 1px solid rgba(22, 163, 74, 0.2);
+          color: #15803d;
+          font-weight: 600;
+          font-size: 0.85rem;
+          padding: 8px 16px;
+          border-radius: 50px;
+          text-decoration: none;
+          transition: all 0.2s ease;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+
+        .fv-back-btn:hover {
+          background: #f0fdf4;
+          border-color: #16a34a;
+          transform: translateY(-1px);
         }
 
         .fv-auth-container {
           position: relative;
           width: 100%;
           max-width: 960px;
-          min-height: 580px;
+          min-height: 590px;
           background: #ffffff;
-          border-radius: 24px;
-          box-shadow: 0 20px 60px -15px rgba(22, 101, 52, 0.15), 0 0 0 1px rgba(22, 163, 74, 0.12);
+          border-radius: 28px;
+          box-shadow: 0 25px 65px -15px rgba(22, 101, 52, 0.18), 0 0 0 1px rgba(22, 163, 74, 0.12);
           overflow: hidden;
         }
 
@@ -96,11 +210,12 @@ export default function AuthSwitch({
           align-items: center;
           justify-content: center;
           flex-direction: column;
-          padding: 0 3.5rem;
+          padding: 0 3rem;
           transition: all 0.25s 0.4s;
           overflow: hidden;
           grid-column: 1 / 2;
           grid-row: 1 / 2;
+          width: 100%;
         }
 
         .fv-form.sign-up-form {
@@ -115,30 +230,31 @@ export default function AuthSwitch({
         }
 
         .fv-title {
-          font-size: 2rem;
+          font-size: 1.85rem;
           color: #14532d;
-          margin-bottom: 6px;
+          margin-bottom: 4px;
           font-weight: 800;
           letter-spacing: -0.02em;
         }
 
         .fv-subtitle {
-          font-size: 0.875rem;
+          font-size: 0.85rem;
           color: #64748b;
-          margin-bottom: 20px;
+          margin-bottom: 16px;
+          text-align: center;
         }
 
         .fv-input-field {
-          max-width: 360px;
           width: 100%;
+          max-width: 350px;
           background-color: #f8fafc;
-          margin: 6px 0;
-          height: 50px;
-          border-radius: 14px;
+          margin: 5px 0;
+          height: 48px;
+          border-radius: 12px;
           border: 1px solid #e2e8f0;
           display: flex;
           align-items: center;
-          padding: 0 1rem;
+          padding: 0 0.85rem;
           position: relative;
           transition: all 0.2s ease;
         }
@@ -151,7 +267,7 @@ export default function AuthSwitch({
 
         .fv-input-field .fv-icon {
           color: #16a34a;
-          margin-right: 12px;
+          margin-right: 10px;
           display: flex;
           align-items: center;
           flex-shrink: 0;
@@ -163,7 +279,7 @@ export default function AuthSwitch({
           border: none;
           line-height: 1;
           font-weight: 500;
-          font-size: 0.925rem;
+          font-size: 0.9rem;
           color: #0f172a;
           width: 100%;
         }
@@ -171,22 +287,53 @@ export default function AuthSwitch({
         .fv-input-field input::placeholder {
           color: #94a3b8;
           font-weight: 400;
+          font-size: 0.85rem;
+        }
+
+        .fv-toggle-pass {
+          background: none;
+          border: none;
+          color: #94a3b8;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          padding: 4px;
+        }
+
+        .fv-toggle-pass:hover {
+          color: #15803d;
+        }
+
+        .fv-forgot-link {
+          align-self: flex-end;
+          max-width: 350px;
+          width: 100%;
+          text-align: right;
+          font-size: 0.8rem;
+          color: #16a34a;
+          text-decoration: none;
+          font-weight: 600;
+          margin: 4px 0 8px 0;
+        }
+
+        .fv-forgot-link:hover {
+          text-decoration: underline;
         }
 
         .fv-btn {
           width: 100%;
-          max-width: 360px;
+          max-width: 350px;
           background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
           border: none;
           outline: none;
-          height: 48px;
-          border-radius: 14px;
+          height: 46px;
+          border-radius: 12px;
           color: #ffffff;
           font-weight: 700;
-          margin: 16px 0 8px 0;
+          margin: 12px 0 6px 0;
           cursor: pointer;
           transition: all 0.25s ease;
-          font-size: 0.95rem;
+          font-size: 0.925rem;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -248,10 +395,10 @@ export default function AuthSwitch({
         }
 
         .fv-panel p {
-          font-size: 0.95rem;
+          font-size: 0.925rem;
           line-height: 1.5;
-          color: rgba(255, 255, 255, 0.9);
-          margin-bottom: 24px;
+          color: rgba(255, 255, 255, 0.92);
+          margin-bottom: 20px;
         }
 
         .fv-btn.transparent {
@@ -259,14 +406,17 @@ export default function AuthSwitch({
           background: rgba(255, 255, 255, 0.15);
           border: 1.5px solid rgba(255, 255, 255, 0.7);
           backdrop-filter: blur(8px);
-          width: 160px;
-          height: 44px;
+          width: 150px;
+          height: 42px;
           border-radius: 12px;
           font-weight: 700;
-          font-size: 0.9rem;
+          font-size: 0.875rem;
           color: #ffffff;
           cursor: pointer;
           transition: all 0.25s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .fv-btn.transparent:hover {
@@ -336,19 +486,32 @@ export default function AuthSwitch({
           background-color: #fef2f2;
           border: 1px solid #fecaca;
           color: #b91c1c;
-          padding: 8px 14px;
+          padding: 8px 12px;
           border-radius: 10px;
-          font-size: 0.825rem;
-          margin-bottom: 12px;
+          font-size: 0.8rem;
+          margin-bottom: 10px;
           width: 100%;
-          max-width: 360px;
+          max-width: 350px;
+          text-align: center;
+        }
+
+        .fv-success-banner {
+          background-color: #f0fdf4;
+          border: 1px solid #bbf7d0;
+          color: #15803d;
+          padding: 8px 12px;
+          border-radius: 10px;
+          font-size: 0.8rem;
+          margin-bottom: 10px;
+          width: 100%;
+          max-width: 350px;
           text-align: center;
         }
 
         .fv-perks-list {
           list-style: none;
           padding: 0;
-          margin: 0 0 24px 0;
+          margin: 0 0 20px 0;
         }
 
         .fv-perks-list li {
@@ -362,7 +525,7 @@ export default function AuthSwitch({
 
         @media (max-width: 870px) {
           .fv-auth-container {
-            min-height: 720px;
+            min-height: 740px;
             height: auto;
           }
           .fv-signin-signup {
@@ -402,7 +565,7 @@ export default function AuthSwitch({
           }
           .fv-panel p {
             font-size: 0.825rem;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
           }
           .fv-btn.transparent {
             width: 130px;
@@ -440,10 +603,25 @@ export default function AuthSwitch({
 
         @media (max-width: 570px) {
           .fv-form {
-            padding: 0 1.25rem;
+            padding: 0 1rem;
           }
         }
       `}</style>
+
+      {/* ── Top Navigation Bar ── */}
+      <div className="fv-nav-container">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="fv-back-btn"
+        >
+          <ArrowLeft className="w-4 h-4" /> Go back
+        </button>
+
+        <Link to="/" className="fv-back-btn">
+          Continue shopping
+        </Link>
+      </div>
 
       <div className={isSignUp ? "fv-auth-container sign-up-mode" : "fv-auth-container"}>
         <div className="fv-forms-container">
@@ -456,8 +634,8 @@ export default function AuthSwitch({
               </div>
               <p className="fv-subtitle">Sign in to manage your orders & seeds</p>
 
-              {error && !isSignUp && (
-                <div className="fv-error-banner">{error}</div>
+              {signInError && (
+                <div className="fv-error-banner">{signInError}</div>
               )}
 
               <div className="fv-input-field">
@@ -466,6 +644,7 @@ export default function AuthSwitch({
                   type="email"
                   placeholder="Email address"
                   required
+                  autoComplete="email"
                   value={signInEmail}
                   onChange={(e) => setSignInEmail(e.target.value)}
                 />
@@ -474,16 +653,33 @@ export default function AuthSwitch({
               <div className="fv-input-field">
                 <div className="fv-icon"><Lock className="w-4 h-4" /></div>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="Password"
                   required
+                  autoComplete="current-password"
                   value={signInPassword}
                   onChange={(e) => setSignInPassword(e.target.value)}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="fv-toggle-pass"
+                  aria-label="Toggle password visibility"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
 
-              <button type="submit" className="fv-btn" disabled={loading}>
-                {loading ? 'Signing in...' : 'Sign In'} <ArrowRight className="w-4 h-4" />
+              <Link to="/forgot-password" className="fv-forgot-link">
+                Forgot password?
+              </Link>
+
+              <button type="submit" className="fv-btn" disabled={signInLoading}>
+                {signInLoading ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Signing in...</>
+                ) : (
+                  <>Sign In <ArrowRight className="w-4 h-4" /></>
+                )}
               </button>
             </form>
 
@@ -491,20 +687,24 @@ export default function AuthSwitch({
             <form className="fv-form sign-up-form" onSubmit={handleSignUpSubmit}>
               <div className="flex items-center gap-2 mb-1">
                 <Sprout className="w-6 h-6 text-green-600" />
-                <h2 className="fv-title">Join Fresh Veggies</h2>
+                <h2 className="fv-title">Create Account</h2>
               </div>
               <p className="fv-subtitle">Start growing premium farm-fresh seeds</p>
 
-              {error && isSignUp && (
-                <div className="fv-error-banner">{error}</div>
+              {signUpError && (
+                <div className="fv-error-banner">{signUpError}</div>
+              )}
+              {signUpSuccess && (
+                <div className="fv-success-banner">{signUpSuccess}</div>
               )}
 
               <div className="fv-input-field">
                 <div className="fv-icon"><User className="w-4 h-4" /></div>
                 <input
                   type="text"
-                  placeholder="Your Full Real Name"
+                  placeholder="Your Full Real Name *"
                   required
+                  autoComplete="name"
                   value={signUpName}
                   onChange={(e) => setSignUpName(e.target.value)}
                 />
@@ -514,8 +714,9 @@ export default function AuthSwitch({
                 <div className="fv-icon"><Mail className="w-4 h-4" /></div>
                 <input
                   type="email"
-                  placeholder="Email address"
+                  placeholder="Email address *"
                   required
+                  autoComplete="email"
                   value={signUpEmail}
                   onChange={(e) => setSignUpEmail(e.target.value)}
                 />
@@ -525,9 +726,10 @@ export default function AuthSwitch({
                 <div className="fv-icon"><Phone className="w-4 h-4" /></div>
                 <input
                   type="tel"
-                  placeholder="10-digit Mobile Number"
+                  placeholder="10-digit Mobile Number *"
                   maxLength={10}
                   required
+                  autoComplete="tel"
                   value={signUpPhone}
                   onChange={(e) => setSignUpPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 />
@@ -536,16 +738,29 @@ export default function AuthSwitch({
               <div className="fv-input-field">
                 <div className="fv-icon"><Lock className="w-4 h-4" /></div>
                 <input
-                  type="password"
-                  placeholder="Create strong password (min 8 chars)"
+                  type={showSignUpPassword ? 'text' : 'password'}
+                  placeholder="Password (min 8 chars, letter + number) *"
                   required
+                  autoComplete="new-password"
                   value={signUpPassword}
                   onChange={(e) => setSignUpPassword(e.target.value)}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowSignUpPassword(!showSignUpPassword)}
+                  className="fv-toggle-pass"
+                  aria-label="Toggle password visibility"
+                >
+                  {showSignUpPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
 
-              <button type="submit" className="fv-btn" disabled={loading}>
-                {loading ? 'Creating Account...' : 'Create Account'} <Sparkles className="w-4 h-4" />
+              <button type="submit" className="fv-btn" disabled={signUpLoading}>
+                {signUpLoading ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Creating account...</>
+                ) : (
+                  <>Create Account <Sparkles className="w-4 h-4" /></>
+                )}
               </button>
             </form>
           </div>
@@ -555,18 +770,22 @@ export default function AuthSwitch({
         <div className="fv-panels-container">
           <div className="fv-panel left-panel">
             <div className="content">
-              <h3>New to Fresh Veggies? 🌱</h3>
+              <h3>New here? 🌱</h3>
               <p>
-                Get access to heirloom seeds, exclusive discounts, order tracking, and fast doorstep delivery.
+                Join thousands of gardeners growing organic vegetables and fruits right at home.
               </p>
               <ul className="fv-perks-list">
-                <li><CheckCircle2 className="w-4 h-4 text-green-300" /> 100% Organic & Non-GMO Seeds</li>
+                <li><CheckCircle2 className="w-4 h-4 text-green-300" /> 100% Non-GMO Certified Seeds</li>
                 <li><ShieldCheck className="w-4 h-4 text-green-300" /> Free Delivery on orders ₹300+</li>
               </ul>
               <button
                 type="button"
                 className="fv-btn transparent"
-                onClick={() => setIsSignUp(true)}
+                onClick={() => {
+                  setIsSignUp(true);
+                  setSignInError('');
+                  setSignUpError('');
+                }}
               >
                 Sign up
               </button>
@@ -575,12 +794,16 @@ export default function AuthSwitch({
 
           <div className="fv-panel right-panel">
             <div className="content">
-              <h3>Already have an account?</h3>
-              <p>Sign in to access your saved garden wishlist, addresses, and track your active seed shipments.</p>
+              <h3>One of us?</h3>
+              <p>Welcome back! Sign in to continue your gardening journey with us.</p>
               <button
                 type="button"
                 className="fv-btn transparent"
-                onClick={() => setIsSignUp(false)}
+                onClick={() => {
+                  setIsSignUp(false);
+                  setSignInError('');
+                  setSignUpError('');
+                }}
               >
                 Sign in
               </button>
