@@ -41,9 +41,15 @@ export const initMsg91 = (forceRebind = false) => {
           captchaRenderId: containerId,
           success: (data) => {
             console.log('MSG91 global success event:', data);
+            if (typeof window.onMsg91GlobalSuccess === 'function') {
+              window.onMsg91GlobalSuccess(data);
+            }
           },
           failure: (error) => {
             console.warn('MSG91 global failure event:', error);
+            if (typeof window.onMsg91GlobalFailure === 'function') {
+              window.onMsg91GlobalFailure(error);
+            }
           },
           captchaVerified: (status) => {
             console.log('MSG91 captcha verification status:', status);
@@ -99,9 +105,15 @@ export const initMsg91 = (forceRebind = false) => {
           ...(container ? { captchaRenderId: containerId } : {}),
           success: (data) => {
             console.log('MSG91 global success event:', data);
+            if (typeof window.onMsg91GlobalSuccess === 'function') {
+              window.onMsg91GlobalSuccess(data);
+            }
           },
           failure: (error) => {
             console.warn('MSG91 global failure event:', error);
+            if (typeof window.onMsg91GlobalFailure === 'function') {
+              window.onMsg91GlobalFailure(error);
+            }
           },
           captchaVerified: (status) => {
             console.log('MSG91 captcha verification status:', status);
@@ -219,7 +231,7 @@ export const isValidIndianMobile = (phone) => {
 };
 
 /**
- * Send OTP via MSG91 window.sendOtp
+ * Send OTP via MSG91 window.sendOtp with dual callback & global event routing
  *
  * @param {string} mobile - 10-digit Indian mobile number
  * @param {Function} onSuccess - Callback when OTP sent successfully
@@ -230,11 +242,38 @@ export const sendMsg91Otp = async (mobile, onSuccess, onFailure) => {
     await initMsg91();
 
     if (typeof window.sendOtp !== 'function') {
-      throw new Error('window.sendOtp is not available. Please retry in a moment.');
+      throw new Error('window.sendOtp is not available. Please refresh and try again.');
     }
 
     const normalized = normalizeMobileForMsg91(mobile);
-    window.sendOtp(normalized, onSuccess, onFailure);
+    
+    let handled = false;
+    let timeoutTimer = null;
+
+    const safeSuccess = (data) => {
+      if (handled) return;
+      handled = true;
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      if (onSuccess) onSuccess(data);
+    };
+
+    const safeFailure = (err) => {
+      if (handled) return;
+      handled = true;
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      if (onFailure) onFailure(err);
+    };
+
+    window.onMsg91GlobalSuccess = safeSuccess;
+    window.onMsg91GlobalFailure = safeFailure;
+
+    timeoutTimer = setTimeout(() => {
+      if (!handled) {
+        safeFailure(new Error('OTP request timed out. Please click Send OTP again.'));
+      }
+    }, 15000);
+
+    window.sendOtp(normalized, safeSuccess, safeFailure);
   } catch (err) {
     if (onFailure) onFailure(err);
   }
@@ -255,8 +294,34 @@ export const retryMsg91Otp = async (onSuccess, onFailure, reqId = null) => {
       throw new Error('window.retryOtp is not available.');
     }
 
+    let handled = false;
+    let timeoutTimer = null;
+
+    const safeSuccess = (data) => {
+      if (handled) return;
+      handled = true;
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      if (onSuccess) onSuccess(data);
+    };
+
+    const safeFailure = (err) => {
+      if (handled) return;
+      handled = true;
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      if (onFailure) onFailure(err);
+    };
+
+    window.onMsg91GlobalSuccess = safeSuccess;
+    window.onMsg91GlobalFailure = safeFailure;
+
+    timeoutTimer = setTimeout(() => {
+      if (!handled) {
+        safeFailure(new Error('Resend timed out. Please try again.'));
+      }
+    }, 15000);
+
     // MSG91 custom UI requires channel '11' (SMS) for retry
-    window.retryOtp('11', onSuccess, onFailure, reqId || undefined);
+    window.retryOtp('11', safeSuccess, safeFailure, reqId || undefined);
   } catch (err) {
     if (onFailure) onFailure(err);
   }
@@ -278,7 +343,30 @@ export const verifyMsg91Otp = async (otp, onSuccess, onFailure, reqId = null) =>
       throw new Error('window.verifyOtp is not available.');
     }
 
-    window.verifyOtp(otp, onSuccess, onFailure, reqId || undefined);
+    let handled = false;
+    let timeoutTimer = null;
+
+    const safeSuccess = (data) => {
+      if (handled) return;
+      handled = true;
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      if (onSuccess) onSuccess(data);
+    };
+
+    const safeFailure = (err) => {
+      if (handled) return;
+      handled = true;
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      if (onFailure) onFailure(err);
+    };
+
+    timeoutTimer = setTimeout(() => {
+      if (!handled) {
+        safeFailure(new Error('Verification timed out. Please try again.'));
+      }
+    }, 15000);
+
+    window.verifyOtp(otp, safeSuccess, safeFailure, reqId || undefined);
   } catch (err) {
     if (onFailure) onFailure(err);
   }
