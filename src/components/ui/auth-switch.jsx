@@ -37,8 +37,8 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
   // Sign In Mode: 'email' | 'phone'
   const [signInMethod, setSignInMethod] = useState('email');
 
-  // Sign In (Email) State
-  const [signInEmail, setSignInEmail] = useState('');
+  // Dual Identifier (Email or Phone) State for Password login
+  const [signInIdentifier, setSignInIdentifier] = useState('');
   const [signInPassword, setSignInPassword] = useState('');
   const [signInLoading, setSignInLoading] = useState(false);
   const [signInError, setSignInError] = useState('');
@@ -105,15 +105,43 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
     navigate(location.state?.from?.pathname || nextParam || '/', { replace: true });
   };
 
-  // Sign In (Email) Handler
+  // Switch to Phone OTP mode seamlessly
+  const switchToPhoneOtpWithNumber = (phone) => {
+    const digits = (phone || '').replace(/\D/g, '').slice(-10);
+    if (digits) {
+      setSignInPhone(digits);
+    }
+    setSignInMethod('phone');
+    setSignInError('');
+    setPhoneError('');
+  };
+
+  // Sign In (Dual Identifier + Password) Handler
   const handleSignInSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setSignInError('');
 
-    if (!signInEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signInEmail.trim())) {
-      setSignInError('Please enter a valid email address.');
+    const trimmedIdentifier = signInIdentifier.trim();
+    if (!trimmedIdentifier) {
+      setSignInError('Please enter your email address or 10-digit mobile number.');
       return;
     }
+
+    const isEmail = trimmedIdentifier.includes('@');
+    const digitsOnly = trimmedIdentifier.replace(/\D/g, '');
+
+    if (isEmail) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedIdentifier)) {
+        setSignInError('Please enter a valid email address.');
+        return;
+      }
+    } else {
+      if (digitsOnly.length !== 10 || !/^[6-9]\d{9}$/.test(digitsOnly)) {
+        setSignInError('Please enter a valid 10-digit Indian mobile number or email address.');
+        return;
+      }
+    }
+
     if (!signInPassword) {
       setSignInError('Please enter your password.');
       return;
@@ -121,7 +149,7 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
 
     setSignInLoading(true);
     try {
-      const result = await login(signInEmail.trim(), signInPassword);
+      const result = await login(trimmedIdentifier, signInPassword);
       if (result.success) {
         navigateToDestination();
       } else {
@@ -203,7 +231,9 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
         setCooldown(RESEND_COOLDOWN_SECONDS);
         setOtpDigits(new Array(otpLength).fill(''));
         toast.success(`New OTP sent to +91 ${signInPhone}`);
-        digitInputRefs.current[0]?.focus();
+        setTimeout(() => {
+          digitInputRefs.current[0]?.focus();
+        }, 100);
       },
       (err) => {
         setPhoneLoading(false);
@@ -213,13 +243,9 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
     );
   };
 
-  // Verify Phone OTP
-  const handleVerifyPhoneOtp = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    const entered = otpDigits.join('');
+  // Core OTP Verification with Digits Array
+  const executeVerifyOtp = (digitsArr) => {
+    const entered = (digitsArr || otpDigits).join('');
     if (entered.length !== otpLength) {
       setPhoneError(`Please enter all ${otpLength} digits of your OTP.`);
       return;
@@ -275,6 +301,55 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
     }
   };
 
+  // Verify Phone OTP Form Submit
+  const handleVerifyPhoneOtp = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    executeVerifyOtp(otpDigits);
+  };
+
+  // OTP Input Change Handler (Auto-advance & Auto-submit)
+  const handleOtpDigitChange = (idx, value) => {
+    const char = value.replace(/\D/g, '').slice(-1);
+    const updated = [...otpDigits];
+    updated[idx] = char;
+    setOtpDigits(updated);
+
+    if (char) {
+      if (idx < otpLength - 1) {
+        digitInputRefs.current[idx + 1]?.focus();
+      } else if (idx === otpLength - 1) {
+        // If all filled, auto-submit!
+        if (updated.every((d) => Boolean(d))) {
+          executeVerifyOtp(updated);
+        }
+      }
+    }
+  };
+
+  // OTP Paste Handler (Auto-populate & Auto-submit)
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, otpLength);
+    if (!pastedData) return;
+
+    const chars = pastedData.split('');
+    const newDigits = new Array(otpLength).fill('');
+    chars.forEach((c, i) => {
+      newDigits[i] = c;
+    });
+    setOtpDigits(newDigits);
+
+    const focusIdx = Math.min(chars.length, otpLength - 1);
+    digitInputRefs.current[focusIdx]?.focus();
+
+    if (chars.length === otpLength) {
+      executeVerifyOtp(newDigits);
+    }
+  };
+
   // Sign Up Handler
   const handleSignUpSubmit = async (e) => {
     e.preventDefault();
@@ -316,7 +391,7 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
 
       if (result.success) {
         setSignUpSuccess('Registration successful! You can now sign in.');
-        setSignInEmail(cleanEmail);
+        setSignInIdentifier(cleanEmail);
         setTimeout(() => {
           setIsSignUp(false);
           setSignUpSuccess('');
@@ -906,20 +981,34 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                 <div className="fv-error-banner">{phoneError}</div>
               )}
 
-              {/* EMAIL & PASSWORD LOGIN */}
+              {/* EMAIL / PHONE & PASSWORD LOGIN */}
               {signInMethod === 'email' && (
                 <form onSubmit={handleSignInSubmit} className="w-full flex flex-col items-center">
                   <div className="fv-input-field">
                     <div className="fv-icon"><Mail className="w-4 h-4" /></div>
                     <input
-                      type="email"
-                      placeholder="Email address"
+                      type="text"
+                      placeholder="Email or 10-digit Phone"
                       required
-                      autoComplete="email"
-                      value={signInEmail}
-                      onChange={(e) => setSignInEmail(e.target.value)}
+                      autoComplete="username"
+                      value={signInIdentifier}
+                      onChange={(e) => setSignInIdentifier(e.target.value)}
                     />
                   </div>
+
+                  {/* Smart phone detection hint */}
+                  {/^[6-9]\d{9}$/.test(signInIdentifier.trim().replace(/\D/g, '')) && !signInIdentifier.includes('@') && (
+                    <div className="w-full max-w-[350px] mb-2 px-1 text-left">
+                      <button
+                        type="button"
+                        onClick={() => switchToPhoneOtpWithNumber(signInIdentifier)}
+                        className="text-xs text-green-700 hover:text-green-800 font-semibold flex items-center gap-1 bg-green-50 px-2.5 py-1 rounded-lg border border-green-200 transition-colors"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-green-600" />
+                        Prefer SMS code? <strong>Sign in via Phone OTP</strong>
+                      </button>
+                    </div>
+                  )}
 
                   <div className="fv-input-field">
                     <div className="fv-icon"><Lock className="w-4 h-4" /></div>
@@ -1008,7 +1097,7 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                         </button>
                       </div>
 
-                      {/* Digit Boxes */}
+                      {/* Digit Boxes with Paste & Auto-submit */}
                       <div className="flex gap-2 justify-center mb-3">
                         {otpDigits.map((digit, idx) => (
                           <input
@@ -1019,15 +1108,8 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                             pattern="[0-9]*"
                             maxLength={1}
                             value={digit}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(/\D/g, '').slice(-1);
-                              const copy = [...otpDigits];
-                              copy[idx] = val;
-                              setOtpDigits(copy);
-                              if (val && idx < otpLength - 1) {
-                                digitInputRefs.current[idx + 1]?.focus();
-                              }
-                            }}
+                            onPaste={handleOtpPaste}
+                            onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
                             onKeyDown={(e) => {
                               if (e.key === 'Backspace' && !otpDigits[idx] && idx > 0) {
                                 digitInputRefs.current[idx - 1]?.focus();

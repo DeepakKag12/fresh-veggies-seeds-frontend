@@ -44,10 +44,16 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   };
 
-  // Login via email + password
-  const login = async (email, password) => {
+  // Login via email or phone + password
+  const login = async (identifier, password) => {
     try {
-      const response = await api.post('/auth/login', { email, password });
+      const trimmed = identifier?.trim() || '';
+      const response = await api.post('/auth/login', { 
+        identifier: trimmed, 
+        email: trimmed, 
+        phone: trimmed, 
+        password 
+      });
       const { token, ...userData } = response.data.data;
       localStorage.setItem('token', token);
       setUser(userData);
