@@ -27,6 +27,7 @@ const GuestMobileOtpStep = ({ onVerified }) => {
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState('');
+  const [captchaVerified, setCaptchaVerified] = useState(false);
 
   const [cooldown, setCooldown] = useState(0);
   const timerRef = useRef(null);
@@ -35,6 +36,7 @@ const GuestMobileOtpStep = ({ onVerified }) => {
   // Pre-load MSG91 script on mount & listen to CAPTCHA verification
   useEffect(() => {
     window.onMsg91CaptchaVerified = (status) => {
+      setCaptchaVerified(Boolean(status));
       if (status) {
         setError('');
       }
@@ -101,6 +103,11 @@ const GuestMobileOtpStep = ({ onVerified }) => {
 
     if (!isValidIndianMobile(phone)) {
       setError('Please enter a valid 10-digit Indian mobile number');
+      return;
+    }
+
+    if (typeof window.isCaptchaVerified === 'function' && !window.isCaptchaVerified() && !captchaVerified) {
+      setError('Please complete the security check (I am human) above.');
       return;
     }
 

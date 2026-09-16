@@ -82,19 +82,17 @@ export const initMsg91 = (forceRebind = false) => {
         }
 
         const containerId = 'msg91-captcha-container';
-        let container = document.getElementById(containerId);
-        if (!container) {
-          container = document.createElement('div');
-          container.id = containerId;
-          container.style.display = 'none'; // Prevent floating at bottom of screen
-          document.body.appendChild(container);
-        }
+        // Clean up any stale dummy body containers first
+        const staleBodyContainers = document.querySelectorAll('body > #msg91-captcha-container');
+        staleBodyContainers.forEach(el => el.remove());
+
+        const container = document.getElementById(containerId);
 
         const configuration = {
           widgetId,
           tokenAuth,
           exposeMethods: true,
-          captchaRenderId: containerId,
+          ...(container ? { captchaRenderId: containerId } : {}),
           success: (data) => {
             console.log('MSG91 global success event:', data);
           },
@@ -110,7 +108,9 @@ export const initMsg91 = (forceRebind = false) => {
         };
 
         window.initSendOTP(configuration);
-        lastRenderedContainer = container;
+        if (container) {
+          lastRenderedContainer = container;
+        }
 
         // Wait for window.sendOtp and window.verifyOtp to be exposed on window
         const checkInterval = setInterval(() => {
@@ -281,9 +281,14 @@ export const verifyMsg91Otp = async (otp, onSuccess, onFailure, reqId = null) =>
 };
 
 /**
- * Check if CAPTCHA is verified (MSG91 internally handles validation upon sendOtp)
+ * Check if CAPTCHA is verified using MSG91 widget status.
  */
-export const isCaptchaVerified = () => true;
+export const isCaptchaVerified = () => {
+  if (typeof window.isCaptchaVerified === 'function') {
+    return window.isCaptchaVerified();
+  }
+  return true;
+};
 
 /**
  * Re-render in-card CAPTCHA inside a target container.
