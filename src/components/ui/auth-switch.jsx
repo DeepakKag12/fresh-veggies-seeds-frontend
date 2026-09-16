@@ -11,8 +11,7 @@ import {
   retryMsg91Otp,
   verifyMsg91Otp,
   isValidIndianMobile,
-  cleanupMsg91Captcha,
-  renderMsg91Captcha
+  cleanupMsg91Captcha
 } from '../../utils/msg91';
 
 /* ─── Real Customer Name Check ─────────────────────────────────────────── */
@@ -69,16 +68,6 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
       cleanupMsg91Captcha();
     };
   }, []);
-
-  // Ensure CAPTCHA renders inside the in-card container whenever Phone tab is active
-  useEffect(() => {
-    if (signInMethod === 'phone' && phoneStep === 'phone') {
-      const timer = setTimeout(() => {
-        renderMsg91Captcha('msg91-captcha-container');
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [signInMethod, phoneStep]);
 
   // Cooldown countdown timer
   useEffect(() => {
@@ -1278,8 +1267,7 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                     </form>
                   )}
                 </div>
-              )}
-            </div>
+              </div>
 
             {/* ── SIGN UP FORM ── */}
             <form className="fv-form sign-up-form" onSubmit={handleSignUpSubmit}>

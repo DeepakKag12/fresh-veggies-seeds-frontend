@@ -33,6 +33,7 @@ export const initMsg91 = (forceRebind = false) => {
       const widgetId = process.env.REACT_APP_MSG91_WIDGET_ID;
       const tokenAuth = process.env.REACT_APP_MSG91_TOKEN_AUTH;
       if (widgetId && tokenAuth) {
+        container.innerHTML = '';
         const configuration = {
           widgetId,
           tokenAuth,
@@ -87,6 +88,9 @@ export const initMsg91 = (forceRebind = false) => {
         staleBodyContainers.forEach(el => el.remove());
 
         const container = document.getElementById(containerId);
+        if (container) {
+          container.innerHTML = '';
+        }
 
         const configuration = {
           widgetId,
