@@ -77,7 +77,7 @@ function App() {
       <ScrollToTop />
       {!isAuthPage && <NavbarNew />}
       {!isAuthPage && isAdmin && location.pathname.startsWith('/admin') && <AdminHeader />}
-      <main className="flex-grow overflow-x-hidden pb-20 md:pb-0">
+      <main className={`flex-grow overflow-x-hidden ${isAuthPage ? 'pb-0 min-h-screen w-full' : 'pb-20 md:pb-0'}`}>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Storefront />} />
@@ -99,7 +99,7 @@ function App() {
           {/* Checkout (Guest OTP or Authenticated) */}
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/orders" element={<PrivateRoute><MyOrders /></PrivateRoute>} />
-          <Route path="/orders/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
+          <Route path="/order/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
           <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
 
           {/* Admin Routes */}
@@ -119,8 +119,8 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      {/* One footer across the storefront, hidden on /checkout for a distraction-free checkout experience */}
-      {location.pathname !== '/checkout' && <Footer />}
+      {/* Footer hidden on /checkout and on auth pages for a dedicated full-screen focus */}
+      {!isAuthPage && location.pathname !== '/checkout' && <Footer />}
       {/* Admin always sees AdminBottomNav, regular users see BottomNav (hidden on checkout for clean mobile focus) */}
       {!isAuthPage && isAdmin && <AdminBottomNav />}
       {!isAuthPage && !isAdmin && location.pathname !== '/checkout' && <BottomNav />}

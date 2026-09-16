@@ -347,17 +347,17 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          padding: 24px 16px;
+          padding: 16px 12px;
           background: radial-gradient(circle at 10% 20%, rgba(22, 163, 74, 0.08) 0%, rgba(240, 253, 244, 0.6) 90%);
         }
 
         .fv-nav-container {
           width: 100%;
-          max-width: 960px;
+          max-width: 1100px;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 14px;
+          margin-bottom: 12px;
         }
 
         .fv-back-btn {
@@ -385,8 +385,8 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
         .fv-auth-container {
           position: relative;
           width: 100%;
-          max-width: 960px;
-          min-height: 590px;
+          max-width: 1100px;
+          min-height: 640px;
           background: #ffffff;
           border-radius: 28px;
           box-shadow: 0 25px 65px -15px rgba(22, 101, 52, 0.18), 0 0 0 1px rgba(22, 163, 74, 0.12);
