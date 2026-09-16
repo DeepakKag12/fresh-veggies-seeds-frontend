@@ -94,10 +94,6 @@ function App() {
           <Route path="/verify-email/:token" element={<VerifyEmail />} />
           <Route path="/mobile-login" element={<MobileLogin />} />
           <Route path="/about" element={<About />} />
-
-
-
-
           <Route path="/contact" element={<Contact />} />
 
           {/* Checkout (Guest OTP or Authenticated) */}
