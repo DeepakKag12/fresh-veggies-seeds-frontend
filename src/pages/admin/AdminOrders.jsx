@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -18,7 +18,10 @@ import {
   Search,
   CheckCircle2,
   Boxes,
-  History
+  History,
+  Trash2,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import api from '../../utils/api';
 
@@ -39,6 +42,18 @@ const NEXT_PRIMARY_ACTION = {
   Shipped:   { target: 'Delivered', label: 'Mark Delivered', icon: PackageCheck, color: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
 };
 
+const SEGMENTED_TABS = [
+  { id: 'All',                   label: 'All Orders',          badgeKey: 'all' },
+  { id: 'action_required',       label: '⚡ Action Required',   badgeKey: 'actionRequired', highlight: true },
+  { id: 'Pending',               label: 'Pending',             badgeKey: 'pending' },
+  { id: 'Confirmed',             label: 'Confirmed',           badgeKey: 'confirmed' },
+  { id: 'Packed',                label: 'Packed / Processing', badgeKey: 'packed' },
+  { id: 'Shipped',               label: 'Shipped',             badgeKey: 'shipped' },
+  { id: 'Delivered',             label: 'Delivered',           badgeKey: 'delivered' },
+  { id: 'Cancelled',             label: 'Cancelled / Returns', badgeKey: 'cancelled' },
+  { id: 'CancellationRequested', label: 'Cancel Requests',     badgeKey: 'cancellationRequests' },
+];
+
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
@@ -53,17 +68,22 @@ const AdminOrders = () => {
   const [searchParams] = useSearchParams();
   const LIMIT = 20;
 
-  const statusOptions = [
-    { id: 'All', label: 'All Orders' },
-    { id: 'action_required', label: '⚡ Action Required' },
-    { id: 'Pending', label: 'Pending' },
-    { id: 'Confirmed', label: 'Confirmed' },
-    { id: 'Packed', label: 'Packed' },
-    { id: 'Shipped', label: 'Shipped' },
-    { id: 'Delivered', label: 'Delivered' },
-    { id: 'Cancelled', label: 'Cancelled' },
-    { id: 'CancellationRequested', label: 'Cancellation Req' }
-  ];
+  // History deletion confirmation modal state
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    orderId: null,
+    historyId: null,
+    bulkIds: null,
+    title: '',
+    message: ''
+  });
+  const [isDeletingHistory, setIsDeletingHistory] = useState(false);
+
+  const fetchStats = useCallback(() => {
+    api.get('/admin/stats')
+      .then(r => setOrderCounts(r.data?.data || null))
+      .catch(() => {});
+  }, []);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -101,10 +121,8 @@ const AdminOrders = () => {
   }, [fetchOrders]);
 
   useEffect(() => {
-    api.get('/admin/stats')
-      .then(r => setOrderCounts(r.data.data))
-      .catch(() => {});
-  }, []);
+    fetchStats();
+  }, [fetchStats]);
 
   useEffect(() => {
     const statusFromUrl = searchParams.get('status');
@@ -119,11 +137,18 @@ const AdminOrders = () => {
     }
   }, [searchParams]);
 
+  // In-place reactive status update (no full-page reload, no scroll loss)
   const handleUpdateStatus = async (orderId, newStatus, note) => {
     try {
-      await api.put(`/orders/${orderId}/status`, { orderStatus: newStatus, note });
+      const res = await api.put(`/orders/${orderId}/status`, { orderStatus: newStatus, note });
+      const updatedOrder = res.data?.data;
+      if (updatedOrder) {
+        setOrders(prev => prev.map(o => o._id === orderId ? { ...o, ...updatedOrder } : o));
+      } else {
+        setOrders(prev => prev.map(o => o._id === orderId ? { ...o, orderStatus: newStatus } : o));
+      }
       toast.success(`Order moved to ${newStatus}!`);
-      fetchOrders();
+      fetchStats();
     } catch (error) {
       console.error('Error updating status:', error);
       toast.error(error.response?.data?.message || 'Failed to update order status');
@@ -132,9 +157,15 @@ const AdminOrders = () => {
 
   const handleApproveCancel = async (orderId) => {
     try {
-      await api.put(`/orders/${orderId}/approve-cancel`);
+      const res = await api.put(`/orders/${orderId}/approve-cancel`);
+      const updatedOrder = res.data?.data;
+      if (updatedOrder) {
+        setOrders(prev => prev.map(o => o._id === orderId ? { ...o, ...updatedOrder } : o));
+      } else {
+        setOrders(prev => prev.map(o => o._id === orderId ? { ...o, orderStatus: 'Cancelled' } : o));
+      }
       toast.success('Cancellation approved! Refund initiated.');
-      fetchOrders();
+      fetchStats();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to approve cancellation');
     }
@@ -142,21 +173,73 @@ const AdminOrders = () => {
 
   const handleRejectCancel = async (orderId, rejectionReason) => {
     try {
-      await api.put(`/orders/${orderId}/reject-cancel`, { rejectionReason });
+      const res = await api.put(`/orders/${orderId}/reject-cancel`, { rejectionReason });
+      const updatedOrder = res.data?.data;
+      if (updatedOrder) {
+        setOrders(prev => prev.map(o => o._id === orderId ? { ...o, ...updatedOrder } : o));
+      }
       toast.success('Cancellation request rejected.');
-      fetchOrders();
+      fetchStats();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to reject cancellation');
+    }
+  };
+
+  // Open confirmation modal for deleting history
+  const promptDeleteHistoryItem = (orderId, historyId) => {
+    setDeleteModal({
+      isOpen: true,
+      orderId,
+      historyId,
+      bulkIds: null,
+      title: 'Delete Status History Entry',
+      message: 'Are you sure you want to permanently delete this audit log entry from the order history?'
+    });
+  };
+
+  const promptBulkDeleteHistory = (orderId, bulkIds) => {
+    setDeleteModal({
+      isOpen: true,
+      orderId,
+      historyId: null,
+      bulkIds,
+      title: `Delete ${bulkIds.length} History Entries`,
+      message: `Are you sure you want to permanently delete these ${bulkIds.length} selected audit log entries?`
+    });
+  };
+
+  // Execute confirmed history deletion
+  const confirmDeleteHistory = async () => {
+    const { orderId, historyId, bulkIds } = deleteModal;
+    setIsDeletingHistory(true);
+    try {
+      if (bulkIds && bulkIds.length > 0) {
+        const res = await api.post(`/orders/${orderId}/history/bulk-delete`, { historyIds: bulkIds });
+        const newHistory = res.data?.data || [];
+        setOrders(prev => prev.map(o => o._id === orderId ? { ...o, statusHistory: newHistory } : o));
+        toast.success(`${bulkIds.length} audit log entries removed`);
+      } else if (historyId) {
+        const res = await api.delete(`/orders/${orderId}/history/${historyId}`);
+        const newHistory = res.data?.data || [];
+        setOrders(prev => prev.map(o => o._id === orderId ? { ...o, statusHistory: newHistory } : o));
+        toast.success('Status history entry removed');
+      }
+    } catch (error) {
+      console.error('Failed to delete history item:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete history entry');
+    } finally {
+      setIsDeletingHistory(false);
+      setDeleteModal({ isOpen: false, orderId: null, historyId: null, bulkIds: null, title: '', message: '' });
     }
   };
 
   const getStatusColor = (status) => {
     const colors = {
       Pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-      Confirmed: 'bg-fv-cream text-green-800 border-green-300',
+      Confirmed: 'bg-emerald-100 text-emerald-800 border-emerald-300',
       Packed: 'bg-blue-100 text-blue-800 border-blue-300',
       Shipped: 'bg-indigo-100 text-indigo-800 border-indigo-300',
-      Delivered: 'bg-fv-cream text-green-800 border-green-300',
+      Delivered: 'bg-emerald-100 text-emerald-800 border-emerald-300',
       Cancelled: 'bg-red-100 text-red-800 border-red-300',
       CancellationRequested: 'bg-orange-100 text-orange-800 border-orange-300'
     };
@@ -164,7 +247,7 @@ const AdminOrders = () => {
   };
 
   const getStatusIcon = (status) => {
-    const iconProps = { className: 'w-4 h-4' };
+    const iconProps = { className: 'w-3.5 h-3.5' };
     const icons = {
       Pending: <Clock {...iconProps} />,
       Confirmed: <CheckCircle {...iconProps} />,
@@ -181,7 +264,7 @@ const AdminOrders = () => {
     setExpandedOrderId(expandedOrderId === orderId ? null : orderId);
   };
 
-  const stats = {
+  const stats = useMemo(() => ({
     all:                  orderCounts?.totalOrders          ?? total,
     actionRequired:       orderCounts?.actionRequiredCount  ?? ((orderCounts?.pendingOrders || 0) + (orderCounts?.cancellationRequests || 0)),
     pending:              orderCounts?.pendingOrders         ?? orders.filter(o => o.orderStatus === 'Pending').length,
@@ -191,7 +274,7 @@ const AdminOrders = () => {
     delivered:            orderCounts?.deliveredOrders       ?? orders.filter(o => o.orderStatus === 'Delivered').length,
     cancelled:            orderCounts?.cancelledOrders       ?? orders.filter(o => o.orderStatus === 'Cancelled').length,
     cancellationRequests: orderCounts?.cancellationRequests  ?? orders.filter(o => o.orderStatus === 'CancellationRequested').length,
-  };
+  }), [orderCounts, total, orders]);
 
   return (
     <div className="min-h-screen bg-fv-page p-3 md:p-6 lg:p-8 pb-28 md:pb-8">
@@ -206,26 +289,26 @@ const AdminOrders = () => {
               </span>
             </h1>
             <p className="text-xs text-fv-muted mt-0.5">
-              Track fulfillment, verify payments, and handle customer requests
+              Enterprise fulfillment center · Fast in-place status management & audit trails
             </p>
           </div>
 
-          {/* Search and Filters Bar */}
+          {/* Search & Filters */}
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="relative flex-1 sm:w-64">
+            <div className="relative flex-1 sm:w-72">
               <Search className="w-4 h-4 text-fv-muted absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search order #, customer, phone..."
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                className="w-full pl-9 pr-3 py-2 text-xs md:text-sm bg-white dark:bg-gray-800 border border-fv-border rounded-xl focus:outline-hidden focus:ring-2 focus:ring-fv-primary text-fv-heading"
+                className="w-full pl-9 pr-3 py-2 text-xs md:text-sm bg-white dark:bg-gray-800 border border-fv-border rounded-xl focus:outline-hidden focus:ring-2 focus:ring-fv-primary text-fv-heading min-h-[44px]"
               />
             </div>
             {searchQuery && (
               <button
                 onClick={() => { setSearchQuery(''); setPage(1); }}
-                className="text-xs text-fv-muted hover:text-fv-heading px-2 py-1.5"
+                className="text-xs text-fv-muted hover:text-fv-heading px-2.5 py-2 min-h-[44px] flex items-center"
               >
                 Clear
               </button>
@@ -233,38 +316,29 @@ const AdminOrders = () => {
           </div>
         </div>
 
-        {/* Filter Pills (Scrollable horizontally) */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar -mx-1 px-1">
-          {statusOptions.map((tab) => {
+        {/* Segmented Top-Level Workflow Tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar -mx-1 px-1">
+          {SEGMENTED_TABS.map((tab) => {
             const isActive = statusFilter === tab.id;
-            let badgeCount = null;
-            if (tab.id === 'All') badgeCount = stats.all;
-            else if (tab.id === 'action_required') badgeCount = stats.actionRequired;
-            else if (tab.id === 'Pending') badgeCount = stats.pending;
-            else if (tab.id === 'Confirmed') badgeCount = stats.confirmed;
-            else if (tab.id === 'Packed') badgeCount = stats.packed;
-            else if (tab.id === 'Shipped') badgeCount = stats.shipped;
-            else if (tab.id === 'Delivered') badgeCount = stats.delivered;
-            else if (tab.id === 'Cancelled') badgeCount = stats.cancelled;
-            else if (tab.id === 'CancellationRequested') badgeCount = stats.cancellationRequests;
+            const badgeCount = stats[tab.badgeKey];
 
             return (
               <button
                 key={tab.id}
                 onClick={() => { setStatusFilter(tab.id); setPage(1); }}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${
+                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 min-h-[44px] ${
                   isActive
-                    ? 'bg-fv-heading text-white shadow-xs'
-                    : 'bg-white dark:bg-gray-800 text-fv-muted hover:text-fv-heading border border-fv-border'
+                    ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-sm'
+                    : 'bg-white dark:bg-gray-800 text-fv-muted hover:text-fv-heading border border-fv-border hover:border-gray-300'
                 }`}
               >
                 <span>{tab.label}</span>
-                {badgeCount !== null && (
+                {badgeCount !== undefined && badgeCount !== null && (
                   <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-bold leading-none ${
                       isActive
-                        ? 'bg-white/20 text-white'
-                        : tab.id === 'action_required' && badgeCount > 0
+                        ? 'bg-white/20 text-white dark:bg-gray-900/20 dark:text-gray-900'
+                        : tab.highlight && badgeCount > 0
                         ? 'bg-red-500 text-white'
                         : 'bg-fv-surface text-fv-muted'
                     }`}
@@ -287,12 +361,12 @@ const AdminOrders = () => {
         ) : orders.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-fv-border p-12 text-center">
             <Package className="w-12 h-12 text-fv-muted mx-auto mb-3" />
-            <p className="text-base font-semibold text-fv-heading">No orders match your criteria</p>
-            <p className="text-xs text-fv-muted mt-1">Try clearing your search query or filter</p>
+            <p className="text-base font-semibold text-fv-heading">No orders found</p>
+            <p className="text-xs text-fv-muted mt-1">Try clearing filters or checking other status tabs</p>
             {(statusFilter !== 'All' || searchQuery) && (
               <button
                 onClick={() => { setStatusFilter('All'); setSearchQuery(''); setPage(1); }}
-                className="mt-4 px-4 py-2 bg-fv-surface hover:bg-fv-surface text-xs font-semibold rounded-xl"
+                className="mt-4 px-4 py-2.5 bg-fv-surface hover:bg-fv-border text-xs font-semibold rounded-xl min-h-[44px]"
               >
                 Reset Filters
               </button>
@@ -309,6 +383,8 @@ const AdminOrders = () => {
                 onUpdateStatus={handleUpdateStatus}
                 onApproveCancel={handleApproveCancel}
                 onRejectCancel={handleRejectCancel}
+                onPromptDeleteHistory={promptDeleteHistoryItem}
+                onPromptBulkDeleteHistory={promptBulkDeleteHistory}
                 getStatusColor={getStatusColor}
                 getStatusIcon={getStatusIcon}
               />
@@ -322,28 +398,85 @@ const AdminOrders = () => {
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1.5 text-xs font-medium border border-fv-border rounded-lg hover:bg-fv-surface disabled:opacity-40 transition-colors"
+              className="px-3.5 py-2 min-h-[44px] text-xs font-medium border border-fv-border rounded-xl hover:bg-fv-surface disabled:opacity-40 transition-colors"
             >
               ← Prev
             </button>
             <span className="text-xs text-fv-muted px-2">
-              Page {page} of {totalPages} &bull; {total} total orders
+              Page {page} of {totalPages} · {total} total orders
             </span>
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="px-3 py-1.5 text-xs font-medium border border-fv-border rounded-lg hover:bg-fv-surface disabled:opacity-40 transition-colors"
+              className="px-3.5 py-2 min-h-[44px] text-xs font-medium border border-fv-border rounded-xl hover:bg-fv-surface disabled:opacity-40 transition-colors"
             >
               Next →
             </button>
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal for Audit Log Deletion */}
+      <AnimatePresence>
+        {deleteModal.isOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-fv-border space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 flex-shrink-0">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-fv-heading">{deleteModal.title}</h3>
+                  <p className="text-xs text-fv-muted mt-0.5">Admin Security & Audit Control</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-fv-muted leading-relaxed">
+                {deleteModal.message}
+              </p>
+
+              <div className="flex justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  disabled={isDeletingHistory}
+                  onClick={() => setDeleteModal({ isOpen: false, orderId: null, historyId: null, bulkIds: null, title: '', message: '' })}
+                  className="px-4 py-2.5 rounded-xl border border-fv-border text-xs font-semibold text-fv-heading hover:bg-fv-surface min-h-[44px] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeletingHistory}
+                  onClick={confirmDeleteHistory}
+                  className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold min-h-[44px] shadow-xs flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+                >
+                  {isDeletingHistory ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Confirm Delete
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
-// Order Card Component
+// Order Card Component with In-Place Status Updates and History Management
 const OrderCard = ({
   order,
   isExpanded,
@@ -351,6 +484,8 @@ const OrderCard = ({
   onUpdateStatus,
   onApproveCancel,
   onRejectCancel,
+  onPromptDeleteHistory,
+  onPromptBulkDeleteHistory,
   getStatusColor,
   getStatusIcon
 }) => {
@@ -359,6 +494,7 @@ const OrderCard = ({
   const [rejectionReason, setRejectionReason] = useState('');
   const [processing, setProcessing] = useState(false);
   const [customNote, setCustomNote] = useState('');
+  const [selectedHistories, setSelectedHistories] = useState(new Set());
 
   const primaryAction = NEXT_PRIMARY_ACTION[order.orderStatus];
 
@@ -388,9 +524,35 @@ const OrderCard = ({
     setProcessing(false);
   };
 
+  // Toggle single history selection for bulk actions
+  const toggleHistorySelection = (historyId) => {
+    setSelectedHistories(prev => {
+      const next = new Set(prev);
+      if (next.has(historyId)) next.delete(historyId);
+      else next.add(historyId);
+      return next;
+    });
+  };
+
+  // Toggle select all histories
+  const toggleSelectAllHistories = () => {
+    const allIds = (order.statusHistory || []).map(h => h._id).filter(Boolean);
+    if (selectedHistories.size === allIds.length) {
+      setSelectedHistories(new Set());
+    } else {
+      setSelectedHistories(new Set(allIds));
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedHistories.size === 0) return;
+    onPromptBulkDeleteHistory(order._id, Array.from(selectedHistories));
+    setSelectedHistories(new Set());
+  };
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 15 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className="bg-white dark:bg-gray-800 rounded-2xl border border-fv-border shadow-xs overflow-hidden"
     >
@@ -400,13 +562,13 @@ const OrderCard = ({
         onClick={onToggleExpand}
       >
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          {/* Left section */}
+          {/* Left section: Order ID, status, date, customer */}
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
               <span className="font-mono text-sm font-bold text-fv-heading">
                 #{order.orderNumber || order._id.slice(-6).toUpperCase()}
               </span>
-              <span className={`px-2.5 py-0.5 inline-flex items-center gap-1 text-[11px] font-bold rounded-full border ${getStatusColor(order.orderStatus)}`}>
+              <span className={`px-2.5 py-0.5 inline-flex items-center gap-1.5 text-[11px] font-bold rounded-full border ${getStatusColor(order.orderStatus)}`}>
                 {getStatusIcon(order.orderStatus)}
                 {order.orderStatus}
               </span>
@@ -432,7 +594,7 @@ const OrderCard = ({
             </div>
           </div>
 
-          {/* Right section with Price + Status Selector & Actions */}
+          {/* Right section: Price + In-place Action Controls */}
           <div
             className="flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-fv-border"
             onClick={(e) => e.stopPropagation()}
@@ -442,14 +604,14 @@ const OrderCard = ({
               <div className="text-base md:text-lg font-bold text-fv-primary">₹{order.totalAmount}</div>
             </div>
 
-            {/* Quick Actions & Universal Status Dropdown */}
+            {/* Quick in-place workflow actions */}
             <div className="flex items-center gap-1.5 relative flex-wrap justify-end">
               {order.orderStatus === 'CancellationRequested' ? (
                 <button
                   onClick={handleApprove}
                   disabled={processing}
-                  className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1 disabled:opacity-50"
-                  title="Review customer cancellation"
+                  className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50 min-h-[44px]"
+                  title="Review & approve cancellation"
                 >
                   {processing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : 'Review Cancel'}
                 </button>
@@ -457,7 +619,7 @@ const OrderCard = ({
                 <button
                   onClick={() => handleStatusChange(primaryAction.target)}
                   disabled={isUpdating}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50 ${primaryAction.color}`}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50 min-h-[44px] ${primaryAction.color}`}
                   title={`Quick move to ${primaryAction.target}`}
                 >
                   {isUpdating ? (
@@ -471,14 +633,14 @@ const OrderCard = ({
                 </button>
               ) : null}
 
-              {/* Direct Status Selector: Allows switching to ANY status */}
+              {/* Direct In-place Status Selector */}
               <div className="relative">
                 <select
                   value={order.orderStatus}
                   disabled={isUpdating}
                   onChange={(e) => handleStatusChange(e.target.value)}
-                  className="text-xs font-semibold py-1.5 pl-2.5 pr-6 rounded-xl border border-fv-border bg-white dark:bg-gray-800 text-fv-heading hover:border-fv-primary focus:outline-none focus:ring-1 focus:ring-fv-primary cursor-pointer disabled:opacity-50 transition-all shadow-xs"
-                  title="Change status to anything"
+                  className="text-xs font-semibold py-2 pl-2.5 pr-6 rounded-xl border border-fv-border bg-white dark:bg-gray-800 text-fv-heading hover:border-fv-primary focus:outline-hidden focus:ring-1 focus:ring-fv-primary cursor-pointer disabled:opacity-50 transition-all shadow-2xs min-h-[44px]"
+                  title="Change status directly"
                 >
                   {ALL_STATUS_OPTIONS.map((st) => (
                     <option key={st} value={st}>
@@ -493,10 +655,10 @@ const OrderCard = ({
                 </select>
               </div>
 
-              {/* Accordion expander */}
+              {/* Accordion expand toggle */}
               <button
                 onClick={onToggleExpand}
-                className="p-1.5 text-fv-muted hover:text-fv-heading rounded-lg transition-colors"
+                className="p-2.5 text-fv-muted hover:text-fv-heading rounded-xl min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors"
                 title={isExpanded ? 'Collapse details' : 'Expand details'}
               >
                 {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -506,17 +668,17 @@ const OrderCard = ({
         </div>
       </div>
 
-      {/* Expanded Order Details */}
+      {/* Expanded Order Details & Audit History Drawer */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.2 }}
             className="border-t border-fv-border p-4 md:p-6 space-y-5 bg-fv-surface/20"
           >
-            {/* Customer & Address Details */}
+            {/* Customer & Delivery Address */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-fv-border">
                 <h4 className="text-xs font-bold text-fv-muted uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -524,7 +686,7 @@ const OrderCard = ({
                 </h4>
                 <div className="text-sm space-y-1">
                   <p className="font-semibold text-fv-heading">
-                    {order.userId?.name || order.shippingAddress?.name || 'Guest'}
+                    {order.userId?.name || order.shippingAddress?.name || 'Customer'}
                   </p>
                   <p className="text-xs text-fv-muted">
                     Phone: <a href={`tel:${order.shippingAddress?.phone || order.userId?.phone}`} className="text-fv-primary font-medium hover:underline">{order.shippingAddress?.phone || order.userId?.phone || 'N/A'}</a>
@@ -551,7 +713,9 @@ const OrderCard = ({
 
             {/* Order Items */}
             <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-fv-border">
-              <h4 className="text-xs font-bold text-fv-muted uppercase tracking-wider mb-3">Order Items ({order.orderItems?.length || 0})</h4>
+              <h4 className="text-xs font-bold text-fv-muted uppercase tracking-wider mb-3">
+                Order Items ({order.orderItems?.length || 0})
+              </h4>
               <div className="divide-y divide-fv-border">
                 {order.orderItems?.map((item, idx) => (
                   <div key={idx} className="py-2.5 flex items-center justify-between gap-3 text-xs">
@@ -592,18 +756,18 @@ const OrderCard = ({
               </div>
             </div>
 
-            {/* Admin Order Status Control Panel & Audit History */}
+            {/* Status Control Panel */}
             <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-fv-border space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h4 className="text-xs font-bold text-fv-muted uppercase tracking-wider flex items-center gap-1.5">
-                  <PackageCheck className="w-3.5 h-3.5 text-fv-primary" /> Admin Order Status Control
+                  <PackageCheck className="w-3.5 h-3.5 text-fv-primary" /> Admin Workflow Transition
                 </h4>
                 <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full border ${getStatusColor(order.orderStatus)}`}>
                   Current: {order.orderStatus}
                 </span>
               </div>
 
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-2">
                 {ALL_STATUS_OPTIONS.map((st) => {
                   const isCurrent = order.orderStatus === st;
                   return (
@@ -612,13 +776,13 @@ const OrderCard = ({
                       type="button"
                       disabled={isUpdating || isCurrent}
                       onClick={() => handleStatusChange(st, customNote)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+                      className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 min-h-[44px] ${
                         isCurrent
                           ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 cursor-default opacity-90'
-                          : 'bg-fv-surface hover:bg-fv-border/50 text-fv-heading border border-fv-border hover:border-fv-primary'
+                          : 'bg-fv-surface hover:bg-fv-border text-fv-heading border border-fv-border hover:border-fv-primary'
                       } disabled:opacity-50`}
                     >
-                      {isCurrent && <CheckCircle2 className="w-3 h-3 text-emerald-400" />}
+                      {isCurrent && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
                       {st}
                     </button>
                   );
@@ -631,36 +795,114 @@ const OrderCard = ({
                   value={customNote}
                   onChange={(e) => setCustomNote(e.target.value)}
                   placeholder="Optional admin note for this status update..."
-                  className="flex-1 text-xs px-3 py-1.5 bg-fv-surface/40 border border-fv-border rounded-lg text-fv-heading placeholder:text-fv-muted focus:outline-none focus:ring-1 focus:ring-fv-primary"
+                  className="flex-1 text-xs px-3 py-2 bg-fv-surface/40 border border-fv-border rounded-xl text-fv-heading placeholder:text-fv-muted focus:outline-hidden focus:ring-1 focus:ring-fv-primary min-h-[44px]"
                 />
               </div>
+            </div>
 
-              {/* Status Audit History */}
-              {order.statusHistory && order.statusHistory.length > 0 && (
-                <div className="pt-2 border-t border-fv-border">
-                  <p className="text-[11px] font-bold text-fv-muted uppercase tracking-wider mb-2 flex items-center gap-1">
-                    <History className="w-3 h-3 text-fv-muted" /> Status History ({order.statusHistory.length})
-                  </p>
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                    {order.statusHistory.slice().reverse().map((h, idx) => (
-                      <div key={idx} className="text-[11px] flex items-start justify-between gap-2 p-1.5 bg-fv-surface/40 rounded-lg border border-fv-border/60">
-                        <div>
-                          <span className="font-semibold text-fv-heading">{h.status}</span>
-                          {h.from && <span className="text-fv-muted"> (from {h.from})</span>}
-                          {h.note && <p className="text-fv-muted italic text-[10px] mt-0.5">{h.note}</p>}
-                        </div>
-                        <span className="text-[10px] text-fv-muted whitespace-nowrap">
-                          {new Date(h.changedAt).toLocaleString('en-IN', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                      </div>
-                    ))}
+            {/* Status Audit History with Item & Bulk Deletion */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-fv-border space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h4 className="text-xs font-bold text-fv-heading uppercase tracking-wider flex items-center gap-1.5">
+                  <History className="w-4 h-4 text-fv-primary" /> Status History & Audit Trail ({order.statusHistory?.length || 0})
+                </h4>
+
+                {order.statusHistory && order.statusHistory.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={toggleSelectAllHistories}
+                      className="text-xs text-fv-muted hover:text-fv-heading flex items-center gap-1 px-2 py-1.5 rounded-lg border border-fv-border"
+                    >
+                      {selectedHistories.size === order.statusHistory.length ? (
+                        <CheckSquare className="w-3.5 h-3.5 text-fv-primary" />
+                      ) : (
+                        <Square className="w-3.5 h-3.5" />
+                      )}
+                      <span>Select All</span>
+                    </button>
+
+                    {selectedHistories.size > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleBulkDelete}
+                        className="text-xs bg-red-50 hover:bg-red-100 dark:bg-red-950/30 text-red-600 dark:text-red-400 font-semibold flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-red-200 dark:border-red-900/40"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete ({selectedHistories.size})</span>
+                      </button>
+                    )}
                   </div>
+                )}
+              </div>
+
+              {order.statusHistory && order.statusHistory.length > 0 ? (
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {order.statusHistory.slice().reverse().map((h, idx) => {
+                    const isSelected = selectedHistories.has(h._id);
+                    return (
+                      <div
+                        key={h._id || idx}
+                        className={`text-xs flex items-center justify-between gap-3 p-2.5 rounded-xl border transition-colors ${
+                          isSelected
+                            ? 'bg-red-50/50 dark:bg-red-950/20 border-red-300 dark:border-red-900/50'
+                            : 'bg-fv-surface/40 border-fv-border/60 hover:bg-fv-surface/70'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          {h._id && (
+                            <button
+                              type="button"
+                              onClick={() => toggleHistorySelection(h._id)}
+                              className="text-fv-muted hover:text-fv-heading flex-shrink-0"
+                            >
+                              {isSelected ? (
+                                <CheckSquare className="w-4 h-4 text-red-600" />
+                              ) : (
+                                <Square className="w-4 h-4" />
+                              )}
+                            </button>
+                          )}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 font-semibold text-fv-heading">
+                              <span>{h.status}</span>
+                              {h.from && (
+                                <span className="text-fv-muted flex items-center gap-1 text-[11px]">
+                                  (from {h.from})
+                                </span>
+                              )}
+                            </div>
+                            {h.note && <p className="text-fv-muted italic text-[11px] mt-0.5">{h.note}</p>}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="text-[10px] text-fv-muted whitespace-nowrap">
+                            {new Date(h.changedAt).toLocaleString('en-IN', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+
+                          {h._id && (
+                            <button
+                              type="button"
+                              onClick={() => onPromptDeleteHistory(order._id, h._id)}
+                              className="p-1.5 text-fv-muted hover:text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                              title="Delete this history entry"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
+              ) : (
+                <p className="text-xs text-fv-muted italic py-2">No history logs recorded for this order yet.</p>
               )}
             </div>
 
@@ -682,14 +924,14 @@ const OrderCard = ({
                     <button
                       onClick={handleApprove}
                       disabled={processing}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs disabled:opacity-50"
+                      className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs disabled:opacity-50 min-h-[44px]"
                     >
                       {processing ? 'Processing...' : 'Approve & Refund'}
                     </button>
                     <button
                       onClick={() => setShowRejectInput(true)}
                       disabled={processing}
-                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold shadow-xs disabled:opacity-50"
+                      className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold shadow-xs disabled:opacity-50 min-h-[44px]"
                     >
                       Reject Request
                     </button>
@@ -707,13 +949,13 @@ const OrderCard = ({
                       <button
                         onClick={handleReject}
                         disabled={processing}
-                        className="px-3 py-1.5 bg-red-600 text-white rounded-xl text-xs font-semibold disabled:opacity-50"
+                        className="px-3.5 py-2 bg-red-600 text-white rounded-xl text-xs font-semibold disabled:opacity-50 min-h-[44px]"
                       >
                         Confirm Rejection
                       </button>
                       <button
                         onClick={() => setShowRejectInput(false)}
-                        className="px-3 py-1.5 bg-fv-surface text-fv-heading rounded-xl text-xs font-semibold"
+                        className="px-3.5 py-2 bg-fv-surface text-fv-heading rounded-xl text-xs font-semibold min-h-[44px]"
                       >
                         Cancel
                       </button>
@@ -730,3 +972,4 @@ const OrderCard = ({
 };
 
 export default AdminOrders;
+
