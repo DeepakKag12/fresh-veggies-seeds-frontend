@@ -11,7 +11,8 @@ import {
   retryMsg91Otp,
   verifyMsg91Otp,
   isValidIndianMobile,
-  cleanupMsg91Captcha
+  cleanupMsg91Captcha,
+  renderMsg91Captcha
 } from '../../utils/msg91';
 
 /* ─── Real Customer Name Check ─────────────────────────────────────────── */
@@ -71,6 +72,16 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
       cleanupMsg91Captcha();
     };
   }, []);
+
+  // Ensure CAPTCHA renders inside the in-card container whenever Phone tab is active
+  useEffect(() => {
+    if (signInMethod === 'phone' && phoneStep === 'phone') {
+      const timer = setTimeout(() => {
+        renderMsg91Captcha('msg91-captcha-container');
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [signInMethod, phoneStep]);
 
   // Cooldown countdown timer
   useEffect(() => {
@@ -422,8 +433,8 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          padding: 16px 12px;
-          background: radial-gradient(circle at 10% 20%, rgba(22, 163, 74, 0.08) 0%, rgba(240, 253, 244, 0.6) 90%);
+          padding: 20px 14px;
+          background: radial-gradient(circle at 10% 20%, rgba(22, 163, 74, 0.08) 0%, rgba(240, 253, 244, 0.7) 90%);
         }
 
         .fv-nav-container {
@@ -432,29 +443,68 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 12px;
+          padding: 0 4px;
+          margin-bottom: 14px;
+        }
+
+        .fv-brand-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          text-decoration: none;
+          transition: transform 0.2s ease;
+        }
+
+        .fv-brand-link:hover {
+          transform: translateY(-1px);
+        }
+
+        .fv-brand-icon {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #ffffff;
+          box-shadow: 0 3px 8px rgba(22, 163, 74, 0.3);
+        }
+
+        .fv-brand-title {
+          font-size: 1.15rem;
+          font-weight: 800;
+          color: #14532d;
+          letter-spacing: -0.02em;
         }
 
         .fv-back-btn {
           display: inline-flex;
           align-items: center;
-          gap: 6px;
+          gap: 7px;
           background: #ffffff;
-          border: 1px solid rgba(22, 163, 74, 0.2);
+          border: 1px solid rgba(22, 163, 74, 0.25);
           color: #15803d;
-          font-weight: 600;
+          font-weight: 700;
           font-size: 0.85rem;
-          padding: 8px 16px;
-          border-radius: 50px;
+          padding: 8px 18px;
+          border-radius: 9999px;
           text-decoration: none;
-          transition: all 0.2s ease;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+          cursor: pointer;
         }
 
         .fv-back-btn:hover {
           background: #f0fdf4;
           border-color: #16a34a;
-          transform: translateY(-1px);
+          color: #166534;
+          transform: translateY(-1.5px);
+          box-shadow: 0 4px 14px rgba(22, 163, 74, 0.15);
+        }
+
+        .fv-back-btn:active {
+          transform: scale(0.97);
         }
 
         .fv-auth-container {
@@ -647,31 +697,84 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
           background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
           border: none;
           outline: none;
-          height: 46px;
-          border-radius: 12px;
+          height: 48px;
+          border-radius: 14px;
           color: #ffffff;
           font-weight: 700;
           margin: 12px 0 6px 0;
           cursor: pointer;
-          transition: all 0.25s ease;
-          font-size: 0.925rem;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          font-size: 0.95rem;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
-          box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
+          box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3);
         }
 
-        .fv-btn:hover {
+        .fv-btn:hover:not(:disabled) {
           background: linear-gradient(135deg, #15803d 0%, #166534 100%);
-          transform: translateY(-1px);
-          box-shadow: 0 6px 20px rgba(22, 163, 74, 0.45);
+          transform: translateY(-1.5px);
+          box-shadow: 0 6px 20px rgba(22, 163, 74, 0.4);
+        }
+
+        .fv-btn:active:not(:disabled) {
+          transform: scale(0.98);
         }
 
         .fv-btn:disabled {
-          opacity: 0.65;
+          background: #e2e8f0;
+          color: #94a3b8;
+          box-shadow: none;
           cursor: not-allowed;
           transform: none;
+        }
+
+        .fv-resend-btn {
+          background: #f0fdf4;
+          border: 1px solid rgba(22, 163, 74, 0.25);
+          color: #15803d;
+          font-weight: 700;
+          font-size: 0.8rem;
+          padding: 6px 14px;
+          border-radius: 9999px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .fv-resend-btn:hover:not(:disabled) {
+          background: #dcfce7;
+          border-color: #16a34a;
+          transform: translateY(-1px);
+        }
+
+        .fv-resend-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .fv-edit-badge {
+          background: #f0fdf4;
+          border: 1px solid rgba(22, 163, 74, 0.2);
+          color: #15803d;
+          font-weight: 700;
+          font-size: 0.75rem;
+          padding: 4px 10px;
+          border-radius: 8px;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .fv-edit-badge:hover {
+          background: #dcfce7;
+          border-color: #16a34a;
+          transform: translateY(-0.5px);
         }
 
         .fv-panels-container {
@@ -725,11 +828,11 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
         .fv-btn.transparent {
           margin: 0;
           background: rgba(255, 255, 255, 0.15);
-          border: 1.5px solid rgba(255, 255, 255, 0.7);
+          border: 1.5px solid rgba(255, 255, 255, 0.75);
           backdrop-filter: blur(8px);
-          width: 150px;
-          height: 42px;
-          border-radius: 12px;
+          width: 155px;
+          height: 44px;
+          border-radius: 14px;
           font-weight: 700;
           font-size: 0.875rem;
           color: #ffffff;
@@ -929,18 +1032,17 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
         }
       `}</style>
 
-      {/* ── Top Navigation Bar ── */}
+      {/* ── Sleek Top Navigation Bar ── */}
       <div className="fv-nav-container">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="fv-back-btn"
-        >
-          <ArrowLeft className="w-4 h-4" /> Go back
-        </button>
+        <Link to="/" className="fv-brand-link">
+          <div className="fv-brand-icon">
+            <Sprout className="w-5 h-5" />
+          </div>
+          <span className="fv-brand-title">Fresh Veggies</span>
+        </Link>
 
         <Link to="/" className="fv-back-btn">
-          Continue shopping
+          <ArrowLeft className="w-4 h-4" /> Return to Store
         </Link>
       </div>
 
@@ -1062,7 +1164,7 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                         />
                       </div>
 
-                      {/* In-card CAPTCHA container if required */}
+                      {/* In-card CAPTCHA container */}
                       <div className="w-full max-w-[350px] my-1">
                         <div
                           id="msg91-captcha-container"
@@ -1091,9 +1193,9 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                         <button
                           type="button"
                           onClick={() => { setPhoneStep('phone'); setPhoneError(''); }}
-                          className="text-green-700 font-bold hover:underline flex items-center gap-1"
+                          className="fv-edit-badge"
                         >
-                          <Edit3 className="w-3 h-3" /> Edit
+                          <Edit3 className="w-3 h-3" /> Change Number
                         </button>
                       </div>
 
@@ -1121,17 +1223,19 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                       </div>
 
                       {/* Resend button / countdown */}
-                      <div className="mb-3 text-xs">
+                      <div className="mb-3 text-xs flex justify-center">
                         {cooldown > 0 ? (
-                          <span className="text-gray-500">Resend OTP in <strong>{cooldown}s</strong></span>
+                          <span className="text-gray-500 font-medium bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
+                            Resend code in <strong>{cooldown}s</strong>
+                          </span>
                         ) : (
                           <button
                             type="button"
                             onClick={handleResendPhoneOtp}
                             disabled={phoneLoading}
-                            className="text-green-700 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                            className="fv-resend-btn"
                           >
-                            <RotateCw className="w-3.5 h-3.5" /> Resend OTP
+                            <RotateCw className="w-3.5 h-3.5" /> Resend OTP Code
                           </button>
                         )}
                       </div>

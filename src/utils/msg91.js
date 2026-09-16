@@ -18,17 +18,17 @@ let lastRenderedContainer = null;
  * Returns a Promise that resolves when window.sendOtp, window.retryOtp,
  * and window.verifyOtp are ready to be invoked.
  */
-export const initMsg91 = () => {
+export const initMsg91 = (forceRebind = false) => {
   const containerId = 'msg91-captcha-container';
   const container = typeof document !== 'undefined' ? document.getElementById(containerId) : null;
 
   // If already initialized and currently mounted container is already rendered, resolve immediately (idempotent)
-  if (isInitialized && typeof window.sendOtp === 'function' && container && container === lastRenderedContainer) {
+  if (!forceRebind && isInitialized && typeof window.sendOtp === 'function' && container && container === lastRenderedContainer) {
     return Promise.resolve();
   }
 
   // If script already loaded and methods exposed, but we have a newly mounted container (e.g. after SPA navigation)
-  if (typeof window.initSendOTP === 'function' && container && container !== lastRenderedContainer) {
+  if (typeof window.initSendOTP === 'function' && container && (forceRebind || container !== lastRenderedContainer)) {
     try {
       const widgetId = process.env.REACT_APP_MSG91_WIDGET_ID;
       const tokenAuth = process.env.REACT_APP_MSG91_TOKEN_AUTH;
@@ -61,7 +61,7 @@ export const initMsg91 = () => {
     }
   }
 
-  if (scriptPromise) {
+  if (scriptPromise && !forceRebind) {
     return scriptPromise;
   }
 
@@ -291,13 +291,58 @@ export const isCaptchaVerified = () => {
 };
 
 /**
+ * Re-render in-card CAPTCHA inside a target container.
+ */
+export const renderMsg91Captcha = (targetContainerId = 'msg91-captcha-container') => {
+  if (typeof document === 'undefined') return;
+  const container = document.getElementById(targetContainerId);
+  if (!container) return;
+
+  const widgetId = process.env.REACT_APP_MSG91_WIDGET_ID;
+  const tokenAuth = process.env.REACT_APP_MSG91_TOKEN_AUTH;
+  if (!widgetId || !tokenAuth) return;
+
+  if (typeof window.initSendOTP === 'function') {
+    try {
+      const configuration = {
+        widgetId,
+        tokenAuth,
+        exposeMethods: true,
+        captchaRenderId: targetContainerId,
+        success: (data) => {
+          console.log('MSG91 success event:', data);
+        },
+        failure: (error) => {
+          console.warn('MSG91 failure event:', error);
+        },
+        captchaVerified: (status) => {
+          console.log('MSG91 captcha verification status:', status);
+          if (typeof window.onMsg91CaptchaVerified === 'function') {
+            window.onMsg91CaptchaVerified(status);
+          }
+        }
+      };
+      window.initSendOTP(configuration);
+      lastRenderedContainer = container;
+      isInitialized = true;
+    } catch (e) {
+      console.warn('Error in renderMsg91Captcha:', e);
+    }
+  } else {
+    initMsg91(true).then(() => {
+      renderMsg91Captcha(targetContainerId);
+    }).catch(() => {});
+  }
+};
+
+/**
  * Completely clean up any lingering floating captcha elements from body.
  */
 export const cleanupMsg91Captcha = () => {
   if (typeof document === 'undefined') return;
   const bodyContainers = document.querySelectorAll('body > #msg91-captcha-container, body > [id*="msg91"], iframe[src*="msg91"]');
   bodyContainers.forEach((el) => {
-    // Only remove if directly under body and not inside active guest OTP form
+    // Only remove if directly under body and not inside active guest/login OTP form
     if (el.parentElement === document.body) {
       el.remove();
     }
