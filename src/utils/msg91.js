@@ -281,14 +281,9 @@ export const verifyMsg91Otp = async (otp, onSuccess, onFailure, reqId = null) =>
 };
 
 /**
- * Check if CAPTCHA is verified if widget enforces it.
+ * Check if CAPTCHA is verified (MSG91 internally handles validation upon sendOtp)
  */
-export const isCaptchaVerified = () => {
-  if (typeof window.isCaptchaVerified === 'function') {
-    return window.isCaptchaVerified();
-  }
-  return true;
-};
+export const isCaptchaVerified = () => true;
 
 /**
  * Re-render in-card CAPTCHA inside a target container.

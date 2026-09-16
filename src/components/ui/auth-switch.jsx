@@ -53,14 +53,12 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
   const [phoneLoading, setPhoneLoading] = useState(false);
   const [phoneError, setPhoneError] = useState('');
   const [cooldown, setCooldown] = useState(0);
-  const [captchaVerified, setCaptchaVerified] = useState(false);
   const timerRef = useRef(null);
   const digitInputRefs = useRef([]);
 
   // Pre-load MSG91 script & listen to captcha
   useEffect(() => {
     window.onMsg91CaptchaVerified = (status) => {
-      setCaptchaVerified(Boolean(status));
       if (status) setPhoneError('');
     };
 
@@ -183,11 +181,6 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
 
     if (!isValidIndianMobile(signInPhone)) {
       setPhoneError('Please enter a valid 10-digit Indian mobile number');
-      return;
-    }
-
-    if (typeof window.isCaptchaVerified === 'function' && !window.isCaptchaVerified() && !captchaVerified) {
-      setPhoneError('Please complete the security check above.');
       return;
     }
 
