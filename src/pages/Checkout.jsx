@@ -6,8 +6,10 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import api from '../utils/api';
 import { fetchCurrentAddress } from '../utils/locationService';
+import { lookupPincode, isValidPincodeFormat } from '../utils/pincodeService';
 import GuestMobileOtpStep from '../components/checkout/GuestMobileOtpStep';
 
 /* ─── Standardized Proportional Input & Label Styles ───────────────────── */
@@ -19,110 +21,186 @@ const inputCls =
 const labelCls = 'block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
 
 /* ─── Reusable Address Form Fields ─────────────────────────────────────── */
-const AddressFields = ({ addr, setAddr, gpsLoading, onUseLocation }) => (
-  <div className="space-y-3 sm:space-y-3.5">
-    {/* GPS Location Button */}
-    <button
-      type="button"
-      onClick={onUseLocation}
-      disabled={gpsLoading}
-      className="w-full flex items-center justify-center gap-2 py-2.5 px-3.5 min-h-[44px]
-                 rounded-xl border border-dashed border-fv-primary/60 hover:border-fv-primary
-                 text-fv-primary hover:bg-fv-cream dark:hover:bg-green-900/20
-                 text-xs sm:text-sm font-semibold transition-all disabled:opacity-60 active:scale-[0.99]"
-    >
-      {gpsLoading
-        ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Detecting location…</span></>
-        : <><Navigation className="w-4 h-4" /><span>Use Current Location</span></>}
-    </button>
+const AddressFields = ({ addr, setAddr, gpsLoading, onUseLocation, pincodeStatus, setPincodeStatus }) => {
+  const [checkingPin, setCheckingPin] = useState(false);
 
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
-      <div>
-        <label className={labelCls}>Full Name *</label>
-        <input
-          type="text"
-          required
-          autoComplete="name"
-          placeholder="Receiver's name"
-          value={addr.name}
-          onChange={e => setAddr(a => ({ ...a, name: e.target.value }))}
-          className={inputCls}
-        />
-      </div>
-      <div>
-        <label className={labelCls}>Phone Number *</label>
-        <input
-          type="tel"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          maxLength={10}
-          required
-          autoComplete="tel"
-          placeholder="10-digit mobile"
-          value={addr.phone}
-          onChange={e => setAddr(a => ({ ...a, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
-          className={inputCls}
-        />
-      </div>
-      <div className="sm:col-span-2">
-        <label className={labelCls}>House / Street / Area *</label>
-        <input
-          type="text"
-          required
-          autoComplete="street-address"
-          placeholder="Flat / House no., Street, Area, Landmark"
-          value={addr.street}
-          onChange={e => setAddr(a => ({ ...a, street: e.target.value }))}
-          className={inputCls}
-        />
-      </div>
-      <div>
-        <label className={labelCls}>City *</label>
-        <input
-          type="text"
-          required
-          autoComplete="address-level2"
-          placeholder="City"
-          value={addr.city}
-          onChange={e => setAddr(a => ({ ...a, city: e.target.value }))}
-          className={inputCls}
-        />
-      </div>
-      <div>
-        <label className={labelCls}>State *</label>
-        <input
-          type="text"
-          required
-          autoComplete="address-level1"
-          placeholder="State"
-          value={addr.state}
-          onChange={e => setAddr(a => ({ ...a, state: e.target.value }))}
-          className={inputCls}
-        />
-      </div>
-      <div className="sm:col-span-2">
-        <label className={labelCls}>Pincode *</label>
-        <input
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          maxLength={6}
-          required
-          autoComplete="postal-code"
-          placeholder="6-digit pincode"
-          value={addr.pincode}
-          onChange={e => setAddr(a => ({ ...a, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
-          className={inputCls}
-        />
+  const handlePincodeChange = async (e) => {
+    const rawVal = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setAddr(a => ({ ...a, pincode: rawVal }));
+
+    if (rawVal.length === 6) {
+      setCheckingPin(true);
+      if (setPincodeStatus) setPincodeStatus({ loading: true, valid: null, message: 'Verifying PIN code…' });
+      try {
+        const res = await lookupPincode(rawVal);
+        if (res.valid) {
+          setAddr(a => ({
+            ...a,
+            pincode: rawVal,
+            state: a.state || res.state || '',
+            city: a.city || res.district || res.city || '',
+          }));
+          if (setPincodeStatus) {
+            setPincodeStatus({
+              loading: false,
+              valid: true,
+              message: res.message ? `Verified: ${res.message}` : 'Valid Indian PIN code',
+            });
+          }
+        } else {
+          if (setPincodeStatus) {
+            setPincodeStatus({
+              loading: false,
+              valid: false,
+              message: res.message || 'Invalid PIN code. No postal records found.',
+            });
+          }
+        }
+      } catch {
+        if (setPincodeStatus) setPincodeStatus({ loading: false, valid: true, message: 'Valid format' });
+      } finally {
+        setCheckingPin(false);
+      }
+    } else {
+      if (setPincodeStatus) setPincodeStatus({ loading: false, valid: null, message: '' });
+    }
+  };
+
+  return (
+    <div className="space-y-3 sm:space-y-3.5">
+      {/* GPS Location Button */}
+      <button
+        type="button"
+        onClick={onUseLocation}
+        disabled={gpsLoading}
+        className="w-full flex items-center justify-center gap-2 py-2.5 px-3.5 min-h-[44px]
+                   rounded-xl border border-dashed border-fv-primary/60 hover:border-fv-primary
+                   text-fv-primary hover:bg-fv-cream dark:hover:bg-green-900/20
+                   text-xs sm:text-sm font-semibold transition-all disabled:opacity-60 active:scale-[0.99] cursor-pointer"
+      >
+        {gpsLoading
+          ? <><Loader2 className="w-4 h-4 animate-spin" /><span>Detecting location…</span></>
+          : <><Navigation className="w-4 h-4" /><span>Use Current Location</span></>}
+      </button>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
+        <div>
+          <label className={labelCls}>Full Name *</label>
+          <input
+            type="text"
+            required
+            autoComplete="name"
+            placeholder="Receiver's name"
+            value={addr.name || ''}
+            onChange={e => setAddr(a => ({ ...a, name: e.target.value }))}
+            className={inputCls}
+          />
+        </div>
+        <div>
+          <label className={labelCls}>Phone Number *</label>
+          <input
+            type="tel"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={10}
+            required
+            autoComplete="tel"
+            placeholder="10-digit mobile"
+            value={addr.phone || ''}
+            onChange={e => setAddr(a => ({ ...a, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+            className={inputCls}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label className={labelCls}>House / Street / Area *</label>
+          <input
+            type="text"
+            required
+            autoComplete="street-address"
+            placeholder="Flat / House no., Street, Area, Landmark"
+            value={addr.street || ''}
+            onChange={e => setAddr(a => ({ ...a, street: e.target.value }))}
+            className={inputCls}
+          />
+        </div>
+        <div>
+          <label className={labelCls}>City / District *</label>
+          <input
+            type="text"
+            required
+            autoComplete="address-level2"
+            placeholder="City or District"
+            value={addr.city || ''}
+            onChange={e => setAddr(a => ({ ...a, city: e.target.value }))}
+            className={inputCls}
+          />
+        </div>
+        <div>
+          <label className={labelCls}>State *</label>
+          <input
+            type="text"
+            required
+            autoComplete="address-level1"
+            placeholder="State"
+            value={addr.state || ''}
+            onChange={e => setAddr(a => ({ ...a, state: e.target.value }))}
+            className={inputCls}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <div className="flex items-center justify-between mb-1">
+            <label className={labelCls}>PIN Code *</label>
+            {checkingPin && (
+              <span className="text-[11px] text-fv-primary flex items-center gap-1">
+                <Loader2 className="w-3 h-3 animate-spin" /> Verifying PIN…
+              </span>
+            )}
+          </div>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={6}
+            required
+            autoComplete="postal-code"
+            placeholder="6-digit Indian PIN code (e.g. 452001)"
+            value={addr.pincode || ''}
+            onChange={handlePincodeChange}
+            className={`${inputCls} ${
+              pincodeStatus?.valid === false
+                ? 'border-red-500 focus:border-red-500 focus:ring-red-200'
+                : pincodeStatus?.valid === true
+                ? 'border-green-500 focus:border-green-500 focus:ring-green-200'
+                : ''
+            }`}
+          />
+          {pincodeStatus?.message && (
+            <div className={`mt-1.5 flex items-start gap-1.5 text-xs ${
+              pincodeStatus.valid === true
+                ? 'text-green-700 dark:text-green-400'
+                : pincodeStatus.valid === false
+                ? 'text-red-600 dark:text-red-400'
+                : 'text-gray-500'
+            }`}>
+              {pincodeStatus.valid === true ? (
+                <CheckCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-green-600" />
+              ) : pincodeStatus.valid === false ? (
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-red-500" />
+              ) : null}
+              <span>{pincodeStatus.message}</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 /* ─── Main Checkout Component ──────────────────────────────────────────── */
 const Checkout = () => {
   const { cartItems, getCartTotal, clearCart, cartReady } = useCart();
   const { user, addAddress } = useAuth();
+  const { settings: storeSettings } = useSettings();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
@@ -143,6 +221,7 @@ const Checkout = () => {
     state: '',
     pincode: '',
   });
+  const [pincodeStatus, setPincodeStatus] = useState({ loading: false, valid: null, message: '' });
 
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState('');
@@ -176,17 +255,6 @@ const Checkout = () => {
   const [couponError, setCouponError] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
 
-  /* Store settings state */
-  const [storeSettings, setStoreSettings] = useState(null);
-
-  useEffect(() => {
-    api.get('/settings')
-      .then(res => {
-        if (res.data?.success) setStoreSettings(res.data.data);
-      })
-      .catch(() => {});
-  }, []);
-
   /* Redirect to cart if empty */
   useEffect(() => {
     if (cartReady && cartItems.length === 0) navigate('/cart', { replace: true });
@@ -215,8 +283,25 @@ const Checkout = () => {
         state: detected.state || a.state,
         pincode: detected.pincode || a.pincode,
       }));
+
+      if (detected.pincode && detected.pincode.length === 6) {
+        lookupPincode(detected.pincode).then(res => {
+          if (res.valid) {
+            setPincodeStatus({
+              loading: false,
+              valid: true,
+              message: res.message ? `Verified: ${res.message}` : 'Valid Indian PIN code',
+            });
+            setNewAddr(a => ({
+              ...a,
+              state: a.state || res.state || '',
+              city: a.city || res.district || res.city || '',
+            }));
+          }
+        }).catch(() => {});
+      }
     } catch (err) {
-      setGpsError(err.message);
+      setGpsError(err.message || 'Location access failed. Please type your address manually below.');
     } finally {
       setGpsLoading(false);
     }
@@ -422,8 +507,18 @@ const Checkout = () => {
     }
 
     const shippingAddress = resolveShippingAddress();
-    if (!shippingAddress.street || !shippingAddress.city || !shippingAddress.pincode) {
-      setError('Please provide your delivery address (Street, City, Pincode) in Step 2.');
+    if (!shippingAddress.name?.trim() || !shippingAddress.phone?.trim() || !shippingAddress.street?.trim() || !shippingAddress.city?.trim() || !shippingAddress.state?.trim() || !shippingAddress.pincode?.trim()) {
+      setError('Please provide a complete delivery address (Name, Phone, Street, City, State, PIN Code) in Step 2.');
+      return;
+    }
+
+    if (!isValidPincodeFormat(shippingAddress.pincode)) {
+      setError('Please enter a valid 6-digit Indian PIN code (e.g. 452001).');
+      return;
+    }
+
+    if (mode === 'new' && pincodeStatus?.valid === false) {
+      setError(pincodeStatus.message || 'Invalid PIN code. Please check and enter a valid PIN code.');
       return;
     }
 
@@ -795,48 +890,87 @@ const Checkout = () => {
                   {savedAddresses.length > 0 && (
                     <div className="space-y-2 mb-4">
                       {savedAddresses.map(addr => (
-                        <label
+                        <div
                           key={addr._id}
-                          onClick={() => { setMode('saved'); setSelectedSavedId(addr._id); }}
-                          className={`flex items-start gap-2.5 sm:gap-3 p-3 sm:p-3.5 border-2 rounded-xl cursor-pointer transition-all ${
+                          className={`flex items-start justify-between gap-2.5 sm:gap-3 p-3 sm:p-3.5 border-2 rounded-xl transition-all ${
                             mode === 'saved' && selectedSavedId === addr._id
                               ? 'border-fv-primary bg-fv-cream dark:bg-green-900/20'
                               : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                           }`}
                         >
-                          <div className={`mt-0.5 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                            mode === 'saved' && selectedSavedId === addr._id ? 'border-fv-primary bg-fv-primary' : 'border-gray-400'
-                          }`}>
-                            {mode === 'saved' && selectedSavedId === addr._id && (
-                              <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" strokeWidth={3} />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-bold text-gray-900 dark:text-white text-xs sm:text-sm">
-                                {addr.name || user?.name}
-                              </span>
-                              {addr.isDefault && (
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold bg-fv-primary/10 text-fv-primary rounded-full">
-                                  <Star className="w-2.5 h-2.5" fill="currentColor" /> Default
-                                </span>
+                          <label
+                            onClick={() => { setMode('saved'); setSelectedSavedId(addr._id); }}
+                            className="flex items-start gap-2.5 sm:gap-3 flex-1 cursor-pointer min-w-0"
+                          >
+                            <div className={`mt-0.5 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                              mode === 'saved' && selectedSavedId === addr._id ? 'border-fv-primary bg-fv-primary' : 'border-gray-400'
+                            }`}>
+                              {mode === 'saved' && selectedSavedId === addr._id && (
+                                <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" strokeWidth={3} />
                               )}
                             </div>
-                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-0.5 leading-relaxed">
-                              {addr.street}, {addr.city}, {addr.state} — {addr.pincode}
-                            </p>
-                            {addr.phone && (
-                              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">📞 {addr.phone}</p>
-                            )}
-                          </div>
-                        </label>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-gray-900 dark:text-white text-xs sm:text-sm">
+                                  {addr.name || user?.name}
+                                </span>
+                                {addr.isDefault && (
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold bg-fv-primary/10 text-fv-primary rounded-full">
+                                    <Star className="w-2.5 h-2.5" fill="currentColor" /> Default
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-0.5 leading-relaxed">
+                                {addr.street}, {addr.city}, {addr.state} — {addr.pincode}
+                              </p>
+                              {addr.phone && (
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">📞 {addr.phone}</p>
+                              )}
+                            </div>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewAddr({
+                                name: addr.name || user?.name || '',
+                                phone: addr.phone || user?.phone || '',
+                                street: addr.street || '',
+                                city: addr.city || '',
+                                state: addr.state || '',
+                                pincode: addr.pincode || '',
+                              });
+                              setMode('new');
+                              if (addr.pincode && addr.pincode.length === 6) {
+                                lookupPincode(addr.pincode).then(res => {
+                                  if (res.valid) setPincodeStatus({ loading: false, valid: true, message: `Verified: ${res.message}` });
+                                }).catch(() => {});
+                              }
+                            }}
+                            className="px-2.5 py-1 text-xs font-semibold text-fv-primary hover:bg-fv-primary/10 rounded-lg transition-colors shrink-0"
+                          >
+                            Edit
+                          </button>
+                        </div>
                       ))}
 
                       {/* Add new address toggle */}
                       <button
                         type="button"
-                        onClick={() => setMode(mode === 'new' ? 'saved' : 'new')}
-                        className="flex items-center justify-center gap-1.5 w-full py-2.5 px-3 border border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:border-fv-primary hover:text-fv-primary transition-colors"
+                        onClick={() => {
+                          setMode(mode === 'new' ? 'saved' : 'new');
+                          if (mode === 'saved') {
+                            setNewAddr({
+                              name: user?.name || '',
+                              phone: user?.phone || '',
+                              street: '',
+                              city: '',
+                              state: '',
+                              pincode: '',
+                            });
+                            setPincodeStatus({ loading: false, valid: null, message: '' });
+                          }
+                        }}
+                        className="flex items-center justify-center gap-1.5 w-full py-2.5 px-3 border border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 hover:border-fv-primary hover:text-fv-primary transition-colors cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         {mode === 'new' ? 'Use saved address instead' : 'Add / use a different address'}
@@ -859,6 +993,8 @@ const Checkout = () => {
                         setAddr={setNewAddr}
                         gpsLoading={gpsLoading}
                         onUseLocation={handleUseLocation}
+                        pincodeStatus={pincodeStatus}
+                        setPincodeStatus={setPincodeStatus}
                       />
 
                       <label className="flex items-center gap-2.5 cursor-pointer select-none pt-1">
@@ -1066,7 +1202,7 @@ const Checkout = () => {
         {/* ── Proportional Trust Strip ─────────────────────────────── */}
         <div className="mt-6 sm:mt-8 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 rounded-2xl bg-white dark:bg-gray-800 border border-fv-border p-3 sm:p-4 shadow-2xs text-center sm:text-left">
           {[
-            ['Free delivery over ₹300', 'Flat ₹50 below threshold'],
+            [`Free delivery over ₹${FREE_DELIVERY_THRESHOLD}`, `Flat ₹${DELIVERY_CHARGE} below threshold`],
             ['Cash on delivery', 'Pay safely upon arrival'],
             ['Tracked shipping', 'Follow order via SMS alerts'],
             ['Secure payments', '100% Encrypted transactions'],

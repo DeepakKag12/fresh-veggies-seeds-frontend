@@ -11,17 +11,22 @@ import QuantityStepper from '../components/storefront/QuantityStepper';
 import OffersBox from '../components/storefront/OffersBox';
 import ReviewsSection from '../components/storefront/ReviewsSection';
 import RelatedProducts from '../components/storefront/RelatedProducts';
-
-const GUARANTEES = [
-  { Icon: Truck, title: 'Free delivery over ₹300', detail: 'Flat ₹50 below that' },
-  { Icon: Banknote, title: 'Cash on delivery', detail: 'Pay when it arrives' },
-  { Icon: ShieldCheck, title: 'Secure payments', detail: 'UPI, cards & wallets' },
-];
+import { useSettings } from '../context/SettingsContext';
 
 const ProductDetailNew = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { settings } = useSettings();
+
+  const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 300;
+  const deliveryCharge = settings?.delivery?.deliveryCharge ?? 50;
+
+  const GUARANTEES = [
+    { Icon: Truck, title: `Free delivery over ₹${freeDeliveryThreshold}`, detail: `Flat ₹${deliveryCharge} below that` },
+    { Icon: Banknote, title: 'Cash on delivery', detail: 'Pay when it arrives' },
+    { Icon: ShieldCheck, title: 'Secure payments', detail: 'UPI, cards & wallets' },
+  ];
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);

@@ -20,15 +20,19 @@ import { ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useSettings } from '../context/SettingsContext';
 import { Button } from './ui/Button';
 
-const OFFERS = [
-  '🚚 Free shipping above ₹300',
-  '🌱 Fresh stock every week',
-  '💳 Cash on delivery available',
-];
-
 const NavbarNew = () => {
+  const { settings } = useSettings();
+  const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 300;
+
+  const OFFERS = [
+    `🚚 Free shipping above ₹${freeDeliveryThreshold}`,
+    '🌱 Fresh stock every week',
+    '💳 Cash on delivery available',
+  ];
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -92,7 +96,7 @@ const NavbarNew = () => {
       </div>
       )}
       {/* The bar is decorative motion; the same facts are stated in the footer. */}
-      <p className="sr-only">Free delivery on orders over ₹300. Cash on delivery available.</p>
+      <p className="sr-only">Free delivery on orders over ₹{freeDeliveryThreshold}. Cash on delivery available.</p>
       <div className="mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-10">
         <div className="flex items-center gap-4 h-16">
           {/* Logo */}

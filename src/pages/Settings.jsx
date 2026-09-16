@@ -11,6 +11,7 @@ import { cachedGet } from '../utils/api';
 import PasswordInput from '../components/ui/PasswordInput';
 import Input from '../components/ui/Input';
 import { fetchCurrentAddress } from '../utils/locationService';
+import { lookupPincode, isValidPincodeFormat } from '../utils/pincodeService';
 
 /**
  * Account settings: a persistent sidebar of account areas beside the active
@@ -59,8 +60,44 @@ const AddressForm = ({ initial, onSave, onCancel, busy, title = 'Add New Address
   const [form, setForm] = useState(initial || EMPTY_ADDR);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState('');
+  const [pincodeStatus, setPincodeStatus] = useState({ loading: false, valid: null, message: '' });
 
   const set = (field, value) => setForm(f => ({ ...f, [field]: value }));
+
+  const handlePincodeChange = async (e) => {
+    const rawVal = e.target.value.replace(/\D/g, '').slice(0, 6);
+    set('pincode', rawVal);
+
+    if (rawVal.length === 6) {
+      setPincodeStatus({ loading: true, valid: null, message: 'Verifying PIN code…' });
+      try {
+        const res = await lookupPincode(rawVal);
+        if (res.valid) {
+          setForm(f => ({
+            ...f,
+            pincode: rawVal,
+            state: f.state || res.state || '',
+            city: f.city || res.district || res.city || '',
+          }));
+          setPincodeStatus({
+            loading: false,
+            valid: true,
+            message: res.message ? `Verified: ${res.message}` : 'Valid Indian PIN code',
+          });
+        } else {
+          setPincodeStatus({
+            loading: false,
+            valid: false,
+            message: res.message || 'Invalid PIN code',
+          });
+        }
+      } catch {
+        setPincodeStatus({ loading: false, valid: true, message: 'Valid format' });
+      }
+    } else {
+      setPincodeStatus({ loading: false, valid: null, message: '' });
+    }
+  };
 
   const handleGPS = async () => {
     setGpsError('');
@@ -74,8 +111,16 @@ const AddressForm = ({ initial, onSave, onCancel, busy, title = 'Add New Address
         state: detected.state || f.state,
         pincode: detected.pincode || f.pincode,
       }));
+
+      if (detected.pincode && detected.pincode.length === 6) {
+        lookupPincode(detected.pincode).then(res => {
+          if (res.valid) {
+            setPincodeStatus({ loading: false, valid: true, message: `Verified: ${res.message}` });
+          }
+        }).catch(() => {});
+      }
     } catch (err) {
-      setGpsError(err.message);
+      setGpsError(err.message || 'Location access failed. Please enter address manually.');
     } finally {
       setGpsLoading(false);
     }
@@ -83,6 +128,14 @@ const AddressForm = ({ initial, onSave, onCancel, busy, title = 'Add New Address
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!isValidPincodeFormat(form.pincode)) {
+      setGpsError('Please enter a valid 6-digit Indian PIN code.');
+      return;
+    }
+    if (pincodeStatus.valid === false) {
+      setGpsError(pincodeStatus.message || 'Invalid PIN code.');
+      return;
+    }
     onSave(form);
   };
 
@@ -103,7 +156,7 @@ const AddressForm = ({ initial, onSave, onCancel, busy, title = 'Add New Address
         className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg
                    border-2 border-dashed border-fv-primary/50 hover:border-fv-primary
                    text-fv-primary text-[13px] font-semibold hover:bg-white
-                   transition-all disabled:opacity-60"
+                   transition-all disabled:opacity-60 cursor-pointer"
       >
         {gpsLoading
           ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Detecting location…</>
@@ -119,29 +172,43 @@ const AddressForm = ({ initial, onSave, onCancel, busy, title = 'Add New Address
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelCls}>Full Name</label>
-          <input type="text" value={form.name} onChange={e => set('name', e.target.value)} className={inputCls} placeholder="Name" />
+          <input type="text" value={form.name || ''} onChange={e => set('name', e.target.value)} className={inputCls} placeholder="Name" />
         </div>
         <div>
           <label className={labelCls}>Phone</label>
-          <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} className={inputCls} placeholder="Phone" />
+          <input type="tel" value={form.phone || ''} onChange={e => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} className={inputCls} placeholder="10-digit Phone" maxLength={10} />
         </div>
         <div className="col-span-2">
           <label className={labelCls}>Street / Area *</label>
-          <input type="text" required value={form.street} onChange={e => set('street', e.target.value)}
+          <input type="text" required value={form.street || ''} onChange={e => set('street', e.target.value)}
             className={inputCls} placeholder="House no., Building, Street, Area" />
         </div>
         <div>
-          <label className={labelCls}>City *</label>
-          <input type="text" required value={form.city} onChange={e => set('city', e.target.value)} className={inputCls} />
+          <label className={labelCls}>City / District *</label>
+          <input type="text" required value={form.city || ''} onChange={e => set('city', e.target.value)} className={inputCls} />
         </div>
         <div>
           <label className={labelCls}>State *</label>
-          <input type="text" required value={form.state} onChange={e => set('state', e.target.value)} className={inputCls} />
+          <input type="text" required value={form.state || ''} onChange={e => set('state', e.target.value)} className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>Pincode *</label>
-          <input type="text" required value={form.pincode} maxLength={6}
-            onChange={e => set('pincode', e.target.value.replace(/\D/g, ''))} className={inputCls} />
+          <label className={labelCls}>PIN Code *</label>
+          <input
+            type="text"
+            required
+            value={form.pincode || ''}
+            maxLength={6}
+            placeholder="6-digit PIN"
+            onChange={handlePincodeChange}
+            className={`${inputCls} ${
+              pincodeStatus.valid === false ? 'border-red-500' : pincodeStatus.valid === true ? 'border-green-500' : ''
+            }`}
+          />
+          {pincodeStatus.message && (
+            <p className={`text-[11px] mt-1 ${pincodeStatus.valid === true ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+              {pincodeStatus.message}
+            </p>
+          )}
         </div>
       </div>
 

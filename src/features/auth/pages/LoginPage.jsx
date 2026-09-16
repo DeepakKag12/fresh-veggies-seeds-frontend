@@ -3,11 +3,14 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Loader2, Sprout } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { useSettings } from '../../../context/SettingsContext';
 import Input from '../../../components/ui/Input';
 import PasswordInput from '../../../components/ui/PasswordInput';
 import { Button } from '../../../components/ui/Button';
 
 const LoginPage = () => {
+  const { settings } = useSettings();
+  const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 300;
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -289,7 +292,7 @@ const LoginPage = () => {
                 "100+ Products") with claims the backend actually honours. */}
             <div className="text-center">
               <div className="text-2xl font-bold mb-1">Free</div>
-              <div className="text-white/80">Delivery over ₹300</div>
+              <div className="text-white/80">Delivery over ₹{freeDeliveryThreshold}</div>
             </div>
             <div className="w-px h-12 bg-white/30" />
             <div className="text-center">

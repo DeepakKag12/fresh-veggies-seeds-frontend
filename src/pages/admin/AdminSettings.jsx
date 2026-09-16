@@ -23,6 +23,7 @@ import {
   Info
 } from 'lucide-react';
 import api from '../../utils/api';
+import { useSettings } from '../../context/SettingsContext';
 
 const SECTIONS = [
   { id: 'store', label: 'Store', icon: Store, description: 'Basic business details & contact information' },
@@ -35,6 +36,7 @@ const SECTIONS = [
 ];
 
 export default function AdminSettings() {
+  const { updateSettings } = useSettings();
   const [activeSection, setActiveSection] = useState('store');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -109,6 +111,7 @@ export default function AdminSettings() {
       if (res.data?.success) {
         toast.success(`✅ ${sectionName.charAt(0).toUpperCase() + sectionName.slice(1)} settings saved successfully!`);
         setSettings(res.data.data);
+        updateSettings(res.data.data);
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save settings.');
@@ -149,6 +152,7 @@ export default function AdminSettings() {
       if (res.data?.success) {
         toast.success(`Reset ${sectionName} settings to defaults!`);
         setSettings(res.data.data);
+        updateSettings(res.data.data);
       }
     } catch (err) {
       toast.error('Failed to reset settings.');
@@ -363,16 +367,14 @@ export default function AdminSettings() {
                     <p className="text-xs text-fv-muted mb-2.5">
                       Orders above this amount get free delivery automatically.
                     </p>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-2.5 text-fv-muted font-bold">₹</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={settings.delivery?.freeDeliveryThreshold ?? 300}
-                        onChange={(e) => handleFieldChange('delivery', 'freeDeliveryThreshold', Number(e.target.value))}
-                        className="w-full pl-8 pr-4 py-2 rounded-lg border border-fv-border bg-white dark:bg-gray-700 text-fv-heading font-semibold"
-                      />
-                    </div>
+                    <SliderNumberInput
+                      min={0}
+                      max={2000}
+                      step={25}
+                      prefix="₹"
+                      value={settings.delivery?.freeDeliveryThreshold ?? 300}
+                      onChange={(v) => handleFieldChange('delivery', 'freeDeliveryThreshold', v)}
+                    />
                   </div>
 
                   <div className="p-4 rounded-xl border border-fv-border bg-fv-page">
@@ -382,16 +384,14 @@ export default function AdminSettings() {
                     <p className="text-xs text-fv-muted mb-2.5">
                       Charge applied when order value is below the free delivery amount.
                     </p>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-2.5 text-fv-muted font-bold">₹</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={settings.delivery?.deliveryCharge ?? 50}
-                        onChange={(e) => handleFieldChange('delivery', 'deliveryCharge', Number(e.target.value))}
-                        className="w-full pl-8 pr-4 py-2 rounded-lg border border-fv-border bg-white dark:bg-gray-700 text-fv-heading font-semibold"
-                      />
-                    </div>
+                    <SliderNumberInput
+                      min={0}
+                      max={250}
+                      step={5}
+                      prefix="₹"
+                      value={settings.delivery?.deliveryCharge ?? 50}
+                      onChange={(v) => handleFieldChange('delivery', 'deliveryCharge', v)}
+                    />
                   </div>
 
                   <div className="p-4 rounded-xl border border-fv-border bg-fv-page">
@@ -401,16 +401,14 @@ export default function AdminSettings() {
                     <p className="text-xs text-fv-muted mb-2.5">
                       The smallest basket size a customer is allowed to checkout.
                     </p>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-2.5 text-fv-muted font-bold">₹</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={settings.delivery?.minOrderAmount ?? 100}
-                        onChange={(e) => handleFieldChange('delivery', 'minOrderAmount', Number(e.target.value))}
-                        className="w-full pl-8 pr-4 py-2 rounded-lg border border-fv-border bg-white dark:bg-gray-700 text-fv-heading font-semibold"
-                      />
-                    </div>
+                    <SliderNumberInput
+                      min={0}
+                      max={1000}
+                      step={25}
+                      prefix="₹"
+                      value={settings.delivery?.minOrderAmount ?? 100}
+                      onChange={(v) => handleFieldChange('delivery', 'minOrderAmount', v)}
+                    />
                   </div>
 
                   <div className="p-4 rounded-xl border border-fv-border bg-fv-page">
@@ -425,7 +423,7 @@ export default function AdminSettings() {
                       value={settings.delivery?.deliveryTime || '3–5 Days'}
                       onChange={(e) => handleFieldChange('delivery', 'deliveryTime', e.target.value)}
                       placeholder="e.g. 3–5 Days"
-                      className="w-full px-4 py-2 rounded-lg border border-fv-border bg-white dark:bg-gray-700 text-fv-heading font-semibold"
+                      className="w-full px-4 py-2 rounded-lg border border-fv-border bg-white dark:bg-gray-700 text-fv-heading font-semibold text-sm"
                     />
                   </div>
 
@@ -449,19 +447,17 @@ export default function AdminSettings() {
                       <label className="block text-sm font-semibold text-fv-heading mb-1">
                         COD Maximum Order Limit
                       </label>
-                      <p className="text-xs text-fv-muted mb-2">
+                      <p className="text-xs text-fv-muted mb-2.5">
                         Baskets above this total will require prepaid online payment to reduce return risk.
                       </p>
-                      <div className="relative max-w-xs">
-                        <span className="absolute left-3.5 top-2.5 text-fv-muted font-bold">₹</span>
-                        <input
-                          type="number"
-                          min="0"
-                          value={settings.delivery?.codMaxOrder ?? 5000}
-                          onChange={(e) => handleFieldChange('delivery', 'codMaxOrder', Number(e.target.value))}
-                          className="w-full pl-8 pr-4 py-2 rounded-lg border border-fv-border bg-white dark:bg-gray-700 text-fv-heading font-semibold"
-                        />
-                      </div>
+                      <SliderNumberInput
+                        min={500}
+                        max={20000}
+                        step={500}
+                        prefix="₹"
+                        value={settings.delivery?.codMaxOrder ?? 5000}
+                        onChange={(v) => handleFieldChange('delivery', 'codMaxOrder', v)}
+                      />
                     </div>
                   )}
                 </div>
@@ -565,16 +561,16 @@ export default function AdminSettings() {
                       <label className="block text-sm font-semibold text-fv-heading mb-1">
                         Unpaid Order Timeout (Minutes)
                       </label>
-                      <p className="text-xs text-fv-muted mb-2">
+                      <p className="text-xs text-fv-muted mb-2.5">
                         How long to wait before marking an abandoned online order as Failed.
                       </p>
-                      <input
-                        type="number"
-                        min="5"
-                        max="180"
+                      <SliderNumberInput
+                        min={5}
+                        max={180}
+                        step={5}
+                        suffix="mins"
                         value={settings.orders?.unpaidOrderTimeoutMinutes ?? 30}
-                        onChange={(e) => handleFieldChange('orders', 'unpaidOrderTimeoutMinutes', Number(e.target.value))}
-                        className="w-32 px-4 py-2 rounded-lg border border-fv-border bg-white dark:bg-gray-700 text-fv-heading font-semibold text-sm"
+                        onChange={(v) => handleFieldChange('orders', 'unpaidOrderTimeoutMinutes', v)}
                       />
                     </div>
                   )}
@@ -605,19 +601,17 @@ export default function AdminSettings() {
                     <label className="block text-sm font-semibold text-fv-heading mb-1">
                       Low Stock Alert Threshold
                     </label>
-                    <p className="text-xs text-fv-muted mb-2">
+                    <p className="text-xs text-fv-muted mb-2.5">
                       When a product or pack variant falls below this number, you receive an urgent alert to restock.
                     </p>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="1"
-                        value={settings.inventory?.lowStockThreshold ?? 10}
-                        onChange={(e) => handleFieldChange('inventory', 'lowStockThreshold', Number(e.target.value))}
-                        className="w-28 px-4 py-2 rounded-lg border border-fv-border bg-white dark:bg-gray-700 text-fv-heading font-semibold text-sm"
-                      />
-                      <span className="text-sm text-fv-muted">items remaining</span>
-                    </div>
+                    <SliderNumberInput
+                      min={1}
+                      max={100}
+                      step={1}
+                      suffix="items"
+                      value={settings.inventory?.lowStockThreshold ?? 10}
+                      onChange={(v) => handleFieldChange('inventory', 'lowStockThreshold', v)}
+                    />
                   </div>
 
                   {/* Visual Example Banner */}
@@ -762,21 +756,16 @@ export default function AdminSettings() {
                                 ? 'Discount Percentage (%)'
                                 : 'Flat Discount Amount (₹)'}
                             </label>
-                            <div className="relative">
-                              <span className="absolute left-3 top-2 text-fv-muted font-bold text-sm">
-                                {(settings.payments?.onlineDiscountType || 'percentage') === 'percentage' ? '%' : '₹'}
-                              </span>
-                              <input
-                                type="number"
-                                min="0"
-                                max={(settings.payments?.onlineDiscountType || 'percentage') === 'percentage' ? '100' : '10000'}
-                                value={settings.payments?.onlineDiscountValue ?? 0}
-                                onChange={(e) => handleFieldChange('payments', 'onlineDiscountValue', Math.max(0, Number(e.target.value)))}
-                                className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg border border-fv-border bg-transparent text-fv-heading font-semibold"
-                                placeholder="0"
-                              />
-                            </div>
-                            <span className="text-[11px] text-fv-muted mt-1 block">Set to 0 for no discount.</span>
+                            <SliderNumberInput
+                              min={0}
+                              max={(settings.payments?.onlineDiscountType || 'percentage') === 'percentage' ? 50 : 2000}
+                              step={(settings.payments?.onlineDiscountType || 'percentage') === 'percentage' ? 1 : 25}
+                              prefix={(settings.payments?.onlineDiscountType || 'percentage') === 'percentage' ? '' : '₹'}
+                              suffix={(settings.payments?.onlineDiscountType || 'percentage') === 'percentage' ? '%' : ''}
+                              value={settings.payments?.onlineDiscountValue ?? 0}
+                              onChange={(v) => handleFieldChange('payments', 'onlineDiscountValue', v)}
+                            />
+                            <span className="text-[11px] text-fv-muted mt-1.5 block">Set to 0 for no discount.</span>
                           </div>
 
                           {(settings.payments?.onlineDiscountType || 'percentage') === 'percentage' && (
@@ -784,18 +773,15 @@ export default function AdminSettings() {
                               <label className="block text-xs font-semibold text-fv-heading mb-1">
                                 Maximum Discount Cap (₹)
                               </label>
-                              <div className="relative">
-                                <span className="absolute left-3 top-2 text-fv-muted font-bold text-sm">₹</span>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={settings.payments?.onlineDiscountMaxLimit ?? 100}
-                                  onChange={(e) => handleFieldChange('payments', 'onlineDiscountMaxLimit', Math.max(0, Number(e.target.value)))}
-                                  className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg border border-fv-border bg-transparent text-fv-heading font-semibold"
-                                  placeholder="100"
-                                />
-                              </div>
-                              <span className="text-[11px] text-fv-muted mt-1 block">Upper limit per order.</span>
+                              <SliderNumberInput
+                                min={0}
+                                max={1000}
+                                step={25}
+                                prefix="₹"
+                                value={settings.payments?.onlineDiscountMaxLimit ?? 100}
+                                onChange={(v) => handleFieldChange('payments', 'onlineDiscountMaxLimit', v)}
+                              />
+                              <span className="text-[11px] text-fv-muted mt-1.5 block">Upper limit per order.</span>
                             </div>
                           )}
                         </div>
@@ -826,18 +812,15 @@ export default function AdminSettings() {
                           <label className="block text-xs font-semibold text-fv-heading mb-1">
                             Extra COD Handling Charge / Fee (₹)
                           </label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-2 text-fv-muted font-bold text-sm">₹</span>
-                            <input
-                              type="number"
-                              min="0"
-                              value={settings.payments?.codExtraCharge ?? 0}
-                              onChange={(e) => handleFieldChange('payments', 'codExtraCharge', Math.max(0, Number(e.target.value)))}
-                              className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg border border-fv-border bg-transparent text-fv-heading font-semibold"
-                              placeholder="0"
-                            />
-                          </div>
-                          <p className="text-[11px] text-fv-muted mt-1">
+                          <SliderNumberInput
+                            min={0}
+                            max={200}
+                            step={5}
+                            prefix="₹"
+                            value={settings.payments?.codExtraCharge ?? 0}
+                            onChange={(v) => handleFieldChange('payments', 'codExtraCharge', v)}
+                          />
+                          <p className="text-[11px] text-fv-muted mt-1.5">
                             Added to customer checkout total specifically when COD is chosen. Set to ₹0 for free COD.
                           </p>
                         </div>
@@ -847,32 +830,28 @@ export default function AdminSettings() {
                             <label className="block text-xs font-semibold text-fv-heading mb-1">
                               Minimum COD Order
                             </label>
-                            <div className="relative">
-                              <span className="absolute left-3 top-2 text-fv-muted font-bold text-sm">₹</span>
-                              <input
-                                type="number"
-                                min="0"
-                                value={settings.payments?.codMinOrder ?? 100}
-                                onChange={(e) => handleFieldChange('payments', 'codMinOrder', Number(e.target.value))}
-                                className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg border border-fv-border bg-transparent text-fv-heading font-semibold"
-                              />
-                            </div>
+                            <SliderNumberInput
+                              min={0}
+                              max={2000}
+                              step={50}
+                              prefix="₹"
+                              value={settings.payments?.codMinOrder ?? 100}
+                              onChange={(v) => handleFieldChange('payments', 'codMinOrder', v)}
+                            />
                           </div>
 
                           <div className="p-3.5 rounded-lg border border-fv-border bg-white dark:bg-gray-800">
                             <label className="block text-xs font-semibold text-fv-heading mb-1">
                               Maximum COD Order
                             </label>
-                            <div className="relative">
-                              <span className="absolute left-3 top-2 text-fv-muted font-bold text-sm">₹</span>
-                              <input
-                                type="number"
-                                min="0"
-                                value={settings.payments?.codMaxOrder ?? 5000}
-                                onChange={(e) => handleFieldChange('payments', 'codMaxOrder', Number(e.target.value))}
-                                className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg border border-fv-border bg-transparent text-fv-heading font-semibold"
-                              />
-                            </div>
+                            <SliderNumberInput
+                              min={500}
+                              max={20000}
+                              step={500}
+                              prefix="₹"
+                              value={settings.payments?.codMaxOrder ?? 5000}
+                              onChange={(v) => handleFieldChange('payments', 'codMaxOrder', v)}
+                            />
                           </div>
                         </div>
                       </div>
@@ -1191,7 +1170,7 @@ function SectionActions({ onSave, onReset, saving }) {
         type="button"
         onClick={onReset}
         disabled={saving}
-        className="text-xs font-semibold text-fv-muted hover:text-red-600 flex items-center gap-1.5 transition-colors order-2 sm:order-1"
+        className="text-xs font-semibold text-fv-muted hover:text-red-600 flex items-center gap-1.5 transition-colors order-2 sm:order-1 cursor-pointer"
       >
         <RotateCcw className="w-3.5 h-3.5" />
         Reset to Default
@@ -1201,11 +1180,106 @@ function SectionActions({ onSave, onReset, saving }) {
         type="button"
         onClick={onSave}
         disabled={saving}
-        className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-fv-primary hover:bg-fv-primary-dark text-white font-semibold text-sm shadow-md shadow-fv-primary/25 transition-all flex items-center justify-center gap-2 order-1 sm:order-2 disabled:opacity-60"
+        className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-fv-primary hover:bg-fv-primary-dark text-white font-semibold text-sm shadow-md shadow-fv-primary/25 transition-all flex items-center justify-center gap-2 order-1 sm:order-2 disabled:opacity-60 cursor-pointer"
       >
         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
         Save Changes
       </button>
+    </div>
+  );
+}
+
+function SliderNumberInput({
+  value,
+  onChange,
+  min = 0,
+  max = 5000,
+  step = 1,
+  prefix = '',
+  suffix = '',
+  placeholder = '0',
+}) {
+  const numericVal = typeof value === 'number' && !isNaN(value) ? value : min;
+  const [textVal, setTextVal] = useState(String(numericVal));
+
+  useEffect(() => {
+    setTextVal(String(numericVal));
+  }, [numericVal]);
+
+  const handleSliderChange = (e) => {
+    const val = Number(e.target.value);
+    setTextVal(String(val));
+    onChange(val);
+  };
+
+  const handleInputChange = (e) => {
+    const raw = e.target.value;
+    // Strip non-digits and prevent leading zero issues (e.g. typing 5 into 0 becomes 5, not 05)
+    let cleaned = raw.replace(/\D/g, '');
+    if (cleaned.length > 1 && cleaned.startsWith('0')) {
+      cleaned = cleaned.replace(/^0+/, '') || '0';
+    }
+    setTextVal(cleaned);
+
+    if (cleaned !== '') {
+      const parsed = parseInt(cleaned, 10);
+      if (!isNaN(parsed)) {
+        onChange(Math.max(min, parsed));
+      }
+    }
+  };
+
+  const handleBlur = () => {
+    if (textVal === '' || isNaN(parseInt(textVal, 10))) {
+      setTextVal(String(min));
+      onChange(min);
+    } else {
+      const parsed = Math.max(min, parseInt(textVal, 10));
+      setTextVal(String(parsed));
+      onChange(parsed);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-3">
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={Math.min(numericVal, max)}
+          onChange={handleSliderChange}
+          className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-fv-primary"
+        />
+        <div className="relative w-36 shrink-0">
+          {prefix && (
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-fv-muted font-bold text-sm pointer-events-none select-none">
+              {prefix}
+            </span>
+          )}
+          <input
+            type="text"
+            inputMode="numeric"
+            value={textVal}
+            onChange={handleInputChange}
+            onBlur={handleBlur}
+            placeholder={placeholder}
+            className={`w-full py-1.5 rounded-lg border border-fv-border bg-white dark:bg-gray-700 text-fv-heading font-semibold text-sm focus:ring-2 focus:ring-fv-primary focus:border-transparent ${
+              prefix ? 'pl-7' : 'pl-3'
+            } ${suffix ? 'pr-12' : 'pr-3'}`}
+          />
+          {suffix && (
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-fv-muted font-medium text-xs pointer-events-none select-none">
+              {suffix}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center justify-between text-[11px] text-fv-muted select-none">
+        <span>{prefix}{min}{suffix ? ` ${suffix}` : ''}</span>
+        <span>{prefix}{max}+{suffix ? ` ${suffix}` : ''}</span>
+      </div>
     </div>
   );
 }

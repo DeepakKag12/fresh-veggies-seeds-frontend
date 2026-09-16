@@ -1,10 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { X, Trash2, Minus, Plus, Sprout, ShoppingBag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { cachedGet } from '../utils/api';
-
-const DEFAULT_FREE_DELIVERY_THRESHOLD = 300;
+import { useSettings } from '../context/SettingsContext';
 
 /**
  * Slide-in cart. Opens whenever something is added, and from the header icon.
@@ -16,18 +14,10 @@ const DEFAULT_FREE_DELIVERY_THRESHOLD = 300;
 const CartDrawer = () => {
   const { cartItems, cartOpen, closeCart, updateQuantity, removeFromCart, getCartTotal,
           removedItems, clearRemovedNotice } = useCart();
+  const { settings } = useSettings();
   const panelRef = useRef(null);
   const returnFocusRef = useRef(null);
-  const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState(DEFAULT_FREE_DELIVERY_THRESHOLD);
-
-  useEffect(() => {
-    cachedGet('/settings')
-      .then(res => {
-        const val = res?.data?.data?.delivery?.freeDeliveryThreshold;
-        if (typeof val === 'number') setFreeDeliveryThreshold(val);
-      })
-      .catch(() => {});
-  }, []);
+  const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 300;
 
   useEffect(() => {
     if (!cartOpen) return undefined;

@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Tag, Truck } from 'lucide-react';
 import { cachedGet } from '../../utils/api';
+import { useSettings } from '../../context/SettingsContext';
 
 /**
- * Offers. The free-delivery line mirrors backend/config/orderConfig.js; the
+ * Offers. The free-delivery line mirrors dynamic store settings; the
  * coupons come from /api/coupons/active. When no coupons are running the box
  * shows only what is genuinely true rather than inventing a promotion.
  */
 const OffersBox = () => {
+  const { settings } = useSettings();
   const [coupons, setCoupons] = useState([]);
+  const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 300;
 
   useEffect(() => {
     let alive = true;
@@ -28,7 +31,7 @@ const OffersBox = () => {
         <li className="flex items-start gap-3">
           <Truck className="mt-0.5 h-5 w-5 shrink-0 text-fv-primary" aria-hidden="true" />
           <p className="text-[14px] text-fv-ink">
-            Free delivery on orders over <strong>₹300</strong>
+            Free delivery on orders over <strong>₹{freeDeliveryThreshold}</strong>
             <span className="block text-[13px] text-fv-muted">Applied automatically at checkout</span>
           </p>
         </li>

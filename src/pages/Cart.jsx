@@ -1,27 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Minus, Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { cachedGet } from '../utils/api';
+import { useSettings } from '../context/SettingsContext';
 
 const Cart = () => {
   const { cartItems, updateQuantity, removeFromCart, getCartTotal, removedItems, clearRemovedNotice } = useCart();
+  const { settings } = useSettings();
 
-  const [deliveryRules, setDeliveryRules] = useState({ freeDeliveryThreshold: 300, deliveryCharge: 50 });
-
-  useEffect(() => {
-    cachedGet('/settings')
-      .then(res => {
-        const d = res?.data?.data?.delivery;
-        if (d) {
-          setDeliveryRules({
-            freeDeliveryThreshold: typeof d.freeDeliveryThreshold === 'number' ? d.freeDeliveryThreshold : 300,
-            deliveryCharge: typeof d.deliveryCharge === 'number' ? d.deliveryCharge : 50,
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const deliveryRules = {
+    freeDeliveryThreshold: settings?.delivery?.freeDeliveryThreshold ?? 300,
+    deliveryCharge: settings?.delivery?.deliveryCharge ?? 50,
+  };
 
   // Shown in both the empty and populated branches: a shrunken cart needs an
   // explanation either way.
