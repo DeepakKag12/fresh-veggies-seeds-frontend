@@ -8,7 +8,8 @@ import {
   sendMsg91Otp,
   retryMsg91Otp,
   verifyMsg91Otp,
-  isValidIndianMobile
+  isValidIndianMobile,
+  cleanupMsg91Captcha
 } from '../../utils/msg91';
 
 const RESEND_COOLDOWN_SECONDS = 30;
@@ -48,6 +49,7 @@ const GuestMobileOtpStep = ({ onVerified }) => {
     return () => {
       window.onMsg91CaptchaVerified = null;
       if (timerRef.current) clearInterval(timerRef.current);
+      cleanupMsg91Captcha();
     };
   }, []);
 

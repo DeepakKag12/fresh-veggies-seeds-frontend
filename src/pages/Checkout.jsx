@@ -10,6 +10,7 @@ import { useSettings } from '../context/SettingsContext';
 import api from '../utils/api';
 import { fetchCurrentAddress } from '../utils/locationService';
 import { lookupPincode, isValidPincodeFormat } from '../utils/pincodeService';
+import { cleanupMsg91Captcha } from '../utils/msg91';
 import GuestMobileOtpStep from '../components/checkout/GuestMobileOtpStep';
 
 /* ─── Standardized Proportional Input & Label Styles ───────────────────── */
@@ -267,7 +268,15 @@ const Checkout = () => {
       name: getRealName(a.name) || getRealName(user.name),
       phone: a.phone || user.phone || '',
     }));
+    // Clean up any floating OTP captcha containers when user is already logged in
+    cleanupMsg91Captcha();
   }, [user]);
+
+  useEffect(() => {
+    return () => {
+      cleanupMsg91Captcha();
+    };
+  }, []);
 
   /* Payment state */
   const [paymentMode, setPaymentMode] = useState('COD');

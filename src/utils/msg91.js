@@ -86,6 +86,7 @@ export const initMsg91 = () => {
         if (!container) {
           container = document.createElement('div');
           container.id = containerId;
+          container.style.display = 'none'; // Prevent floating at bottom of screen
           document.body.appendChild(container);
         }
 
@@ -287,4 +288,18 @@ export const isCaptchaVerified = () => {
     return window.isCaptchaVerified();
   }
   return true;
+};
+
+/**
+ * Completely clean up any lingering floating captcha elements from body.
+ */
+export const cleanupMsg91Captcha = () => {
+  if (typeof document === 'undefined') return;
+  const bodyContainers = document.querySelectorAll('body > #msg91-captcha-container, body > [id*="msg91"], iframe[src*="msg91"]');
+  bodyContainers.forEach((el) => {
+    // Only remove if directly under body and not inside active guest OTP form
+    if (el.parentElement === document.body) {
+      el.remove();
+    }
+  });
 };
