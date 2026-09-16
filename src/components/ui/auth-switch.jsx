@@ -1,18 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, Phone, ArrowRight, Sprout, CheckCircle2, ShieldCheck, Sparkles, ArrowLeft, Loader2, Eye, EyeOff, RotateCw, Edit3 } from 'lucide-react';
-import toast from 'react-hot-toast';
-import api from '../../utils/api';
+import { Mail, Lock, User, Phone, ArrowRight, Sprout, CheckCircle2, ShieldCheck, Sparkles, ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { validatePassword, PASSWORD_RULE_TEXT } from '../../utils/passwordPolicy';
-import {
-  initMsg91,
-  sendMsg91Otp,
-  retryMsg91Otp,
-  verifyMsg91Otp,
-  isValidIndianMobile,
-  cleanupMsg91Captcha
-} from '../../utils/msg91';
+import GuestMobileOtpStep from '../checkout/GuestMobileOtpStep';
 
 /* ─── Real Customer Name Check ─────────────────────────────────────────── */
 const isPlaceholderName = (name) => {
@@ -22,15 +13,13 @@ const isPlaceholderName = (name) => {
   return /^customer(\s*\d+)?$/i.test(trimmed);
 };
 
-const RESEND_COOLDOWN_SECONDS = 30;
-
 export default function AuthSwitch({ initialMode = 'signin' }) {
   const [isSignUp, setIsSignUp] = useState(initialMode === 'signup');
   const [showPassword, setShowPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
 
   // Auth Context & Navigation
-  const { login, register, loginWithData } = useAuth();
+  const { login, register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -44,48 +33,6 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
   const [signInError, setSignInError] = useState('');
 
   const [signInPhone, setSignInPhone] = useState('');
-  const [phoneStep, setPhoneStep] = useState('phone'); // 'phone' | 'otp'
-  const [otpLength, setOtpLength] = useState(4);
-  const [otpDigits, setOtpDigits] = useState(['', '', '', '']);
-  const [reqId, setReqId] = useState(null);
-  const [phoneLoading, setPhoneLoading] = useState(false);
-  const [phoneError, setPhoneError] = useState('');
-  const [cooldown, setCooldown] = useState(0);
-  const timerRef = useRef(null);
-  const digitInputRefs = useRef([]);
-
-  // Pre-load MSG91 script & listen to captcha
-  useEffect(() => {
-    window.onMsg91CaptchaVerified = (status) => {
-      if (status) setPhoneError('');
-    };
-
-    initMsg91().catch(() => {});
-
-    return () => {
-      window.onMsg91CaptchaVerified = null;
-      if (timerRef.current) clearInterval(timerRef.current);
-      cleanupMsg91Captcha();
-    };
-  }, []);
-
-  // Cooldown countdown timer
-  useEffect(() => {
-    if (cooldown > 0) {
-      timerRef.current = setInterval(() => {
-        setCooldown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [cooldown]);
 
   // Sign Up State
   const [signUpName, setSignUpName] = useState('');
@@ -110,7 +57,6 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
     }
     setSignInMethod('phone');
     setSignInError('');
-    setPhoneError('');
   };
 
   // Sign In (Dual Identifier + Password) Handler
@@ -156,219 +102,6 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
       setSignInError(err.response?.data?.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setSignInLoading(false);
-    }
-  };
-
-  // Safely extract string error message from any format (same as GuestMobileOtpStep)
-  const extractErrMsg = (err) => {
-    if (!err) return 'Unable to send OTP. Please check the mobile number and try again.';
-    if (typeof err === 'string') return err;
-    if (typeof err.message === 'string') return err.message;
-    if (typeof err.error === 'string') return err.error;
-    if (typeof err.status === 'string') return err.status;
-    if (typeof err.message === 'object') return extractErrMsg(err.message);
-    try {
-      return JSON.stringify(err);
-    } catch {
-      return 'An error occurred. Please try again.';
-    }
-  };
-
-  // Send Phone OTP via MSG91 window.sendOtp (exact match with GuestMobileOtpStep)
-  const handleSendPhoneOtp = (e) => {
-    if (e) {
-      if (typeof e.preventDefault === 'function') e.preventDefault();
-      if (typeof e.stopPropagation === 'function') e.stopPropagation();
-    }
-    if (phoneLoading) return;
-
-    if (!isValidIndianMobile(signInPhone)) {
-      setPhoneError('Please enter a valid 10-digit Indian mobile number');
-      return;
-    }
-
-    setPhoneError('');
-    setPhoneLoading(true);
-
-    try {
-      sendMsg91Otp(
-        signInPhone,
-        (data) => {
-          console.log('MSG91 sendOtp success callback:', data);
-          setPhoneLoading(false);
-          const extractedReqId =
-            data?.reqId ||
-            (data && typeof data === 'object' && (data.request_id || data.message)) ||
-            (typeof data === 'string' && data.length > 10 ? data : null);
-          if (extractedReqId && typeof extractedReqId === 'string' && !extractedReqId.includes(' ')) {
-            setReqId(extractedReqId);
-          }
-
-          const widgetData = typeof window.getWidgetData === 'function' ? window.getWidgetData() : null;
-          const len = Number(widgetData?.otpLength) || (typeof data === 'object' && Number(data?.otpLength)) || 4;
-          setOtpLength(len);
-          setOtpDigits(new Array(len).fill(''));
-          setPhoneStep('otp');
-          setCooldown(RESEND_COOLDOWN_SECONDS);
-          toast.success(`OTP sent to +91 ${signInPhone}`);
-
-          setTimeout(() => {
-            if (digitInputRefs.current[0]) {
-              digitInputRefs.current[0].focus();
-            }
-          }, 100);
-        },
-        (err) => {
-          console.error('MSG91 sendOtp error callback:', err);
-          setPhoneLoading(false);
-          setPhoneError(extractErrMsg(err));
-        }
-      );
-    } catch (unexpected) {
-      console.error('Unexpected error in handleSendPhoneOtp:', unexpected);
-      setPhoneLoading(false);
-      setPhoneError(unexpected?.message || 'Failed to initiate OTP. Please try again.');
-    }
-  };
-
-  // Resend Phone OTP via MSG91 window.retryOtp (exact match with GuestMobileOtpStep)
-  const handleResendPhoneOtp = () => {
-    if (phoneLoading || cooldown > 0) return;
-
-    setPhoneError('');
-    setPhoneLoading(true);
-
-    retryMsg91Otp(
-      (data) => {
-        setPhoneLoading(false);
-        const extractedReqId =
-          data?.reqId ||
-          (data && typeof data === 'object' && (data.request_id || data.message)) ||
-          reqId;
-        if (extractedReqId && typeof extractedReqId === 'string' && !extractedReqId.includes(' ')) {
-          setReqId(extractedReqId);
-        }
-
-        setCooldown(RESEND_COOLDOWN_SECONDS);
-        toast.success('OTP resent successfully! 📲');
-        digitInputRefs.current[0]?.focus();
-      },
-      (err) => {
-        setPhoneLoading(false);
-        setPhoneError(extractErrMsg(err));
-      },
-      reqId
-    );
-  };
-
-  // Verify Phone OTP via MSG91 window.verifyOtp (exact match with GuestMobileOtpStep)
-  const executeVerifyOtp = (digitsArr) => {
-    const fullOtp = (digitsArr || otpDigits).join('').trim();
-    if (fullOtp.length < otpLength) {
-      setPhoneError(`Please enter the complete ${otpLength}-digit OTP.`);
-      return;
-    }
-
-    setPhoneError('');
-    setPhoneLoading(true);
-
-    try {
-      verifyMsg91Otp(
-        fullOtp,
-        async (data) => {
-          const accessToken =
-            (typeof data === 'string' ? data : null) ||
-            data?.['access-token'] ||
-            data?.token ||
-            data?.jwt ||
-            data?.data?.['access-token'] ||
-            data?.message;
-
-          if (!accessToken) {
-            setPhoneLoading(false);
-            setPhoneError('Could not retrieve access token from OTP provider.');
-            return;
-          }
-
-          try {
-            const response = await api.post('/auth/msg91-verify', {
-              accessToken
-            });
-
-            if (response.data?.success && response.data?.data) {
-              loginWithData(response.data.data);
-              cleanupMsg91Captcha();
-              navigateToDestination();
-            } else {
-              setPhoneError(response.data?.message || 'Authentication failed. Please try again.');
-              setPhoneLoading(false);
-            }
-          } catch (serverErr) {
-            setPhoneLoading(false);
-            const serverMsg =
-              serverErr.response?.data?.message || 'Server verification failed. Please try again.';
-            setPhoneError(serverMsg);
-          }
-        },
-        (err) => {
-          setPhoneLoading(false);
-          setPhoneError(extractErrMsg(err) || 'Invalid OTP. Please check and try again.');
-        },
-        reqId
-      );
-    } catch (unexpected) {
-      console.error('Unexpected error in handleVerifyOtp:', unexpected);
-      setPhoneLoading(false);
-      setPhoneError(unexpected?.message || 'Verification failed. Please try again.');
-    }
-  };
-
-  // Verify Phone OTP Form Submit
-  const handleVerifyPhoneOtp = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    executeVerifyOtp(otpDigits);
-  };
-
-  // OTP Input Change Handler (Auto-advance & Auto-submit)
-  const handleOtpDigitChange = (idx, value) => {
-    const char = value.replace(/\D/g, '').slice(-1);
-    const updated = [...otpDigits];
-    updated[idx] = char;
-    setOtpDigits(updated);
-
-    if (char) {
-      if (idx < otpLength - 1) {
-        digitInputRefs.current[idx + 1]?.focus();
-      } else if (idx === otpLength - 1) {
-        // If all filled, auto-submit!
-        if (updated.every((d) => Boolean(d))) {
-          executeVerifyOtp(updated);
-        }
-      }
-    }
-  };
-
-  // OTP Paste Handler (Auto-populate & Auto-submit)
-  const handleOtpPaste = (e) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, otpLength);
-    if (!pastedData) return;
-
-    const chars = pastedData.split('');
-    const newDigits = new Array(otpLength).fill('');
-    chars.forEach((c, i) => {
-      newDigits[i] = c;
-    });
-    setOtpDigits(newDigits);
-
-    const focusIdx = Math.min(chars.length, otpLength - 1);
-    digitInputRefs.current[focusIdx]?.focus();
-
-    if (chars.length === otpLength) {
-      executeVerifyOtp(newDigits);
     }
   };
 
@@ -1073,14 +806,14 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                 <button
                   type="button"
                   className={`fv-auth-tab ${signInMethod === 'email' ? 'active' : ''}`}
-                  onClick={() => { setSignInMethod('email'); setSignInError(''); setPhoneError(''); }}
+                  onClick={() => { setSignInMethod('email'); setSignInError(''); }}
                 >
                   <Mail className="w-3.5 h-3.5" /> Email & Password
                 </button>
                 <button
                   type="button"
                   className={`fv-auth-tab ${signInMethod === 'phone' ? 'active' : ''}`}
-                  onClick={() => { setSignInMethod('phone'); setSignInError(''); setPhoneError(''); }}
+                  onClick={() => { setSignInMethod('phone'); setSignInError(''); }}
                 >
                   <Phone className="w-3.5 h-3.5" /> Phone & OTP
                 </button>
@@ -1090,12 +823,9 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
               {signInMethod === 'email' && signInError && (
                 <div className="fv-error-banner">{signInError}</div>
               )}
-              {signInMethod === 'phone' && phoneError && (
-                <div className="fv-error-banner">{phoneError}</div>
-              )}
 
               {/* EMAIL / PHONE & PASSWORD LOGIN */}
-              <div className={signInMethod === 'email' ? 'w-full flex flex-col items-center' : 'hidden'}>
+              {signInMethod === 'email' && (
                 <form onSubmit={handleSignInSubmit} className="w-full flex flex-col items-center">
                   <div className="fv-input-field">
                     <div className="fv-icon"><Mail className="w-4 h-4" /></div>
@@ -1155,119 +885,20 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                     )}
                   </button>
                 </form>
-              </div>
+              )}
 
               {/* PHONE & OTP LOGIN */}
-              <div className={signInMethod === 'phone' ? 'w-full flex flex-col items-center' : 'hidden'}>
-                {phoneStep === 'phone' ? (
-                  <form onSubmit={handleSendPhoneOtp} className="w-full flex flex-col items-center">
-                    <div className="fv-input-field">
-                      <div className="fv-icon"><Phone className="w-4 h-4" /></div>
-                      <input
-                        type="tel"
-                        placeholder="10-digit Mobile number"
-                        maxLength={10}
-                        required={signInMethod === 'phone'}
-                        autoComplete="tel"
-                        value={signInPhone}
-                        onChange={(e) => setSignInPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      />
-                    </div>
-
-                    {/* In-card CAPTCHA container */}
-                    <div className="w-full max-w-[350px] my-1">
-                      <div
-                        id="msg91-captcha-container"
-                        className="min-h-[78px] flex items-center justify-center p-2 rounded-xl bg-gray-50 border border-gray-200 transition-all overflow-x-auto"
-                      />
-                      <p className="text-[11px] text-center text-gray-500 mt-1">
-                        Complete the security check above to request your OTP
-                      </p>
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="fv-btn"
-                      disabled={phoneLoading || signInPhone.length !== 10}
-                    >
-                      {phoneLoading ? (
-                        <><Loader2 className="w-4 h-4 animate-spin" /> Sending OTP...</>
-                      ) : (
-                        <>Send OTP <ArrowRight className="w-4 h-4" /></>
-                      )}
-                    </button>
-                  </form>
-                ) : (
-                    <form onSubmit={handleVerifyPhoneOtp} className="w-full flex flex-col items-center">
-                      <div className="w-full max-w-[350px] flex items-center justify-between px-1 mb-2 text-xs">
-                        <span className="text-gray-600 font-medium">
-                          OTP sent to <strong>+91 {signInPhone}</strong>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => { setPhoneStep('phone'); setPhoneError(''); }}
-                          className="fv-edit-badge"
-                        >
-                          <Edit3 className="w-3 h-3" /> Change Number
-                        </button>
-                      </div>
-
-                      {/* Digit Boxes with Paste & Auto-submit */}
-                      <div className="flex gap-2 justify-center mb-3">
-                        {otpDigits.map((digit, idx) => (
-                          <input
-                            key={idx}
-                            ref={(el) => (digitInputRefs.current[idx] = el)}
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            maxLength={1}
-                            value={digit}
-                            onPaste={handleOtpPaste}
-                            onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Backspace' && !otpDigits[idx] && idx > 0) {
-                                digitInputRefs.current[idx - 1]?.focus();
-                              }
-                            }}
-                            className="w-11 h-12 text-center text-lg font-bold rounded-xl border border-gray-300 bg-gray-50 text-gray-900 focus:bg-white focus:border-green-600 focus:ring-2 focus:ring-green-500/20 focus:outline-none transition-all"
-                          />
-                        ))}
-                      </div>
-
-                      {/* Resend button / countdown */}
-                      <div className="mb-3 text-xs flex justify-center">
-                        {cooldown > 0 ? (
-                          <span className="text-gray-500 font-medium bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
-                            Resend code in <strong>{cooldown}s</strong>
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={handleResendPhoneOtp}
-                            disabled={phoneLoading}
-                            className="fv-resend-btn"
-                          >
-                            <RotateCw className="w-3.5 h-3.5" /> Resend OTP Code
-                          </button>
-                        )}
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="fv-btn"
-                        disabled={phoneLoading || otpDigits.join('').length !== otpLength}
-                      >
-                        {phoneLoading ? (
-                          <><Loader2 className="w-4 h-4 animate-spin" /> Verifying...</>
-                        ) : (
-                          <>Verify & Sign In <CheckCircle2 className="w-4 h-4" /></>
-                        )}
-                      </button>
-                    </form>
-                  )}
+              {signInMethod === 'phone' && (
+                <div className="w-full flex flex-col items-center">
+                  <div className="w-full max-w-[360px] my-1">
+                    <GuestMobileOtpStep
+                      initialPhone={signInPhone}
+                      onVerified={() => navigateToDestination()}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
+            </div>
 
             {/* ── SIGN UP FORM ── */}
             <form className="fv-form sign-up-form" onSubmit={handleSignUpSubmit}>

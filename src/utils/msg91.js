@@ -22,13 +22,13 @@ export const initMsg91 = (forceRebind = false) => {
   const containerId = 'msg91-captcha-container';
   const container = typeof document !== 'undefined' ? document.getElementById(containerId) : null;
 
-  // If already initialized and currently mounted container is already rendered, resolve immediately (idempotent)
-  if (!forceRebind && isInitialized && typeof window.sendOtp === 'function' && container && container === lastRenderedContainer) {
+  // If already initialized and currently mounted container is already rendered with content, resolve immediately (idempotent)
+  if (!forceRebind && isInitialized && typeof window.sendOtp === 'function' && container && container === lastRenderedContainer && container.childElementCount > 0) {
     return Promise.resolve();
   }
 
   // If script already loaded and methods exposed, but we have a newly mounted container (e.g. after SPA navigation)
-  if (typeof window.initSendOTP === 'function' && container && (forceRebind || container !== lastRenderedContainer)) {
+  if (typeof window.initSendOTP === 'function' && container && (forceRebind || container !== lastRenderedContainer || container.childElementCount === 0)) {
     try {
       const widgetId = process.env.REACT_APP_MSG91_WIDGET_ID;
       const tokenAuth = process.env.REACT_APP_MSG91_TOKEN_AUTH;
@@ -431,6 +431,7 @@ export const renderMsg91Captcha = (targetContainerId = 'msg91-captcha-container'
  * Completely clean up any lingering floating captcha elements from body.
  */
 export const cleanupMsg91Captcha = () => {
+  lastRenderedContainer = null;
   if (typeof document === 'undefined') return;
   const bodyContainers = document.querySelectorAll('body > #msg91-captcha-container, body > [id*="msg91"], iframe[src*="msg91"]');
   bodyContainers.forEach((el) => {

@@ -14,10 +14,10 @@ import {
 
 const RESEND_COOLDOWN_SECONDS = 30;
 
-const GuestMobileOtpStep = ({ onVerified }) => {
+const GuestMobileOtpStep = ({ onVerified, initialPhone = '' }) => {
   const { loginWithData } = useAuth();
 
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(initialPhone || '');
   const [otpLength, setOtpLength] = useState(4);
   const [otpDigits, setOtpDigits] = useState(['', '', '', '']);
   const [step, setStep] = useState('phone'); // 'phone' | 'otp'
