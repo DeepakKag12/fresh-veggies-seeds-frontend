@@ -53,11 +53,27 @@ const Panel = ({ title, description, children, onSubmit, busy, submitLabel = 'Sa
   </form>
 );
 
+/* ─── Real Customer Name Helpers (replaces Customer123 placeholder) ──── */
+const isPlaceholderName = (name) => {
+  if (!name || typeof name !== 'string') return true;
+  const trimmed = name.trim();
+  if (trimmed.length < 2) return true;
+  return /^customer(\s*\d+)?$/i.test(trimmed);
+};
+
+const getRealName = (name) => {
+  if (isPlaceholderName(name)) return '';
+  return name.trim();
+};
+
 /* ─── Small address form ──────────────────────────────────────────────── */
 const EMPTY_ADDR = { name: '', phone: '', street: '', city: '', state: '', pincode: '', country: 'India' };
 
 const AddressForm = ({ initial, onSave, onCancel, busy, title = 'Add New Address' }) => {
-  const [form, setForm] = useState(initial || EMPTY_ADDR);
+  const [form, setForm] = useState(() => ({
+    ...(initial || EMPTY_ADDR),
+    name: getRealName(initial?.name) || '',
+  }));
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState('');
   const [pincodeStatus, setPincodeStatus] = useState({ loading: false, valid: null, message: '' });
@@ -128,6 +144,10 @@ const AddressForm = ({ initial, onSave, onCancel, busy, title = 'Add New Address
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!form.name?.trim() || isPlaceholderName(form.name) || form.name.trim().length < 2) {
+      setGpsError('Please enter your actual Full Name (e.g. Rahul Sharma).');
+      return;
+    }
     if (!isValidPincodeFormat(form.pincode)) {
       setGpsError('Please enter a valid 6-digit Indian PIN code.');
       return;
@@ -171,8 +191,15 @@ const AddressForm = ({ initial, onSave, onCancel, busy, title = 'Add New Address
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={labelCls}>Full Name</label>
-          <input type="text" value={form.name || ''} onChange={e => set('name', e.target.value)} className={inputCls} placeholder="Name" />
+          <label className={labelCls}>Full Name (Receiver's Name) *</label>
+          <input
+            type="text"
+            required
+            value={getRealName(form.name)}
+            onChange={e => set('name', e.target.value)}
+            className={inputCls}
+            placeholder="Receiver's actual name"
+          />
         </div>
         <div>
           <label className={labelCls}>Phone</label>
@@ -313,7 +340,7 @@ const AddressPanel = () => {
       {showForm && (
         <div className="mb-5">
           <AddressForm
-            initial={{ name: user?.name, phone: user?.phone, street: '', city: '', state: '', pincode: '', country: 'India' }}
+            initial={{ name: getRealName(user?.name), phone: user?.phone || '', street: '', city: '', state: '', pincode: '', country: 'India' }}
             onSave={handleAdd}
             onCancel={() => setShowForm(false)}
             busy={busy}
@@ -441,7 +468,7 @@ const Settings = () => {
   }, []);
 
   const [profileData, setProfileData] = useState({
-    name: user?.name || '',
+    name: getRealName(user?.name),
     phone: user?.phone || '',
     address: {
       street: user?.address?.street || '',
@@ -455,7 +482,7 @@ const Settings = () => {
   useEffect(() => {
     if (!user) return;
     setProfileData(p => ({
-      name: p.name || user.name || '',
+      name: getRealName(p.name) || getRealName(user.name),
       phone: p.phone || user.phone || '',
       address: {
         street: p.address.street || user.address?.street || '',
@@ -481,6 +508,10 @@ const Settings = () => {
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
+    if (!profileData.name?.trim() || isPlaceholderName(profileData.name) || profileData.name.trim().length < 2) {
+      showMessage('error', 'Please enter your actual Full Name (e.g. Rahul Sharma).');
+      return;
+    }
     setLoading(l => ({ ...l, profile: true }));
     const result = await updateProfile(profileData);
     showMessage(result.success ? 'success' : 'error', result.success ? 'Profile updated.' : result.message);
@@ -516,7 +547,7 @@ const Settings = () => {
     <div className="bg-fv-page">
       <div className="mx-auto max-w-[1200px] px-4 py-10 sm:px-6 lg:px-10">
         <h1 className="text-center font-serif text-[30px] font-semibold text-fv-heading sm:text-[38px]">
-          {greeting()}{user?.name ? `, ${user.name.split(' ')[0]}` : ''}!
+          {greeting()}{getRealName(user?.name) ? `, ${getRealName(user.name).split(' ')[0]}` : ''}!
         </h1>
 
         {message.text && (

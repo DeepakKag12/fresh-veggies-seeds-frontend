@@ -20,6 +20,19 @@ const inputCls =
 
 const labelCls = 'block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
 
+/* ─── Real Customer Name Helpers (replaces Customer123 placeholder) ──── */
+const isPlaceholderName = (name) => {
+  if (!name || typeof name !== 'string') return true;
+  const trimmed = name.trim();
+  if (trimmed.length < 2) return true;
+  return /^customer(\s*\d+)?$/i.test(trimmed);
+};
+
+const getRealName = (name) => {
+  if (isPlaceholderName(name)) return '';
+  return name.trim();
+};
+
 /* ─── Reusable Address Form Fields ─────────────────────────────────────── */
 const AddressFields = ({ addr, setAddr, gpsLoading, onUseLocation, pincodeStatus, setPincodeStatus }) => {
   const [checkingPin, setCheckingPin] = useState(false);
@@ -85,15 +98,25 @@ const AddressFields = ({ addr, setAddr, gpsLoading, onUseLocation, pincodeStatus
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
         <div>
-          <label className={labelCls}>Full Name *</label>
+          <div className="flex items-center justify-between mb-1">
+            <label htmlFor="shipping-name-input" className={labelCls}>Full Name (Receiver's Real Name) *</label>
+            {isPlaceholderName(addr.name) && (
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
+                Required
+              </span>
+            )}
+          </div>
           <input
+            id="shipping-name-input"
             type="text"
             required
             autoComplete="name"
-            placeholder="Receiver's name"
-            value={addr.name || ''}
+            placeholder="Enter receiver's actual full name"
+            value={getRealName(addr.name)}
             onChange={e => setAddr(a => ({ ...a, name: e.target.value }))}
-            className={inputCls}
+            className={`${inputCls} ${
+              isPlaceholderName(addr.name) ? 'focus:border-fv-primary' : ''
+            }`}
           />
         </div>
         <div>
@@ -214,7 +237,7 @@ const Checkout = () => {
   const [selectedSavedId, setSelectedSavedId] = useState(defaultAddr?._id || null);
   const [mode, setMode] = useState(savedAddresses.length > 0 ? 'saved' : 'new');
   const [newAddr, setNewAddr] = useState({
-    name: user?.name || '',
+    name: getRealName(user?.name),
     phone: user?.phone || '',
     street: '',
     city: '',
@@ -241,7 +264,7 @@ const Checkout = () => {
     }
     setNewAddr(a => ({
       ...a,
-      name: a.name || user.name || '',
+      name: getRealName(a.name) || getRealName(user.name),
       phone: a.phone || user.phone || '',
     }));
   }, [user]);
@@ -313,7 +336,7 @@ const Checkout = () => {
       const saved = savedAddresses.find(a => a._id === selectedSavedId);
       if (saved) {
         return {
-          name: saved.name || user?.name || '',
+          name: getRealName(saved.name) || getRealName(user?.name),
           phone: saved.phone || user?.phone || '',
           street: saved.street,
           city: saved.city,
@@ -323,7 +346,7 @@ const Checkout = () => {
         };
       }
     }
-    return { ...newAddr, country: 'India' };
+    return { ...newAddr, name: getRealName(newAddr.name), country: 'India' };
   };
 
   /* Razorpay handler */
@@ -507,7 +530,17 @@ const Checkout = () => {
     }
 
     const shippingAddress = resolveShippingAddress();
-    if (!shippingAddress.name?.trim() || !shippingAddress.phone?.trim() || !shippingAddress.street?.trim() || !shippingAddress.city?.trim() || !shippingAddress.state?.trim() || !shippingAddress.pincode?.trim()) {
+    if (!shippingAddress.name?.trim() || isPlaceholderName(shippingAddress.name)) {
+      setError('Please enter your actual Full Name (e.g. Rahul Sharma) in the Delivery Address (Step 2).');
+      const nameInput = document.getElementById('shipping-name-input');
+      if (nameInput) {
+        nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        nameInput.focus();
+      }
+      return;
+    }
+
+    if (!shippingAddress.phone?.trim() || !shippingAddress.street?.trim() || !shippingAddress.city?.trim() || !shippingAddress.state?.trim() || !shippingAddress.pincode?.trim()) {
       setError('Please provide a complete delivery address (Name, Phone, Street, City, State, PIN Code) in Step 2.');
       return;
     }
@@ -837,7 +870,7 @@ const Checkout = () => {
                     setNewAddr(a => ({
                       ...a,
                       phone: userData.phone || a.phone,
-                      name: userData.name && !userData.name.startsWith('Customer ') ? userData.name : a.name
+                      name: getRealName(userData.name) || getRealName(a.name)
                     }));
                   }}
                 />
@@ -855,7 +888,7 @@ const Checkout = () => {
                         <span className="text-[11px] text-gray-500 dark:text-gray-400">• Mobile Verified</span>
                       </div>
                       <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white truncate mt-0.5">
-                        +91 {user.phone} {user.name ? `(${user.name})` : ''}
+                        +91 {user.phone} {getRealName(user.name) ? `(${getRealName(user.name)})` : ''}
                       </p>
                     </div>
                   </div>
@@ -932,7 +965,7 @@ const Checkout = () => {
                             type="button"
                             onClick={() => {
                               setNewAddr({
-                                name: addr.name || user?.name || '',
+                                name: getRealName(addr.name) || getRealName(user?.name),
                                 phone: addr.phone || user?.phone || '',
                                 street: addr.street || '',
                                 city: addr.city || '',
@@ -960,7 +993,7 @@ const Checkout = () => {
                           setMode(mode === 'new' ? 'saved' : 'new');
                           if (mode === 'saved') {
                             setNewAddr({
-                              name: user?.name || '',
+                              name: getRealName(user?.name),
                               phone: user?.phone || '',
                               street: '',
                               city: '',
