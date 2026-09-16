@@ -34,8 +34,8 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
 
   return (
     <article
-      className="group relative flex flex-col overflow-hidden rounded-[18px] bg-white transition-shadow
-                 duration-200 hover:shadow-[0_14px_34px_rgba(10,76,54,0.10)] motion-reduce:transition-none"
+      className="group relative flex flex-col overflow-hidden rounded-[20px] border border-gray-100/90 dark:border-gray-800 bg-white dark:bg-gray-900 transition-all
+                 duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_40px_-10px_rgba(10,76,54,0.14)] motion-reduce:transition-none"
     >
       {isAdmin && (
         <div className="absolute right-3 top-3 z-20 flex gap-2">
@@ -45,7 +45,7 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
               onClick={() => onEdit(product)}
               aria-label={`Edit ${name}`}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-fv-primary shadow-sm
-                         hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary"
+                         hover:bg-white hover:scale-105 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary cursor-pointer"
             >
               <Pencil className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -56,7 +56,7 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
               onClick={() => onDelete(product)}
               aria-label={`Delete ${name}`}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-fv-danger shadow-sm
-                         hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-danger"
+                         hover:bg-white hover:scale-105 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-danger cursor-pointer"
             >
               <Trash2 className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -77,8 +77,8 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
             loading="lazy"
             decoding="async"
             onError={() => setImgFailed(true)}
-            className="h-full w-full object-cover transition-transform duration-300 ease-out
-                       group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            className="h-full w-full object-cover transition-transform duration-500 ease-out
+                       group-hover:scale-[1.06] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-fv-cream to-fv-surface">
@@ -88,8 +88,12 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
 
         {(featured || hasDiscount || outOfStock) && !isAdmin && (
           <span
-            className={`absolute left-3 top-3 rounded-[6px] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${
-              outOfStock ? 'bg-white text-fv-muted' : 'bg-fv-yellow text-fv-primary'
+            className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider shadow-sm backdrop-blur-xs transition-transform duration-200 group-hover:scale-105 ${
+              outOfStock
+                ? 'bg-white/90 text-fv-muted border border-gray-200'
+                : featured
+                ? 'bg-fv-primary text-white border border-fv-primary/20'
+                : 'bg-fv-yellow text-fv-primary border border-fv-yellow/30'
             }`}
           >
             {outOfStock ? 'Out of stock' : featured ? 'Bestseller' : `${discountPct}% off`}
@@ -97,37 +101,37 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
         )}
 
         {rating > 0 && (
-          <span className="absolute bottom-3 left-3 flex items-center gap-1 rounded-[4px] bg-white/80 px-1.5 py-1 backdrop-blur-sm">
-            <span className="text-[13px] font-medium leading-none text-fv-primary">{rating.toFixed(2)}</span>
+          <span className="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-white/90 dark:bg-gray-800/90 px-2.5 py-1 shadow-xs backdrop-blur-md border border-white/40 dark:border-gray-700/40">
+            <span className="text-[12px] font-bold leading-none text-fv-primary dark:text-green-400">{rating.toFixed(1)}</span>
             <Star className="h-3 w-3 fill-fv-star text-fv-star" aria-hidden="true" />
-            {numReviews > 0 && <span className="text-[12px] leading-none text-fv-muted">| {numReviews}</span>}
+            {numReviews > 0 && <span className="text-[11px] leading-none text-fv-muted dark:text-gray-400 font-medium">({numReviews})</span>}
           </span>
         )}
       </Link>
 
-      <div className="flex flex-1 flex-col p-3 sm:p-4 pt-2.5 sm:pt-3.5">
-        <h3 className="truncate font-serif text-[15px] sm:text-[19px] font-semibold leading-snug text-fv-heading">
+      <div className="flex flex-1 flex-col p-3 sm:p-4 pt-3 sm:pt-3.5">
+        <h3 className="truncate font-serif text-[16px] sm:text-[19px] font-bold leading-snug text-fv-heading dark:text-white">
           <Link
             to={`/product/${_id}`}
-            className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary"
+            className="hover:text-fv-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary"
           >
             {name}
           </Link>
         </h3>
-        {description && <p className="mt-0.5 sm:mt-1 truncate text-[13px] sm:text-[14px] text-fv-muted">{description}</p>}
+        {description && <p className="mt-0.5 sm:mt-1 truncate text-[12px] sm:text-[13px] text-fv-muted dark:text-gray-400">{description}</p>}
 
-        <div className="mt-2.5 sm:mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <p className="flex shrink-0 items-baseline gap-1 sm:gap-1.5">
-            <span className="text-[16px] sm:text-[19px] font-semibold text-fv-deep">₹{price?.toLocaleString('en-IN')}</span>
-            {hasDiscount && <s className="text-[12px] sm:text-[15px] text-fv-muted">₹{originalPrice.toLocaleString('en-IN')}</s>}
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <p className="flex shrink-0 items-baseline gap-1.5">
+            <span className="text-[17px] sm:text-[20px] font-bold text-fv-deep dark:text-white">₹{price?.toLocaleString('en-IN')}</span>
+            {hasDiscount && <s className="text-[12px] sm:text-[14px] text-fv-muted line-through opacity-70">₹{originalPrice.toLocaleString('en-IN')}</s>}
           </p>
 
           <Link
             to={`/product/${_id}`}
-            className="inline-flex h-9 sm:h-11 w-full shrink-0 items-center justify-center rounded-[50px] bg-fv-primary
-                       px-3 sm:px-6 text-[13px] sm:text-[15px] font-semibold text-white transition-all duration-200
-                       hover:bg-fv-primary-dark active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2
-                       focus-visible:ring-fv-primary focus-visible:ring-offset-2 motion-reduce:transition-none sm:w-auto"
+            className="inline-flex h-9 sm:h-10 w-full shrink-0 items-center justify-center rounded-full bg-fv-primary
+                       px-3 sm:px-5 text-[13px] sm:text-[14px] font-semibold text-white shadow-xs transition-all duration-200
+                       hover:bg-fv-primary-dark hover:shadow-md active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2
+                       focus-visible:ring-fv-primary focus-visible:ring-offset-2 motion-reduce:transition-none sm:w-auto cursor-pointer"
           >
             View Product<span className="sr-only"> — {name}</span>
           </Link>

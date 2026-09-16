@@ -619,9 +619,9 @@ const AdminDashboard = () => {
                 },
               ].map((kpi, i) => {
                 const content = (
-                  <div className={`p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 shadow-xs transition-all flex flex-col justify-between h-full ${kpi.bg}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className={`w-8 h-8 rounded-lg ${kpi.iconBg} flex items-center justify-center`}>
+                  <div className={`p-4 rounded-2xl border border-gray-200/90 dark:border-gray-800 bg-white dark:bg-gray-800 shadow-2xs hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between h-full cursor-pointer ${kpi.bg}`}>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div className={`w-9 h-9 rounded-xl ${kpi.iconBg} flex items-center justify-center shadow-2xs`}>
                         <kpi.icon className={`w-4 h-4 ${kpi.iconColor}`} />
                       </div>
                       {kpi.badge && (
@@ -629,14 +629,14 @@ const AdminDashboard = () => {
                       )}
                     </div>
                     <div>
-                      <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{kpi.value}</p>
+                      <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{kpi.value}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">{kpi.label}</p>
                     </div>
                   </div>
                 );
 
                 return kpi.link ? (
-                  <Link key={i} to={kpi.link} className="block group">
+                  <Link key={i} to={kpi.link} className="block group active:scale-[0.98] transition-transform">
                     {content}
                   </Link>
                 ) : (

@@ -167,10 +167,10 @@ const ProductDetailNew = () => {
                 type="button"
                 disabled={!stock}
                 onClick={handleAddToCart}
-                className="h-12 flex-1 rounded-[50px] bg-fv-primary px-6 text-[15px] font-semibold text-white
-                           transition-colors duration-200 hover:bg-fv-primary-dark disabled:cursor-not-allowed
+                className="h-12 flex-1 rounded-full bg-fv-primary px-6 text-[15px] font-semibold text-white shadow-xs
+                           transition-all duration-200 hover:bg-fv-primary-dark hover:shadow-md active:scale-[0.97] disabled:cursor-not-allowed
                            disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2
-                           focus-visible:ring-fv-primary focus-visible:ring-offset-2 motion-reduce:transition-none"
+                           focus-visible:ring-fv-primary focus-visible:ring-offset-2 motion-reduce:transition-none cursor-pointer"
               >
                 Add to cart · ₹{lineTotal.toLocaleString('en-IN')}
               </button>
@@ -178,10 +178,10 @@ const ProductDetailNew = () => {
                 type="button"
                 disabled={!stock}
                 onClick={handleBuyNow}
-                className="h-12 rounded-[50px] border border-fv-primary px-6 text-[15px] font-semibold text-fv-primary
-                           hover:bg-fv-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-50
+                className="h-12 rounded-full border-2 border-fv-primary px-6 text-[15px] font-semibold text-fv-primary
+                           hover:bg-fv-primary hover:text-white transition-all duration-200 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50
                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary
-                           focus-visible:ring-offset-2"
+                           focus-visible:ring-offset-2 cursor-pointer"
               >
                 Buy now
               </button>
@@ -189,14 +189,16 @@ const ProductDetailNew = () => {
 
             <OffersBox />
 
-            <ul className="mt-6 grid gap-3 rounded-[12px] bg-fv-yellow p-4 sm:grid-cols-3">
+            <ul className="mt-6 grid gap-3 rounded-2xl bg-gradient-to-r from-emerald-50/90 to-green-50/70 dark:from-emerald-950/30 dark:to-green-950/20 border border-emerald-100/80 dark:border-emerald-800/40 p-4 sm:grid-cols-3">
               {GUARANTEES.map(({ Icon, title, detail }) => (
-                <li key={title} className="flex items-start gap-2">
-                  <Icon className="mt-0.5 h-5 w-5 shrink-0 text-fv-primary" aria-hidden="true" />
-                  <span>
-                    <span className="block text-[14px] font-semibold text-fv-primary">{title}</span>
-                    <span className="block text-[12px] text-fv-primary/75">{detail}</span>
-                  </span>
+                <li key={title} className="flex items-start gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white dark:bg-gray-800 text-fv-primary shadow-2xs shrink-0 mt-0.5">
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <span className="block text-[13px] font-bold text-gray-900 dark:text-white">{title}</span>
+                    <span className="block text-[11px] text-gray-600 dark:text-gray-400">{detail}</span>
+                  </div>
                 </li>
               ))}
             </ul>

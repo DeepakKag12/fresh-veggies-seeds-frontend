@@ -198,7 +198,7 @@ const LoginPage = () => {
 
             <Button
               type="submit"
-              className="w-full bg-fv-primary hover:bg-fv-primary-dark"
+              className="w-full h-12 rounded-full bg-fv-primary hover:bg-fv-primary-dark shadow-xs hover:shadow-md active:scale-[0.98] transition-all cursor-pointer text-base font-semibold"
               disabled={loading}
             >
               {loading ? (
@@ -234,7 +234,7 @@ const LoginPage = () => {
 
             <Link
               to="/mobile-login"
-              className="w-full block text-center px-4 py-2 border-2 border-fv-primary text-fv-primary hover:bg-fv-cream rounded-lg font-semibold transition-colors"
+              className="w-full h-12 flex items-center justify-center px-4 border-2 border-fv-primary text-fv-primary hover:bg-fv-cream dark:hover:bg-green-950/30 rounded-full font-bold transition-all active:scale-[0.98] cursor-pointer shadow-2xs text-sm"
             >
               Login with Phone Number
             </Link>

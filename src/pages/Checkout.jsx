@@ -676,11 +676,11 @@ const Checkout = () => {
           </h1>
 
           {/* Clean Step Breadcrumbs */}
-          <div className="flex items-center justify-between max-w-sm sm:max-w-md bg-white dark:bg-gray-800 rounded-xl px-2.5 py-2 sm:px-3 sm:py-2.5 border border-fv-border shadow-2xs">
+          <div className="flex items-center justify-between max-w-sm sm:max-w-md bg-white dark:bg-gray-800 rounded-full px-3 py-2 sm:px-4 sm:py-2.5 border border-gray-200/90 dark:border-gray-700/80 shadow-xs">
             {/* Step 1 Pill */}
             <div className="flex items-center gap-1.5 shrink-0">
-              <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold ${
-                user ? 'bg-fv-primary text-white' : 'bg-fv-primary text-white ring-2 ring-fv-primary/30'
+              <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold transition-all ${
+                user ? 'bg-fv-primary text-white shadow-xs' : 'bg-fv-primary text-white ring-4 ring-fv-primary/20 shadow-xs'
               }`}>
                 {user ? <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3]" /> : '1'}
               </div>
@@ -689,12 +689,12 @@ const Checkout = () => {
               </span>
             </div>
 
-            <div className={`flex-1 h-0.5 mx-1.5 sm:mx-2 ${user ? 'bg-fv-primary' : 'bg-gray-200 dark:bg-gray-700'}`} />
+            <div className={`flex-1 h-0.5 mx-2 transition-colors ${user ? 'bg-fv-primary' : 'bg-gray-200 dark:bg-gray-700'}`} />
 
             {/* Step 2 Pill */}
             <div className="flex items-center gap-1.5 shrink-0">
-              <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold ${
-                user ? (resolveShippingAddress().street ? 'bg-fv-primary text-white' : 'bg-fv-primary/10 text-fv-primary border border-fv-primary') : 'bg-gray-100 dark:bg-gray-700 text-gray-400'
+              <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold transition-all ${
+                user ? (resolveShippingAddress().street ? 'bg-fv-primary text-white shadow-xs' : 'bg-fv-primary/10 text-fv-primary border-2 border-fv-primary ring-4 ring-fv-primary/20') : 'bg-gray-100 dark:bg-gray-700 text-gray-400'
               }`}>
                 {user && resolveShippingAddress().street ? <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3]" /> : '2'}
               </div>
@@ -703,12 +703,12 @@ const Checkout = () => {
               </span>
             </div>
 
-            <div className={`flex-1 h-0.5 mx-1.5 sm:mx-2 ${user && resolveShippingAddress().street ? 'bg-fv-primary' : 'bg-gray-200 dark:bg-gray-700'}`} />
+            <div className={`flex-1 h-0.5 mx-2 transition-colors ${user && resolveShippingAddress().street ? 'bg-fv-primary' : 'bg-gray-200 dark:bg-gray-700'}`} />
 
             {/* Step 3 Pill */}
             <div className="flex items-center gap-1.5 shrink-0">
-              <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold ${
-                user && resolveShippingAddress().street ? 'bg-fv-primary/10 text-fv-primary border border-fv-primary' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'
+              <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold transition-all ${
+                user && resolveShippingAddress().street ? 'bg-fv-primary/10 text-fv-primary border-2 border-fv-primary ring-4 ring-fv-primary/20' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'
               }`}>
                 3
               </div>
