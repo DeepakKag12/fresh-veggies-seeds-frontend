@@ -347,7 +347,7 @@ const NavbarNew = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
+              className="md:hidden min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -381,13 +381,13 @@ const NavbarNew = () => {
                     type="search"
                     autoFocus
                     placeholder="Search seeds, soil, tools…"
-                    className="h-10 w-full rounded-full bg-fv-surface pl-10 pr-9 text-[14px] text-fv-heading
+                    className="h-11 w-full rounded-full bg-fv-surface pl-10 pr-10 text-[15px] sm:text-[14px] text-fv-heading
                                placeholder:text-fv-muted focus:outline-none focus:ring-2 focus:ring-fv-primary/30"
                   />
                   <button
                     type="button"
                     onClick={() => setMobileSearchOpen(false)}
-                    className="absolute right-2.5 flex h-7 w-7 items-center justify-center rounded-full text-fv-muted hover:text-fv-heading"
+                    className="absolute right-1 flex h-10 w-10 items-center justify-center rounded-full text-fv-muted hover:text-fv-heading"
                     aria-label="Close search"
                   >
                     <X className="h-4 w-4" />
@@ -435,7 +435,7 @@ const NavbarNew = () => {
                     key={link.path}
                     to={link.path}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`block px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex items-center min-h-[44px] px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       isActive(link.path)
                         ? 'bg-fv-cream text-fv-primary'
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -461,7 +461,7 @@ const NavbarNew = () => {
                         <Link
                           to="/admin/dashboard"
                           onClick={() => setMobileMenuOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+                          className="flex items-center gap-3 min-h-[44px] px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
                         >
                           <LayoutDashboard className="w-4 h-4" />
                           Admin Dashboard
@@ -469,7 +469,7 @@ const NavbarNew = () => {
                         <Link
                           to="/admin/settings"
                           onClick={() => setMobileMenuOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-fv-primary font-medium hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+                          className="flex items-center gap-3 min-h-[44px] px-4 py-2 text-sm text-fv-primary font-medium hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
                         >
                           <Settings className="w-4 h-4" />
                           Store Settings
@@ -480,7 +480,7 @@ const NavbarNew = () => {
                     <Link
                       to="/orders"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+                      className="flex items-center gap-3 min-h-[44px] px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
                     >
                       <Package className="w-4 h-4" />
                       My Orders
@@ -489,7 +489,7 @@ const NavbarNew = () => {
                     <Link
                       to="/settings"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+                      className="flex items-center gap-3 min-h-[44px] px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
                     >
                       <Settings className="w-4 h-4" />
                       Account Settings
@@ -500,7 +500,7 @@ const NavbarNew = () => {
                         handleLogout();
                         setMobileMenuOpen(false);
                       }}
-                      className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                      className="flex items-center gap-3 w-full min-h-[44px] px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-left"
                     >
                       <LogOut className="w-4 h-4" />
                       Logout
@@ -513,7 +513,7 @@ const NavbarNew = () => {
                       onClick={() => setMobileMenuOpen(false)}
                       className="block"
                     >
-                      <Button variant="outline" className="w-full">
+                      <Button variant="outline" className="w-full min-h-[44px]">
                         Login
                       </Button>
                     </Link>
@@ -522,7 +522,7 @@ const NavbarNew = () => {
                       onClick={() => setMobileMenuOpen(false)}
                       className="block"
                     >
-                      <Button className="w-full bg-fv-primary hover:bg-fv-primary-dark">
+                      <Button className="w-full min-h-[44px] bg-fv-primary hover:bg-fv-primary-dark">
                         Sign Up
                       </Button>
                     </Link>

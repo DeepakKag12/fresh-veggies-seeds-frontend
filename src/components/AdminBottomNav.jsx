@@ -92,7 +92,7 @@ const AdminBottomNav = () => {
 
       {/* More Menu Panel */}
       {showMore && (
-        <div className="fixed bottom-16 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700 rounded-t-3xl p-5 md:hidden animate-slide-up max-h-[80vh] overflow-y-auto shadow-2xl">
+        <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-50 bg-gray-900 border-t border-gray-700 rounded-t-3xl p-5 md:hidden animate-slide-up max-h-[80vh] overflow-y-auto shadow-2xl pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
           <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-800">
             <div>
               <h3 className="text-white font-bold text-base">Admin Navigation</h3>
@@ -100,7 +100,7 @@ const AdminBottomNav = () => {
             </div>
             <button 
               onClick={() => setShowMore(false)} 
-              className="p-2 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -123,7 +123,7 @@ const AdminBottomNav = () => {
                           navigate(item.path);
                           setShowMore(false);
                         }}
-                        className={`flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
+                        className={`flex items-center gap-3 p-3 min-h-[44px] rounded-xl transition-all text-left ${
                           active
                             ? 'bg-fv-primary text-white font-semibold shadow-md'
                             : 'bg-gray-800/80 hover:bg-gray-800 text-gray-300'
@@ -142,8 +142,8 @@ const AdminBottomNav = () => {
       )}
 
       {/* Main Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-800 md:hidden">
-        <div className="flex justify-around items-center h-16 px-1 safe-area-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-800 md:hidden pb-[env(safe-area-inset-bottom,0px)]">
+        <div className="flex justify-around items-center h-16 px-1">
           {mainNavItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
@@ -152,7 +152,7 @@ const AdminBottomNav = () => {
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className="flex flex-col items-center justify-center flex-1 h-full py-2 transition-colors relative"
+                className="flex flex-col items-center justify-center flex-1 h-full min-h-[44px] py-1 transition-colors relative"
               >
                 <div className="relative">
                   <div className={`p-1.5 rounded-full transition-colors ${
@@ -168,7 +168,7 @@ const AdminBottomNav = () => {
                     </span>
                   )}
                 </div>
-                <span className={`text-[10px] mt-1 font-medium ${
+                <span className={`text-[10px] mt-0.5 font-medium ${
                   active ? 'text-green-400' : 'text-gray-400'
                 }`}>
                   {item.label}
@@ -183,7 +183,7 @@ const AdminBottomNav = () => {
           {/* More Button */}
           <button
             onClick={() => setShowMore(!showMore)}
-            className="flex flex-col items-center justify-center flex-1 h-full py-2 transition-colors"
+            className="flex flex-col items-center justify-center flex-1 h-full min-h-[44px] py-1 transition-colors"
           >
             <div className={`p-1.5 rounded-full transition-colors ${
               showMore ? 'bg-green-600' : ''
@@ -192,7 +192,7 @@ const AdminBottomNav = () => {
                 showMore ? 'text-white' : 'text-gray-400'
               }`} />
             </div>
-            <span className={`text-[10px] mt-1 font-medium ${
+            <span className={`text-[10px] mt-0.5 font-medium ${
               showMore ? 'text-green-400' : 'text-gray-400'
             }`}>
               More

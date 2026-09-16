@@ -58,7 +58,7 @@ const StorefrontFooter = () => {
 
   return (
     <footer className="bg-fv-primary text-white">
-      <div className="mx-auto max-w-[1500px] px-4 py-14 sm:px-6 lg:px-10">
+      <div className="mx-auto max-w-[1500px] px-4 pt-12 pb-20 sm:py-14 sm:px-6 lg:px-10">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_2fr]">
           {/* Brand + newsletter */}
           <div>

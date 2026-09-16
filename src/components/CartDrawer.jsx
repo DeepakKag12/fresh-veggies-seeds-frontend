@@ -149,7 +149,7 @@ const CartDrawer = () => {
                         type="button"
                         onClick={() => removeFromCart(item._id, item.isCombo, item.packageId)}
                         aria-label={`Remove ${item.name} from cart`}
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-fv-muted
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-fv-muted
                                    hover:bg-fv-surface hover:text-fv-danger focus-visible:outline-none
                                    focus-visible:ring-2 focus-visible:ring-fv-danger"
                       >
@@ -170,8 +170,8 @@ const CartDrawer = () => {
                           type="button"
                           onClick={() => updateQuantity(item._id, item.isCombo, item.quantity - 1, item.packageId)}
                           aria-label={`Decrease quantity of ${item.name}`}
-                          className="flex h-9 w-9 items-center justify-center rounded-l-[50px] text-fv-primary
-                                     hover:bg-fv-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary"
+                          className="flex h-10 w-10 items-center justify-center rounded-l-[50px] text-fv-primary
+                                     hover:bg-fv-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary active:bg-fv-surface"
                         >
                           <Minus className="h-3.5 w-3.5" aria-hidden="true" />
                         </button>
@@ -180,8 +180,8 @@ const CartDrawer = () => {
                           type="button"
                           onClick={() => updateQuantity(item._id, item.isCombo, item.quantity + 1, item.packageId)}
                           aria-label={`Increase quantity of ${item.name}`}
-                          className="flex h-9 w-9 items-center justify-center rounded-r-[50px] text-fv-primary
-                                     hover:bg-fv-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary"
+                          className="flex h-10 w-10 items-center justify-center rounded-r-[50px] text-fv-primary
+                                     hover:bg-fv-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary active:bg-fv-surface"
                         >
                           <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                         </button>
@@ -192,7 +192,7 @@ const CartDrawer = () => {
               ))}
             </ul>
 
-            <div className="border-t border-fv-border px-5 py-4">
+            <div className="border-t border-fv-border px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))]">
               <p className="flex items-baseline justify-between">
                 <span className="text-[20px] font-semibold text-fv-deep">₹{subtotal.toLocaleString('en-IN')}</span>
                 <span className="text-[13px] text-fv-muted">Inclusive of all taxes</span>
@@ -202,14 +202,14 @@ const CartDrawer = () => {
                 onClick={closeCart}
                 className="mt-3 flex h-12 w-full items-center justify-center rounded-[50px] bg-fv-primary
                            text-[15px] font-semibold uppercase tracking-wide text-white hover:bg-fv-primary-dark
-                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary focus-visible:ring-offset-2"
+                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary focus-visible:ring-offset-2 active:scale-[0.99]"
               >
                 Checkout
               </Link>
               <button
                 type="button"
                 onClick={closeCart}
-                className="mt-2 h-11 w-full rounded-[50px] text-[14px] font-medium text-fv-primary hover:bg-fv-surface
+                className="mt-2 flex h-11 w-full items-center justify-center rounded-[50px] text-[14px] font-medium text-fv-primary hover:bg-fv-surface
                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary"
               >
                 Continue shopping

@@ -234,19 +234,19 @@ const ProductDetailNew = () => {
       <ReviewsSection productId={product._id} productName={product.name} />
       <RelatedProducts categoryId={categoryId} excludeId={product._id} />
 
-      {/* Sticky buy bar on phones, positioned cleanly above bottom navigation */}
-      <div className="fixed inset-x-0 bottom-16 z-40 border-t border-fv-border bg-white/95 backdrop-blur-md px-4 py-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] lg:hidden">
-        <div className="flex items-center gap-3">
+      {/* Sticky buy bar on phones, positioned cleanly with safe area support */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-fv-border bg-white/95 backdrop-blur-md px-4 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] shadow-[0_-4px_16px_rgba(0,0,0,0.08)] lg:hidden">
+        <div className="flex items-center gap-3 max-w-[1500px] mx-auto">
           <p className="min-w-0 flex-1">
             <span className="block truncate text-[13px] font-medium text-fv-heading">{product.name}</span>
-            <span className="block text-[15px] font-semibold text-fv-deep">₹{lineTotal.toLocaleString('en-IN')}</span>
+            <span className="block text-[16px] font-bold text-fv-deep">₹{lineTotal.toLocaleString('en-IN')}</span>
           </p>
           <button
             type="button"
             disabled={!stock}
             onClick={handleAddToCart}
-            className="h-11 shrink-0 rounded-[50px] bg-fv-primary px-5 text-[14px] font-semibold text-white
-                       disabled:opacity-50 active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary"
+            className="h-12 min-h-[44px] shrink-0 rounded-full bg-fv-primary px-6 text-[15px] font-semibold text-white
+                       disabled:opacity-50 active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary shadow-xs cursor-pointer"
           >
             Add to cart
           </button>

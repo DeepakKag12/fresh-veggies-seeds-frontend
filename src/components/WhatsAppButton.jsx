@@ -25,7 +25,7 @@ const WhatsAppButton = () => {
   };
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 right-3.5 sm:right-6 z-40">
+    <div className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] right-3.5 sm:right-6 z-40">
       <button
         onClick={handleClick}
         onMouseEnter={() => setIsHovered(true)}
