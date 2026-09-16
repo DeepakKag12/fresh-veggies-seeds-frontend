@@ -419,19 +419,26 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
           color: #15803d;
         }
 
-        .fv-forgot-link {
-          align-self: flex-end;
-          max-width: 350px;
+        .fv-forgot-link-wrapper {
           width: 100%;
-          text-align: right;
-          font-size: 0.8rem;
+          max-width: 350px;
+          display: flex;
+          justify-content: flex-end;
+          margin-top: 6px;
+          margin-bottom: 8px;
+          padding: 0 2px;
+        }
+
+        .fv-forgot-link {
+          font-size: 0.825rem;
           color: #16a34a;
           text-decoration: none;
           font-weight: 600;
-          margin: 4px 0 8px 0;
+          transition: color 0.15s ease;
         }
 
         .fv-forgot-link:hover {
+          color: #15803d;
           text-decoration: underline;
         }
 
@@ -873,9 +880,11 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                     </button>
                   </div>
 
-                  <Link to="/forgot-password" className="fv-forgot-link">
-                    Forgot password?
-                  </Link>
+                  <div className="fv-forgot-link-wrapper">
+                    <Link to="/forgot-password" className="fv-forgot-link">
+                      Forgot password?
+                    </Link>
+                  </div>
 
                   <button type="submit" className="fv-btn" disabled={signInLoading}>
                     {signInLoading ? (
@@ -987,7 +996,7 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
         <div className="fv-panels-container">
           <div className="fv-panel left-panel">
             <div className="content">
-              <h3>New here? 🌱</h3>
+              <h3>New here?</h3>
               <p>
                 Join thousands of gardeners growing organic vegetables and fruits right at home.
               </p>

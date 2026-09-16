@@ -563,7 +563,7 @@ export default function AuthSwitch({
         <div className="fv-panels-container">
           <div className="fv-panel left-panel">
             <div className="content">
-              <h3>New to Fresh Veggies? 🌱</h3>
+              <h3>New to Fresh Veggies?</h3>
               <p>
                 Get access to heirloom seeds, exclusive discounts, order tracking, and fast doorstep delivery.
               </p>
