@@ -3,6 +3,7 @@ import Pagination from '../components/Pagination';
 import { Link } from 'react-router-dom';
 import { Package, Loader, ChevronRight, AlertCircle } from 'lucide-react';
 import api from '../utils/api';
+import OrderDetailDrawer from '../components/OrderDetailDrawer';
 
 const MyOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -11,6 +12,14 @@ const MyOrders = () => {
   const [totalOrders, setTotalOrders] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const handleOpenOrder = (orderId, e) => {
+    if (e) e.preventDefault();
+    setSelectedOrderId(orderId);
+    setIsDrawerOpen(true);
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -99,20 +108,23 @@ const MyOrders = () => {
         ) : (
           <div className="space-y-3">
             {orders.map((order) => (
-              <Link
+              <div
                 key={order._id}
-                to={`/orders/${order._id}`}
-               className="flex items-center gap-3 bg-white rounded-[12px] shadow-sm hover: active:scale-[0.99] transition-all p-4"
+                role="button"
+                tabIndex={0}
+                onClick={(e) => handleOpenOrder(order._id, e)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleOpenOrder(order._id, e); }}
+                className="flex items-center gap-3 bg-white rounded-[12px] shadow-sm hover:shadow-xs hover:border-fv-primary/40 border border-fv-border active:scale-[0.99] transition-all p-4 cursor-pointer group select-none"
               >
                 {/* Icon */}
-                <div className="w-10 h-10 rounded-full bg-fv-cream dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 rounded-full bg-fv-cream dark:bg-green-900/30 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
                   <Package className="w-5 h-5 text-fv-primary dark:text-green-400" />
                 </div>
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="text-sm font-bold text-fv-heading  font-mono">
+                    <span className="text-sm font-bold text-fv-heading font-mono">
                       {order.orderNumber || `#${order._id.slice(-8).toUpperCase()}`}
                     </span>
                     <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${getStatusColor(order.orderStatus)}`}>
@@ -124,7 +136,7 @@ const MyOrders = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-fv-muted  truncate">
+                  <p className="text-xs text-fv-muted truncate">
                     {new Date(order.createdAt).toLocaleDateString('en-IN', {
                       year: 'numeric', month: 'short', day: 'numeric',
                     })}
@@ -134,13 +146,13 @@ const MyOrders = () => {
                 </div>
 
                 {/* Amount + arrow */}
-                <div className="flex items-center gap-1 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <span className="text-base font-bold text-fv-primary dark:text-green-400">
                     ₹{order.totalAmount}
                   </span>
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-fv-primary group-hover:translate-x-0.5 transition-all" />
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
@@ -154,6 +166,19 @@ const MyOrders = () => {
             itemLabel="orders"
           />
         )}
+
+        {/* Order Detail Slide-Over Drawer */}
+        <OrderDetailDrawer
+          orderId={selectedOrderId}
+          isOpen={isDrawerOpen}
+          onClose={() => {
+            setIsDrawerOpen(false);
+            setSelectedOrderId(null);
+          }}
+          onOrderUpdated={(updated) => {
+            setOrders((prev) => prev.map((o) => (o._id === updated._id ? updated : o)));
+          }}
+        />
       </div>
     </div>
   );

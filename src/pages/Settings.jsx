@@ -12,6 +12,7 @@ import PasswordInput from '../components/ui/PasswordInput';
 import Input from '../components/ui/Input';
 import { fetchCurrentAddress } from '../utils/locationService';
 import { lookupPincode, isValidPincodeFormat } from '../utils/pincodeService';
+import OrderDetailDrawer from '../components/OrderDetailDrawer';
 
 /**
  * Account settings: a persistent sidebar of account areas beside the active
@@ -451,7 +452,8 @@ const OrdersPanel = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -537,7 +539,18 @@ const OrdersPanel = () => {
           {orders.map((order) => (
             <div
               key={order._id}
-              onClick={() => navigate(`/orders/${order._id}`)}
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                setSelectedOrderId(order._id);
+                setIsDrawerOpen(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  setSelectedOrderId(order._id);
+                  setIsDrawerOpen(true);
+                }
+              }}
               className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-fv-border hover:border-fv-primary/40 hover:shadow-xs transition-all cursor-pointer bg-fv-page/30 hover:bg-white group"
             >
               <div className="flex items-start gap-3.5 min-w-0">
@@ -584,6 +597,19 @@ const OrdersPanel = () => {
           </div>
         </div>
       )}
+
+      {/* Slide-over Order Detail Drawer */}
+      <OrderDetailDrawer
+        orderId={selectedOrderId}
+        isOpen={isDrawerOpen}
+        onClose={() => {
+          setIsDrawerOpen(false);
+          setSelectedOrderId(null);
+        }}
+        onOrderUpdated={(updated) => {
+          setOrders((prev) => prev.map((o) => (o._id === updated._id ? updated : o)));
+        }}
+      />
     </div>
   );
 };

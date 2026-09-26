@@ -446,7 +446,7 @@ const OrderDetail = () => {
                 <Package className="w-5 h-5 text-fv-primary" /> Order Items
               </h2>
               <div className="space-y-4">
-                {order.orderItems.map((item, index) => (
+                {(order.orderItems || []).map((item, index) => (
                   <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-3 border-b border-fv-border last:border-0">
                     <div className="flex items-center gap-4 min-w-0">
                       <img
@@ -479,17 +479,19 @@ const OrderDetail = () => {
             </div>
 
             {/* Shipping Address */}
-            <div className="bg-white rounded-[12px] shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-fv-heading  mb-4 flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-fv-primary" /> Shipping Address
-              </h2>
-              <p className="font-medium text-fv-heading ">{order.shippingAddress.name}</p>
-              <p className="text-fv-muted  text-sm mt-1">{order.shippingAddress.phone}</p>
-              <p className="text-fv-muted  text-sm">{order.shippingAddress.street}</p>
-              <p className="text-fv-muted  text-sm">
-                {order.shippingAddress.city}, {order.shippingAddress.state} — {order.shippingAddress.pincode}
-              </p>
-            </div>
+            {order.shippingAddress && (
+              <div className="bg-white rounded-[12px] shadow-sm p-6">
+                <h2 className="text-lg font-semibold text-fv-heading mb-4 flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-fv-primary" /> Shipping Address
+                </h2>
+                <p className="font-medium text-fv-heading">{order.shippingAddress.name}</p>
+                <p className="text-fv-muted text-sm mt-1">{order.shippingAddress.phone}</p>
+                <p className="text-fv-muted text-sm">{order.shippingAddress.street}</p>
+                <p className="text-fv-muted text-sm">
+                  {order.shippingAddress.city}, {order.shippingAddress.state} — {order.shippingAddress.pincode}
+                </p>
+              </div>
+            )}
 
             {/* Order Timeline — every recorded status change, newest last */}
             {order.statusHistory?.length > 0 && (
