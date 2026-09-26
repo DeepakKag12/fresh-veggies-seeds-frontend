@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Facebook, Instagram, Youtube, Linkedin, ArrowRight } from 'lucide-react';
+import { Facebook, Instagram, Youtube, Linkedin, ArrowRight, MapPin } from 'lucide-react';
 import BadgeMarquee from './BadgeMarquee';
 import { useSettings } from '../../context/SettingsContext';
 
@@ -69,8 +69,9 @@ const StorefrontFooter = () => {
               Seeds, soil and tools for growing your own food at home.
             </p>
             {storeAddress && (
-              <p className="mt-2 max-w-xs text-[12px] text-white/50 leading-relaxed">
-                📍 {storeAddress}
+              <p className="mt-2 max-w-xs text-[12px] text-white/50 leading-relaxed flex items-start gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-white/70 shrink-0 mt-0.5" />
+                <span>{storeAddress}</span>
               </p>
             )}
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Sparkles, Package, HelpCircle, User } from 'lucide-react';
+import { Home, Layers, Package, HelpCircle, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const BottomNav = () => {
@@ -10,7 +10,7 @@ const BottomNav = () => {
 
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
-    { path: '/combos', label: 'Combos', icon: Sparkles },
+    { path: '/combos', label: 'Combos', icon: Layers },
     { path: user ? '/orders' : '/login', label: 'Orders', icon: Package },
     { path: '/contact', label: 'Help', icon: HelpCircle },
     { path: user ? '/settings' : '/login', label: 'Account', icon: User },

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader, ShoppingCart, Package, X } from 'lucide-react';
+import { Loader, ShoppingCart, Package, X, Check } from 'lucide-react';
 import { cachedGet } from '../utils/api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -92,8 +92,9 @@ const ComboCard = ({ combo, onSelect, onAddToCart, isAdmin }) => {
         {combo.features && combo.features.length > 0 && (
           <div className="mb-3 space-y-1">
             {combo.features.slice(0, 3).map((feature, index) => (
-              <p key={index} className="text-xs text-fv-muted">
-                ✓ {feature}
+              <p key={index} className="text-xs text-fv-muted flex items-center gap-1.5">
+                <Check className="w-3 h-3 text-fv-primary shrink-0" />
+                <span>{feature}</span>
               </p>
             ))}
           </div>
@@ -176,7 +177,7 @@ const ComboOffers = () => {
     <div className="min-h-screen bg-fv-page pt-24 pb-12">
       <div className="container mx-auto px-4">
         <h1 className="text-3xl lg:text-4xl font-bold text-fv-heading  mb-2">
-          Combo Packs - Best Value! 🔥
+          Combo Packs - Best Value
         </h1>
         <p className="text-fv-muted  mb-8">
           Get more for less with our specially curated combo packs for home gardening
@@ -259,7 +260,7 @@ const ComboOffers = () => {
                     <ul className="space-y-2">
                       {selectedCombo.features.map((feature, index) => (
                         <li key={index} className="flex items-start gap-2 text-fv-muted ">
-                          <span className="text-fv-primary dark:text-green-400 mt-0.5">✓</span>
+                          <Check className="w-3.5 h-3.5 text-fv-primary dark:text-green-400 mt-0.5 shrink-0" />
                           <span>{feature}</span>
                         </li>
                       ))}

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   User, MapPin, Package, Lock, Mail, LogOut, Save, Loader2,
   CheckCircle2, AlertCircle, Clock, Plus, Edit2, Trash2, Star,
-  Navigation, Check, X,
+  Navigation, Check, X, Phone,
 } from 'lucide-react';
 import { validatePassword, PASSWORD_RULE_TEXT } from '../utils/passwordPolicy';
 import { useAuth } from '../context/AuthContext';
@@ -394,7 +394,10 @@ const AddressPanel = () => {
                       {addr.street}, {addr.city}, {addr.state} — {addr.pincode}
                     </p>
                     {addr.phone && (
-                      <p className="text-[12px] text-gray-500 dark:text-gray-400 mt-1">📞 {addr.phone}</p>
+                      <p className="text-[12px] text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
+                        <Phone className="w-3 h-3 shrink-0" />
+                        <span>{addr.phone}</span>
+                      </p>
                     )}
                   </div>
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Sprout } from 'lucide-react';
 import { CATEGORY_ART } from './sandboxAssets';
 
 /**
@@ -45,8 +46,10 @@ const Tile = ({ category, active, onSelect }) => {
               onError={() => setFailed(true)}
               className="h-[62%] w-[62%] object-contain sm:h-[68%] sm:w-[68%]"
             />
+          ) : category.icon && !/[\u{1F300}-\u{1FAFF}]/u.test(category.icon) ? (
+            <span className="text-xl sm:text-2xl" aria-hidden="true">{category.icon}</span>
           ) : (
-            <span className="text-xl sm:text-3xl" aria-hidden="true">{category.icon || '🌱'}</span>
+            <Sprout className="w-6 h-6 sm:w-8 sm:h-8 text-fv-primary stroke-[1.75]" />
           )}
         </span>
         <span className={`text-[11px] leading-tight line-clamp-1 max-w-[74px] sm:max-w-none sm:text-[15px] sm:leading-snug ${active ? 'font-semibold text-fv-primary' : 'text-fv-heading'}`}>

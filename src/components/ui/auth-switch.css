@@ -534,86 +534,180 @@
   color: rgba(255, 255, 255, 0.95);
 }
 
+/* ── Default Desktop View for Mobile Switchers ── */
+.fv-mobile-mode-switcher {
+  display: none;
+}
+
+.fv-mobile-bottom-prompt {
+  display: none;
+}
+
+/* ── Mobile & Tablet Responsive View (<= 870px) ── */
 @media (max-width: 870px) {
-  .fv-auth-container {
-    min-height: 740px;
-    height: auto;
+  .auth-switch-root {
+    padding: 16px 12px 32px 12px;
+    min-height: 100vh;
+    justify-content: flex-start;
   }
-  .fv-signin-signup {
-    width: 100%;
-    top: 92%;
-    transform: translate(-50%, -100%);
-    transition: 0.8s 0.3s ease-in-out;
-  }
-  .fv-signin-signup,
-  .fv-auth-container.sign-up-mode .fv-signin-signup {
-    left: 50%;
-  }
-  .fv-panels-container {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr 2fr 1fr;
-  }
-  .fv-panel {
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    padding: 2rem 1.5rem;
-    grid-column: 1 / 2;
-  }
-  .right-panel {
-    grid-row: 3 / 4;
-  }
-  .left-panel {
-    grid-row: 1 / 2;
-  }
-  .fv-panel .content {
-    padding: 0;
-    transition: transform 0.8s ease-in-out;
-  }
-  .fv-panel h3 {
-    font-size: 1.35rem;
-  }
-  .fv-panel p {
-    font-size: 0.825rem;
+
+  .fv-nav-container {
     margin-bottom: 12px;
   }
-  .fv-btn.transparent {
-    width: 130px;
-    height: 38px;
-    font-size: 0.8rem;
+
+  .fv-auth-container {
+    min-height: auto;
+    height: auto;
+    padding: 1.5rem 1.25rem 2rem 1.25rem;
+    overflow: visible;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(22, 163, 74, 0.15);
   }
+
+  /* Completely disable the background decorative circle and sliding desktop panels on mobile so they NEVER overlay or intercept clicks */
   .fv-auth-container:before {
-    width: 1600px;
-    height: 1600px;
-    transform: translateX(-50%);
-    left: 30%;
-    bottom: 68%;
-    right: initial;
-    top: initial;
+    display: none !important;
   }
-  .fv-auth-container.sign-up-mode:before {
-    transform: translate(-50%, 100%);
-    bottom: 32%;
-    right: initial;
+
+  .fv-panels-container {
+    display: none !important;
   }
-  .fv-auth-container.sign-up-mode .left-panel .content {
-    transform: translateY(-300px);
+
+  /* Show the mobile segmented mode switcher at the top of the card */
+  .fv-mobile-mode-switcher {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 12px;
+    margin: 0 auto 1.5rem auto;
+    width: 100%;
+    max-width: 350px;
+    gap: 4px;
+    position: relative;
+    z-index: 20;
   }
-  .fv-auth-container.sign-up-mode .right-panel .content {
-    transform: translateY(0px);
+
+  .fv-mobile-mode-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 14px;
+    border-radius: 9px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #64748b;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
-  .right-panel .content {
-    transform: translateY(300px);
+
+  .fv-mobile-mode-btn.active {
+    background: #ffffff;
+    color: #15803d;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   }
+
+  /* Forms container takes natural height and static flow */
+  .fv-forms-container {
+    position: relative;
+    width: 100%;
+    height: auto;
+    top: auto;
+    left: auto;
+    z-index: 15;
+  }
+
+  .fv-signin-signup {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    width: 100%;
+    max-width: 380px;
+    margin: 0 auto;
+    transition: none;
+    display: block;
+    z-index: 15;
+  }
+
   .fv-auth-container.sign-up-mode .fv-signin-signup {
-    top: 8%;
-    transform: translate(-50%, 0);
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+  }
+
+  .fv-form {
+    padding: 0;
+    width: 100%;
+    transition: opacity 0.25s ease;
+  }
+
+  /* In sign-in mode: display sign-in cleanly in normal document flow */
+  .fv-form.sign-in-form {
+    display: flex;
+    opacity: 1;
+    position: relative;
+    pointer-events: auto;
+  }
+
+  .fv-form.sign-up-form {
+    display: none;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* In sign-up mode: switch to sign-up cleanly in normal document flow */
+  .fv-auth-container.sign-up-mode .fv-form.sign-in-form {
+    display: none;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .fv-auth-container.sign-up-mode .fv-form.sign-up-form {
+    display: flex;
+    opacity: 1;
+    position: relative;
+    pointer-events: auto;
+  }
+
+  .fv-mobile-bottom-prompt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-top: 14px;
+    text-align: center;
+  }
+
+  .fv-inline-switch-btn {
+    background: none;
+    border: none;
+    color: #15803d;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
   }
 }
 
 @media (max-width: 570px) {
   .fv-form {
-    padding: 0 1rem;
+    padding: 0;
+  }
+  .fv-input-field {
+    height: 48px;
+  }
+  .fv-title {
+    font-size: 1.5rem;
   }
 }
+

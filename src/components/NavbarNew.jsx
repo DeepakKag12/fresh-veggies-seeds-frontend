@@ -31,9 +31,9 @@ const NavbarNew = () => {
   const isCodAvailable = (settings?.delivery?.codAvailable ?? true) && (settings?.payments?.codEnabled ?? true);
 
   const OFFERS = [
-    `🚚 Free shipping above ₹${freeDeliveryThreshold}`,
-    '🌱 Fresh stock every week',
-    isCodAvailable ? '💳 Cash on delivery available' : '⚡ Fast dispatch guaranteed',
+    `Free shipping on orders above ₹${freeDeliveryThreshold}`,
+    'Fresh stock & tested germination',
+    isCodAvailable ? 'Cash on delivery available' : 'Fast door-to-door dispatch',
   ];
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, Phone, ArrowRight, Sprout, CheckCircle2, ShieldCheck, Sparkles, ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, Phone, ArrowRight, Sprout, CheckCircle2, ShieldCheck, ArrowLeft, Loader2, Eye, EyeOff, UserPlus, LogIn } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { validatePassword, PASSWORD_RULE_TEXT } from '../../utils/passwordPolicy';
 import GuestMobileOtpStep from '../checkout/GuestMobileOtpStep';
@@ -179,6 +179,24 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
       </div>
 
       <div className={isSignUp ? "fv-auth-container sign-up-mode" : "fv-auth-container"}>
+        {/* Mobile Header Mode Switcher (Visible on mobile/tablet) */}
+        <div className="fv-mobile-mode-switcher">
+          <button
+            type="button"
+            className={`fv-mobile-mode-btn ${!isSignUp ? 'active' : ''}`}
+            onClick={() => { setIsSignUp(false); setSignInError(''); setSignUpError(''); }}
+          >
+            <LogIn className="w-4 h-4" /> Sign In
+          </button>
+          <button
+            type="button"
+            className={`fv-mobile-mode-btn ${isSignUp ? 'active' : ''}`}
+            onClick={() => { setIsSignUp(true); setSignInError(''); setSignUpError(''); }}
+          >
+            <UserPlus className="w-4 h-4" /> Create Account
+          </button>
+        </div>
+
         <div className="fv-forms-container">
           <div className="fv-signin-signup">
             {/* ── SIGN IN FORM ── */}
@@ -235,7 +253,7 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                         onClick={() => switchToPhoneOtpWithNumber(signInIdentifier)}
                         className="text-xs text-green-700 hover:text-green-800 font-semibold flex items-center gap-1 bg-green-50 px-2.5 py-1 rounded-lg border border-green-200 transition-colors"
                       >
-                        <Sparkles className="w-3.5 h-3.5 text-green-600" />
+                        <Phone className="w-3.5 h-3.5 text-green-600" />
                         Prefer SMS code? <strong>Sign in via Phone OTP</strong>
                       </button>
                     </div>
@@ -274,6 +292,18 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                       <>Sign In <ArrowRight className="w-4 h-4" /></>
                     )}
                   </button>
+
+                  {/* Mobile Quick Switcher Link */}
+                  <div className="fv-mobile-bottom-prompt">
+                    <span>New to Fresh Veggies? </span>
+                    <button
+                      type="button"
+                      className="fv-inline-switch-btn"
+                      onClick={() => { setIsSignUp(true); setSignInError(''); setSignUpError(''); }}
+                    >
+                      Create an account
+                    </button>
+                  </div>
                 </form>
               )}
 
@@ -285,6 +315,17 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                       initialPhone={signInPhone}
                       onVerified={() => navigateToDestination()}
                     />
+                  </div>
+                  {/* Mobile Quick Switcher Link */}
+                  <div className="fv-mobile-bottom-prompt mt-2">
+                    <span>New to Fresh Veggies? </span>
+                    <button
+                      type="button"
+                      className="fv-inline-switch-btn"
+                      onClick={() => { setIsSignUp(true); setSignInError(''); setSignUpError(''); }}
+                    >
+                      Create an account
+                    </button>
                   </div>
                 </div>
               )}
@@ -366,14 +407,26 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                 {signUpLoading ? (
                   <><Loader2 className="w-4 h-4 animate-spin" /> Creating account...</>
                 ) : (
-                  <>Create Account <Sparkles className="w-4 h-4" /></>
+                  <>Create Account <ArrowRight className="w-4 h-4" /></>
                 )}
               </button>
+
+              {/* Mobile Quick Switcher Link */}
+              <div className="fv-mobile-bottom-prompt">
+                <span>Already have an account? </span>
+                <button
+                  type="button"
+                  className="fv-inline-switch-btn"
+                  onClick={() => { setIsSignUp(false); setSignInError(''); setSignUpError(''); }}
+                >
+                  Sign in
+                </button>
+              </div>
             </form>
           </div>
         </div>
 
-        {/* ── INTERACTIVE PANELS ── */}
+        {/* ── INTERACTIVE PANELS (Desktop) ── */}
         <div className="fv-panels-container">
           <div className="fv-panel left-panel">
             <div className="content">

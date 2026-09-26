@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }) => {
       const { token, ...userData } = response.data.data;
       localStorage.setItem('token', token);
       setUser(userData);
-      toast.success(`Welcome back, ${userData.name || 'User'}! 🎉`);
+      toast.success(`Welcome back, ${userData.name || 'User'}!`);
       return { success: true };
     } catch (error) {
       return { 
@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }) => {
     const { token, ...userData } = data;
     localStorage.setItem('token', token);
     setUser(userData);
-    toast.success(`Welcome, ${userData.name || 'User'}! 🎉`);
+    toast.success(`Welcome, ${userData.name || 'User'}!`);
   };
 
   const register = async (userData) => {
@@ -158,7 +158,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.post('/auth/addresses', addressData);
       setUser(response.data.data);
-      toast.success('Delivery address saved! 📍');
+      toast.success('Delivery address saved!');
       return { success: true, data: response.data.data };
     } catch (error) {
       const msg = error.response?.data?.message || 'Failed to save address';

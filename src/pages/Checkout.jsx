@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CreditCard, MapPin, Package, AlertCircle, CheckCircle, Tag,
-  Navigation, Loader2, Plus, Star, Check, Lock, ChevronDown, ChevronUp, ShieldCheck
+  Navigation, Loader2, Plus, Star, Check, Lock, ChevronDown, ChevronUp, ShieldCheck, Phone
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -734,7 +734,9 @@ const Checkout = () => {
           </div>
 
           {shippingPrice === 0 ? (
-            <p className="text-[11px] text-fv-primary dark:text-green-400 font-medium">🎉 Free delivery applied on your order!</p>
+            <p className="text-[11px] text-fv-primary dark:text-green-400 font-medium flex items-center gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5 shrink-0" /> Free delivery applied on your order!
+            </p>
           ) : (
             <p className="text-[11px] text-fv-muted dark:text-gray-400">
               Add ₹{FREE_DELIVERY_THRESHOLD - itemsPrice} more for FREE delivery
@@ -966,7 +968,10 @@ const Checkout = () => {
                                 {addr.street}, {addr.city}, {addr.state} — {addr.pincode}
                               </p>
                               {addr.phone && (
-                                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">📞 {addr.phone}</p>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1">
+                                  <Phone className="w-3 h-3 shrink-0" />
+                                  <span>{addr.phone}</span>
+                                </p>
                               )}
                             </div>
                           </label>

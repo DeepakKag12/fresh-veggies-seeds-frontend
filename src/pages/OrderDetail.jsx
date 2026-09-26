@@ -206,7 +206,7 @@ const OrderDetail = () => {
                 >
                   {['Pending', 'Confirmed', 'Packed', 'Shipped', 'Delivered', 'Cancelled'].map((st) => (
                     <option key={st} value={st}>
-                      {st === order.orderStatus ? `✓ Current: ${st}` : st}
+                      {st === order.orderStatus ? `Current: ${st}` : st}
                     </option>
                   ))}
                   {order.orderStatus === 'CancellationRequested' && (
@@ -395,8 +395,11 @@ const OrderDetail = () => {
                 {order.refund ? (
                   <div className="mt-1">
                     {order.refund.refundStatus === 'Processed' ? (
-                      <p className="text-sm text-red-600 dark:text-red-300">
-                        ✅ Refund of <span className="font-bold">₹{order.refund.refundAmount}</span> has been processed and will be credited to your original payment method within <span className="font-bold">5–7 business days</span>.
+                      <p className="text-sm text-red-600 dark:text-red-300 flex items-start gap-1.5">
+                        <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <span>
+                          Refund of <span className="font-bold">₹{order.refund.refundAmount}</span> has been processed and will be credited to your original payment method within <span className="font-bold">5–7 business days</span>.
+                        </span>
                         {order.refund.refundId && (
                           <span className="block mt-1 text-xs text-fv-muted ">
                             Refund ID: <code className="bg-red-100 dark:bg-red-900/40 px-1.5 py-0.5 rounded">{order.refund.refundId}</code>
@@ -404,8 +407,11 @@ const OrderDetail = () => {
                         )}
                       </p>
                     ) : order.refund.refundStatus === 'Failed' ? (
-                      <p className="text-sm text-red-600 dark:text-red-300">
-                        ⚠️ Refund processing failed. Please contact support with Order ID: <span className="font-semibold">{order.orderNumber || order._id.slice(-8).toUpperCase()}</span>
+                      <p className="text-sm text-red-600 dark:text-red-300 flex items-start gap-1.5">
+                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <span>
+                          Refund processing failed. Please contact support with Order ID: <span className="font-semibold">{order.orderNumber || order._id.slice(-8).toUpperCase()}</span>
+                        </span>
                       </p>
                     ) : (
                       <p className="text-sm text-blue-600 dark:text-blue-300 flex items-center gap-1 mt-1">

@@ -29,7 +29,7 @@ const PERIOD_BUTTONS = [
   { id: 'thismonth', label: 'This Month' },
   { id: 'lastmonth', label: 'Last Month' },
   { id: 'yearly', label: 'This Year' },
-  { id: 'specificmonth', label: '📅 Pick Month' },
+  { id: 'specificmonth', label: 'Pick Month' },
 ];
 
 export const RevenueAnalyticsTab = ({
@@ -74,7 +74,7 @@ export const RevenueAnalyticsTab = ({
             }`}
           >
             {btn.id === 'specificmonth' && specificMonth
-              ? `📅 ${MONTH_NAMES[specificMonth.month - 1]} ${specificMonth.year}`
+              ? `${MONTH_NAMES[specificMonth.month - 1]} ${specificMonth.year}`
               : btn.label}
           </button>
         ))}

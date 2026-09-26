@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Star, Share2, ChevronRight, ShieldCheck, Truck, Banknote, Sprout } from 'lucide-react';
+import { Star, Share2, ChevronRight, ShieldCheck, Truck, Banknote, Sprout, AlertCircle } from 'lucide-react';
 import { cachedGet } from '../utils/api';
 import { useCart } from '../context/CartContext';
 import PageLoader from '../components/PageLoader';
@@ -166,7 +166,7 @@ const ProductDetailNew = () => {
 
             {stock > 0 && stock <= (settings?.inventory?.lowStockThreshold ?? 10) && (settings?.inventory?.showOnlyXLeft ?? true) ? (
               <p className="mt-2 text-[13px] font-semibold text-amber-800 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-md inline-flex items-center gap-1.5">
-                <span>⚡</span> Only {stock} left in stock — order soon!
+                <AlertCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" /> Only {stock} left in stock — order soon!
               </p>
             ) : (
               <p className={`mt-2 text-[14px] font-medium ${stock > 0 ? 'text-fv-success' : 'text-fv-danger'}`}>

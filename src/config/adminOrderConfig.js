@@ -31,7 +31,7 @@ export const NEXT_PRIMARY_ACTION = {
 /** Segmented workflow tabs configuration */
 export const SEGMENTED_ORDER_TABS = [
   { id: 'All',                   label: 'All Orders',          badgeKey: 'all' },
-  { id: 'action_required',       label: '⚡ Action Required',   badgeKey: 'actionRequired', highlight: true },
+  { id: 'action_required',       label: 'Action Required',     badgeKey: 'actionRequired', highlight: true },
   { id: 'Pending',               label: 'Pending',             badgeKey: 'pending' },
   { id: 'Confirmed',             label: 'Confirmed',           badgeKey: 'confirmed' },
   { id: 'Packed',                label: 'Packed / Processing', badgeKey: 'packed' },

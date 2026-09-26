@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { validatePassword, PASSWORD_RULE_TEXT } from '../utils/passwordPolicy';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { AlertCircle, CheckCircle, Lock } from 'lucide-react';
+import { AlertCircle, CheckCircle, Lock, Eye, EyeOff } from 'lucide-react';
 import api from '../utils/api';
 
 const ResetPassword = () => {
@@ -122,7 +122,7 @@ const ResetPassword = () => {
                 className="absolute right-3 top-2.5 text-gray-500"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? '🙈' : '👁️'}
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">

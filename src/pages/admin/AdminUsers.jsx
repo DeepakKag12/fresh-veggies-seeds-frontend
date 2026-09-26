@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Pagination from '../../components/Pagination';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Phone } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
@@ -66,7 +66,12 @@ const AdminUsers = () => {
               <div>
                 <h3 className="text-sm font-bold text-fv-heading">{user.name}</h3>
                 <p className="text-xs text-fv-muted">{user.email}</p>
-                {user.phone && <p className="text-xs text-fv-muted mt-0.5">📞 {user.phone}</p>}
+                {user.phone && (
+                  <p className="text-xs text-fv-muted mt-0.5 flex items-center gap-1">
+                    <Phone className="w-3 h-3 shrink-0" />
+                    <span>{user.phone}</span>
+                  </p>
+                )}
               </div>
               <div className="flex flex-col items-end gap-1">
                 <span

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Minus, Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
+import { Plus, Minus, Trash2, ShoppingBag, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
 
@@ -161,8 +161,9 @@ const Cart = () => {
                   )}
                 </div>
                 {shippingFee === 0 && (
-                  <p className="text-xs text-fv-primary dark:text-green-400 font-medium">
-                    🎉 You've unlocked free delivery!
+                  <p className="text-xs text-fv-primary dark:text-green-400 font-medium flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-fv-primary dark:text-green-400 shrink-0" />
+                    <span>You've unlocked free delivery!</span>
                   </p>
                 )}
                 {shippingFee > 0 && (

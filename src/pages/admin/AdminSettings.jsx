@@ -109,7 +109,7 @@ export default function AdminSettings() {
       const payload = sectionName === 'all' ? settings : settings[sectionName];
       const res = await api.put(`/settings/admin/${sectionName}`, payload);
       if (res.data?.success) {
-        toast.success(`✅ ${sectionName.charAt(0).toUpperCase() + sectionName.slice(1)} settings saved successfully!`);
+        toast.success(`${sectionName.charAt(0).toUpperCase() + sectionName.slice(1)} settings saved successfully!`);
         setSettings(res.data.data);
         updateSettings(res.data.data);
       }
@@ -623,7 +623,7 @@ export default function AdminSettings() {
                         When stock reaches the low-stock number, you will get an instant alert. Example:
                       </p>
                       <div className="mt-2 px-3 py-1.5 rounded-lg bg-white/70 dark:bg-black/30 border border-amber-300 text-xs font-mono">
-                        ⚠ Tomato Seeds is low on stock. Only 7 left.
+                        Tomato Seeds is low on stock. Only 7 left.
                       </div>
                     </div>
                   </div>

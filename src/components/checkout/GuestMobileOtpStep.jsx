@@ -217,7 +217,7 @@ const GuestMobileOtpStep = ({ onVerified, initialPhone = '' }) => {
         }
 
         setCooldown(RESEND_COOLDOWN_SECONDS);
-        toast.success('OTP resent successfully! 📲');
+        toast.success('OTP resent successfully!');
         digitInputRefs.current[0]?.focus();
       },
       (err) => {

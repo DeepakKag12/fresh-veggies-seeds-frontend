@@ -150,7 +150,7 @@ export const OrderCard = ({
                 >
                   {ALL_STATUS_OPTIONS.map((st) => (
                     <option key={st} value={st}>
-                      {st === order.orderStatus ? `✓ ${st}` : st}
+                      {st === order.orderStatus ? `Current: ${st}` : st}
                     </option>
                   ))}
                   {order.orderStatus === 'CancellationRequested' && (

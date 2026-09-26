@@ -16,7 +16,7 @@ const DEFAULT_SLIDES = [
   {
     id: 'slide-1',
     imageUrl: BANNER.src,
-    tag: '🌱 100% Organic & Non-GMO',
+    tag: '100% Organic & Non-GMO',
     title: 'Bring life to your space',
     subtitle: 'High-germination heirloom varieties for lush home gardens & organic terrace farms.',
     linkUrl: '#catalogue-heading',
@@ -24,7 +24,7 @@ const DEFAULT_SLIDES = [
   {
     id: 'slide-2',
     imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=2500&q=80',
-    tag: '🥕 100% Chemical-Free',
+    tag: '100% Chemical-Free',
     title: 'Grow Crisp Greens At Home',
     subtitle: 'Enriched organic potting mixes, coco peat, and heavy-duty UV grow bags.',
     linkUrl: '/combos',
@@ -32,7 +32,7 @@ const DEFAULT_SLIDES = [
   {
     id: 'slide-3',
     imageUrl: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=2500&q=80',
-    tag: '✨ Best Value Bundles',
+    tag: 'Best Value Bundles',
     title: 'Seasonal Combo Packages',
     subtitle: 'Save up to 40% with all-in-one gardener kits and organic enrichment packs.',
     linkUrl: '/combos',
@@ -40,7 +40,7 @@ const DEFAULT_SLIDES = [
   {
     id: 'slide-4',
     imageUrl: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&w=2500&q=80',
-    tag: '🚚 Fast Farm Dispatch',
+    tag: 'Fast Farm Dispatch',
     title: 'Bountiful Harvest Guaranteed',
     subtitle: 'Free delivery on orders over ₹300 with trusted Cash on Delivery.',
     linkUrl: '#catalogue-heading',
@@ -66,7 +66,7 @@ const CollectionBanner = ({ title = 'Bring life to your space' }) => {
             id: b._id,
             imageUrl: b.imageUrl,
             mobileImageUrl: b.mobileImageUrl,
-            tag: '🌟 Featured Offer',
+            tag: 'Featured Offer',
             title: b.title,
             subtitle: b.description || '',
             linkUrl: b.linkUrl || '/',
