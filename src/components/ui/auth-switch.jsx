@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Phone, ArrowRight, Sprout, CheckCircle2, ShieldCheck, ArrowLeft, Loader2, Eye, EyeOff, UserPlus, LogIn } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -18,6 +18,11 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
   const [isSignUp, setIsSignUp] = useState(initialMode === 'signup');
   const [showPassword, setShowPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+
+  // Sync mode whenever initialMode route prop changes
+  useEffect(() => {
+    setIsSignUp(initialMode === 'signup');
+  }, [initialMode]);
 
   // Auth Context & Navigation
   const { login, register } = useAuth();
@@ -179,22 +184,43 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
       </div>
 
       <div className={isSignUp ? "fv-auth-container sign-up-mode" : "fv-auth-container"}>
-        {/* Mobile Header Mode Switcher (Visible on mobile/tablet) */}
-        <div className="fv-mobile-mode-switcher">
-          <button
-            type="button"
-            className={`fv-mobile-mode-btn ${!isSignUp ? 'active' : ''}`}
-            onClick={() => { setIsSignUp(false); setSignInError(''); setSignUpError(''); }}
-          >
-            <LogIn className="w-4 h-4" /> Sign In
-          </button>
-          <button
-            type="button"
-            className={`fv-mobile-mode-btn ${isSignUp ? 'active' : ''}`}
-            onClick={() => { setIsSignUp(true); setSignInError(''); setSignUpError(''); }}
-          >
-            <UserPlus className="w-4 h-4" /> Create Account
-          </button>
+        {/* ── Mobile Botanical Hero Header (Visible on mobile/tablet <= 870px) ── */}
+        <div className="fv-mobile-header">
+          <div className="fv-mobile-header-badge">
+            <Sprout className="w-6 h-6 text-white" />
+          </div>
+          <h2 className="fv-mobile-header-title">Fresh Veggies</h2>
+          <p className="fv-mobile-header-sub">
+            {!isSignUp
+              ? 'Welcome back! Sign in to grow fresh at home.'
+              : 'Create your account to start growing today.'}
+          </p>
+          <div className="fv-mobile-mode-switcher">
+            <button
+              type="button"
+              className={`fv-mobile-mode-btn ${!isSignUp ? 'active' : ''}`}
+              onClick={() => {
+                setIsSignUp(false);
+                setSignInError('');
+                setSignUpError('');
+                window.history.replaceState(null, '', '/login');
+              }}
+            >
+              <LogIn className="w-4 h-4" /> Sign In
+            </button>
+            <button
+              type="button"
+              className={`fv-mobile-mode-btn ${isSignUp ? 'active' : ''}`}
+              onClick={() => {
+                setIsSignUp(true);
+                setSignInError('');
+                setSignUpError('');
+                window.history.replaceState(null, '', '/register');
+              }}
+            >
+              <UserPlus className="w-4 h-4" /> Create Account
+            </button>
+          </div>
         </div>
 
         <div className="fv-forms-container">
@@ -285,7 +311,7 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                     </Link>
                   </div>
 
-                  <button type="submit" className="fv-btn" disabled={signInLoading}>
+                  <button type="submit" className="fv-btn shimmer-btn" disabled={signInLoading}>
                     {signInLoading ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /> Signing in...</>
                     ) : (
@@ -299,7 +325,12 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                     <button
                       type="button"
                       className="fv-inline-switch-btn"
-                      onClick={() => { setIsSignUp(true); setSignInError(''); setSignUpError(''); }}
+                      onClick={() => {
+                        setIsSignUp(true);
+                        setSignInError('');
+                        setSignUpError('');
+                        window.history.replaceState(null, '', '/register');
+                      }}
                     >
                       Create an account
                     </button>
@@ -322,7 +353,12 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                     <button
                       type="button"
                       className="fv-inline-switch-btn"
-                      onClick={() => { setIsSignUp(true); setSignInError(''); setSignUpError(''); }}
+                      onClick={() => {
+                        setIsSignUp(true);
+                        setSignInError('');
+                        setSignUpError('');
+                        window.history.replaceState(null, '', '/register');
+                      }}
                     >
                       Create an account
                     </button>
@@ -403,7 +439,7 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                 </button>
               </div>
 
-              <button type="submit" className="fv-btn" disabled={signUpLoading}>
+              <button type="submit" className="fv-btn shimmer-btn" disabled={signUpLoading}>
                 {signUpLoading ? (
                   <><Loader2 className="w-4 h-4 animate-spin" /> Creating account...</>
                 ) : (
@@ -417,7 +453,12 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                 <button
                   type="button"
                   className="fv-inline-switch-btn"
-                  onClick={() => { setIsSignUp(false); setSignInError(''); setSignUpError(''); }}
+                  onClick={() => {
+                    setIsSignUp(false);
+                    setSignInError('');
+                    setSignUpError('');
+                    window.history.replaceState(null, '', '/login');
+                  }}
                 >
                   Sign in
                 </button>
@@ -437,6 +478,7 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
               <ul className="fv-perks-list">
                 <li><CheckCircle2 className="w-4 h-4 text-green-300" /> 100% Non-GMO Certified Seeds</li>
                 <li><ShieldCheck className="w-4 h-4 text-green-300" /> Free Delivery on orders ₹300+</li>
+                <li><Sprout className="w-4 h-4 text-green-300" /> Organic & Chemical-Free Varieties</li>
               </ul>
               <button
                 type="button"
@@ -445,6 +487,7 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                   setIsSignUp(true);
                   setSignInError('');
                   setSignUpError('');
+                  window.history.replaceState(null, '', '/register');
                 }}
               >
                 Sign up
@@ -456,6 +499,10 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
             <div className="content">
               <h3>One of us?</h3>
               <p>Welcome back! Sign in to continue your gardening journey with us.</p>
+              <ul className="fv-perks-list">
+                <li><CheckCircle2 className="w-4 h-4 text-green-300" /> Track your seed deliveries live</li>
+                <li><ShieldCheck className="w-4 h-4 text-green-300" /> Fast SMS OTP & password login</li>
+              </ul>
               <button
                 type="button"
                 className="fv-btn transparent"
@@ -463,6 +510,7 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
                   setIsSignUp(false);
                   setSignInError('');
                   setSignUpError('');
+                  window.history.replaceState(null, '', '/login');
                 }}
               >
                 Sign in

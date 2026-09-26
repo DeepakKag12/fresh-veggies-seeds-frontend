@@ -13,7 +13,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 20px 14px;
+  padding: 24px 16px;
   background: radial-gradient(circle at 10% 20%, rgba(22, 163, 74, 0.08) 0%, rgba(240, 253, 244, 0.7) 90%);
 }
 
@@ -24,7 +24,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 0 4px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .fv-brand-link {
@@ -40,19 +40,19 @@
 }
 
 .fv-brand-icon {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 10px;
   background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
-  box-shadow: 0 3px 8px rgba(22, 163, 74, 0.3);
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);
 }
 
 .fv-brand-title {
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   font-weight: 800;
   color: #14532d;
   letter-spacing: -0.02em;
@@ -87,23 +87,27 @@
   transform: scale(0.97);
 }
 
+/* ── Container Card ── */
 .fv-auth-container {
   position: relative;
   width: 100%;
   max-width: 1100px;
-  min-height: 640px;
+  min-height: 670px;
   background: #ffffff;
   border-radius: 28px;
-  box-shadow: 0 25px 65px -15px rgba(22, 101, 52, 0.18), 0 0 0 1px rgba(22, 163, 74, 0.12);
+  box-shadow: 0 25px 65px -15px rgba(10, 76, 54, 0.18), 0 0 0 1px rgba(22, 163, 74, 0.12);
   overflow: hidden;
 }
 
+/* ── Forms Layer ── */
 .fv-forms-container {
   position: absolute;
   width: 100%;
   height: 100%;
   top: 0;
   left: 0;
+  z-index: 5;
+  pointer-events: none;
 }
 
 .fv-signin-signup {
@@ -112,10 +116,11 @@
   transform: translate(-50%, -50%);
   left: 75%;
   width: 50%;
-  transition: 0.9s 0.3s cubic-bezier(0.65, 0, 0.35, 1);
+  transition: 0.9s 0.25s cubic-bezier(0.65, 0, 0.35, 1);
   display: grid;
   grid-template-columns: 1fr;
   z-index: 5;
+  pointer-events: all;
 }
 
 .fv-form {
@@ -124,11 +129,12 @@
   justify-content: center;
   flex-direction: column;
   padding: 0 3rem;
-  transition: all 0.25s 0.4s;
+  transition: all 0.25s 0.3s;
   overflow: hidden;
   grid-column: 1 / 2;
   grid-row: 1 / 2;
   width: 100%;
+  pointer-events: all;
 }
 
 .fv-form.sign-up-form {
@@ -138,6 +144,7 @@
 }
 
 .fv-form.sign-in-form {
+  opacity: 1;
   z-index: 2;
   pointer-events: all;
 }
@@ -151,7 +158,7 @@
 }
 
 .fv-subtitle {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: #64748b;
   margin-bottom: 16px;
   text-align: center;
@@ -317,53 +324,7 @@
   transform: none;
 }
 
-.fv-resend-btn {
-  background: #f0fdf4;
-  border: 1px solid rgba(22, 163, 74, 0.25);
-  color: #15803d;
-  font-weight: 700;
-  font-size: 0.8rem;
-  padding: 6px 14px;
-  border-radius: 9999px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.fv-resend-btn:hover:not(:disabled) {
-  background: #dcfce7;
-  border-color: #16a34a;
-  transform: translateY(-1px);
-}
-
-.fv-resend-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.fv-edit-badge {
-  background: #f0fdf4;
-  border: 1px solid rgba(22, 163, 74, 0.2);
-  color: #15803d;
-  font-weight: 700;
-  font-size: 0.75rem;
-  padding: 4px 10px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.fv-edit-badge:hover {
-  background: #dcfce7;
-  border-color: #16a34a;
-  transform: translateY(-0.5px);
-}
-
+/* ── Interactive Side Panels (Desktop) ── */
 .fv-panels-container {
   position: absolute;
   height: 100%;
@@ -372,6 +333,7 @@
   left: 0;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
+  z-index: 3;
 }
 
 .fv-panel {
@@ -380,7 +342,7 @@
   align-items: flex-start;
   justify-content: center;
   text-align: left;
-  z-index: 6;
+  z-index: 3;
   padding: 3rem 16% 3rem 16%;
 }
 
@@ -394,7 +356,7 @@
 
 .fv-panel .content {
   color: #ffffff;
-  transition: transform 0.8s 0.3s cubic-bezier(0.65, 0, 0.35, 1);
+  transition: transform 0.8s 0.25s cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 .fv-panel h3 {
@@ -407,14 +369,14 @@
 
 .fv-panel p {
   font-size: 0.925rem;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.94);
   margin-bottom: 20px;
 }
 
 .fv-btn.transparent {
   margin: 0;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.16);
   border: 1.5px solid rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(8px);
   width: 155px;
@@ -434,13 +396,14 @@
   background: #ffffff;
   color: #15803d;
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
 }
 
 .right-panel .content {
   transform: translateX(800px);
 }
 
+/* ── Sliding Panel Animation State (sign-up-mode) ── */
 .fv-auth-container.sign-up-mode:before {
   transform: translate(100%, -50%);
   right: 52%;
@@ -478,6 +441,7 @@
   pointer-events: all;
 }
 
+/* ── The Botanical Curved Sliding Shield ── */
 .fv-auth-container:before {
   content: "";
   position: absolute;
@@ -486,11 +450,12 @@
   top: -10%;
   right: 48%;
   transform: translateY(-50%);
-  background: linear-gradient(135deg, #15803d 0%, #16a34a 60%, #4ade80 100%);
-  transition: 1.5s cubic-bezier(0.65, 0, 0.35, 1);
+  background: linear-gradient(135deg, #0a4c36 0%, #15803d 45%, #16a34a 80%, #22c55e 100%);
+  transition: 1.4s cubic-bezier(0.65, 0, 0.35, 1);
   border-radius: 50%;
-  z-index: 6;
-  box-shadow: 0 0 50px rgba(22, 163, 74, 0.3);
+  z-index: 2;
+  pointer-events: none;
+  box-shadow: 0 0 60px rgba(22, 163, 74, 0.3);
 }
 
 .fv-error-banner {
@@ -534,8 +499,8 @@
   color: rgba(255, 255, 255, 0.95);
 }
 
-/* ── Default Desktop View for Mobile Switchers ── */
-.fv-mobile-mode-switcher {
+/* ── Mobile Header & Switchers (Hidden on Desktop) ── */
+.fv-mobile-header {
   display: none;
 }
 
@@ -543,7 +508,7 @@
   display: none;
 }
 
-/* ── Mobile & Tablet Responsive View (<= 870px) ── */
+/* ── Mobile & Tablet View (<= 870px) ── */
 @media (max-width: 870px) {
   .auth-switch-root {
     padding: 16px 12px 32px 12px;
@@ -558,13 +523,13 @@
   .fv-auth-container {
     min-height: auto;
     height: auto;
-    padding: 1.5rem 1.25rem 2rem 1.25rem;
-    overflow: visible;
-    border-radius: 20px;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(22, 163, 74, 0.15);
+    padding: 0 0 2rem 0;
+    overflow: hidden;
+    border-radius: 24px;
+    box-shadow: 0 12px 30px -8px rgba(10, 76, 54, 0.16), 0 0 0 1px rgba(22, 163, 74, 0.15);
   }
 
-  /* Completely disable the background decorative circle and sliding desktop panels on mobile so they NEVER overlay or intercept clicks */
+  /* On mobile, disable the oversized 2200px desktop background circle and desktop side panels */
   .fv-auth-container:before {
     display: none !important;
   }
@@ -573,20 +538,60 @@
     display: none !important;
   }
 
-  /* Show the mobile segmented mode switcher at the top of the card */
+  /* Rich Botanical Mobile Header Banner */
+  .fv-mobile-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    background: linear-gradient(135deg, #0a4c36 0%, #15803d 60%, #16a34a 100%);
+    padding: 1.75rem 1.25rem 1.5rem 1.25rem;
+    color: #ffffff;
+    border-bottom: 1px solid rgba(22, 163, 74, 0.2);
+  }
+
+  .fv-mobile-header-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .fv-mobile-header-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+  }
+
+  .fv-mobile-header-sub {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.92);
+    margin-bottom: 14px;
+    max-width: 280px;
+  }
+
+  /* Mobile Mode Switcher Pills inside the Header */
   .fv-mobile-mode-switcher {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f1f5f9;
+    background: rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(10px);
     padding: 4px;
-    border-radius: 12px;
-    margin: 0 auto 1.5rem auto;
+    border-radius: 14px;
     width: 100%;
-    max-width: 350px;
+    max-width: 320px;
     gap: 4px;
-    position: relative;
-    z-index: 20;
+    border: 1px solid rgba(255, 255, 255, 0.15);
   }
 
   .fv-mobile-mode-btn {
@@ -595,11 +600,11 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 10px 14px;
-    border-radius: 9px;
+    padding: 9px 12px;
+    border-radius: 10px;
     font-size: 0.85rem;
     font-weight: 700;
-    color: #64748b;
+    color: rgba(255, 255, 255, 0.85);
     border: none;
     background: transparent;
     cursor: pointer;
@@ -609,7 +614,7 @@
   .fv-mobile-mode-btn.active {
     background: #ffffff;
     color: #15803d;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
   }
 
   /* Forms container takes natural height and static flow */
@@ -620,6 +625,8 @@
     top: auto;
     left: auto;
     z-index: 15;
+    pointer-events: all;
+    padding: 1.5rem 1.25rem 0.5rem 1.25rem;
   }
 
   .fv-signin-signup {
@@ -646,6 +653,10 @@
     padding: 0;
     width: 100%;
     transition: opacity 0.25s ease;
+  }
+
+  .fv-title {
+    font-size: 1.55rem;
   }
 
   /* In sign-in mode: display sign-in cleanly in normal document flow */
@@ -680,7 +691,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 5px;
     font-size: 0.85rem;
     color: #64748b;
     margin-top: 14px;
@@ -707,7 +718,15 @@
     height: 48px;
   }
   .fv-title {
-    font-size: 1.5rem;
+    font-size: 1.45rem;
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .fv-auth-container:before,
+  .fv-signin-signup,
+  .fv-panel .content,
+  .fv-form {
+    transition: none !important;
+  }
+}
