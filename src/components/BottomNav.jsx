@@ -1,20 +1,18 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, ShoppingCart, Package, User } from 'lucide-react';
+import { Home, Sparkles, Package, HelpCircle, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useCart } from '../context/CartContext';
 
 const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const { getCartCount, openCart } = useCart();
-  const cartCount = getCartCount();
 
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
-    { path: '/cart', label: 'Cart', icon: ShoppingCart, badge: cartCount, action: () => openCart() },
+    { path: '/combos', label: 'Combos', icon: Sparkles },
     { path: user ? '/orders' : '/login', label: 'Orders', icon: Package },
+    { path: '/contact', label: 'Help', icon: HelpCircle },
     { path: user ? '/settings' : '/login', label: 'Account', icon: User },
   ];
 
@@ -34,13 +32,7 @@ const BottomNav = () => {
             <button
               key={item.label}
               type="button"
-              onClick={() => {
-                if (item.action && location.pathname !== '/checkout') {
-                  item.action();
-                } else {
-                  navigate(item.path);
-                }
-              }}
+              onClick={() => navigate(item.path)}
               aria-label={item.label}
               className="flex flex-col items-center justify-center flex-1 h-full py-1 min-h-[48px] min-w-[48px] transition-colors relative"
             >
