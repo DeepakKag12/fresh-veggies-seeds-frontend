@@ -175,10 +175,16 @@ const NavbarNew = () => {
               >
                 <ShoppingCart className="h-5 w-5" aria-hidden="true" />
                 {cartItemsCount > 0 && (
-                  <span className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full
-                                   bg-fv-primary text-xs font-semibold text-white">
+                  <motion.span
+                    key={cartItemsCount}
+                    initial={{ scale: 0.5, y: -3 }}
+                    animate={{ scale: 1, y: 0 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 22 }}
+                    className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full
+                               bg-fv-primary text-xs font-semibold text-white shadow-xs"
+                  >
                     {cartItemsCount}
-                  </span>
+                  </motion.span>
                 )}
               </button>
             )}

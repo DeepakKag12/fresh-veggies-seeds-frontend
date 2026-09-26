@@ -183,7 +183,7 @@ const ProductDetailNew = () => {
                 className="h-12 flex-1 rounded-full bg-fv-primary px-6 text-[15px] font-semibold text-white shadow-xs
                            transition-all duration-200 hover:bg-fv-primary-dark hover:shadow-md active:scale-[0.97] disabled:cursor-not-allowed
                            disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2
-                           focus-visible:ring-fv-primary focus-visible:ring-offset-2 motion-reduce:transition-none cursor-pointer"
+                           focus-visible:ring-fv-primary focus-visible:ring-offset-2 motion-reduce:transition-none cursor-pointer shimmer-btn"
               >
                 Add to cart · ₹{lineTotal.toLocaleString('en-IN')}
               </button>
@@ -254,7 +254,7 @@ const ProductDetailNew = () => {
             disabled={!stock}
             onClick={handleAddToCart}
             className="h-12 min-h-[44px] shrink-0 rounded-full bg-fv-primary px-6 text-[15px] font-semibold text-white
-                       disabled:opacity-50 active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary shadow-xs cursor-pointer"
+                       disabled:opacity-50 active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary shadow-xs cursor-pointer shimmer-btn"
           >
             Add to cart
           </button>

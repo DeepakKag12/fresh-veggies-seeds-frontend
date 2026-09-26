@@ -31,9 +31,9 @@ const Tile = ({ category, active, onSelect }) => {
       >
         <span
           className={`flex h-[52px] w-[52px] items-center justify-center overflow-hidden rounded-full bg-white
-                      transition-transform duration-200 group-hover:scale-105
+                      transition-all duration-300 group-hover:scale-105 group-hover:shadow-md
                       motion-reduce:transition-none motion-reduce:group-hover:scale-100 sm:h-[108px] sm:w-[108px]
-                      ${active ? 'ring-2 ring-fv-primary shadow-sm' : 'ring-1 ring-fv-border'}`}
+                      ${active ? 'ring-2 ring-fv-primary shadow-[0_0_18px_rgba(22,163,74,0.28)] scale-[1.04] animate-botanical-glow' : 'ring-1 ring-fv-border'}`}
         >
           {showArt ? (
             <img

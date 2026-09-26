@@ -59,6 +59,9 @@ const BottomNav = () => {
               >
                 {item.label}
               </span>
+              {active && (
+                <span className="w-1 h-1 rounded-full bg-fv-primary dark:bg-emerald-400 mt-0.5 transition-transform duration-200 scale-100" />
+              )}
             </button>
           );
         })}

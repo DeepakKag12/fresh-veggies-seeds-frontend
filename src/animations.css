@@ -355,13 +355,101 @@ html {
   transition: transform 6000ms ease-out;
 }
 
+/* ─── Premium Botanical Theme Interactions ───────────────────────────────── */
+
+/* Botanical Soft Glow */
+@keyframes botanicalGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 14px 3px rgba(22, 163, 74, 0.22);
+  }
+}
+
+.animate-botanical-glow {
+  animation: botanicalGlow 3.5s ease-in-out infinite;
+}
+
+/* Botanical Card Elevation */
+.botanical-card-hover {
+  transition: transform 0.32s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.32s ease, border-color 0.32s ease;
+}
+
+.botanical-card-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 36px -8px rgba(10, 76, 54, 0.15), 0 0 0 1px rgba(22, 163, 74, 0.18);
+}
+
+/* Specular Shimmer Sheen on CTA buttons */
+.shimmer-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-btn::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -70%;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(
+    60deg,
+    rgba(255, 255, 255, 0) 15%,
+    rgba(255, 255, 255, 0.28) 50%,
+    rgba(255, 255, 255, 0) 85%
+  );
+  transform: rotate(25deg);
+  pointer-events: none;
+  transition: none;
+}
+
+.shimmer-btn:hover::after {
+  left: 140%;
+  transition: left 0.75s ease-in-out;
+}
+
+/* Leaf Sway Micro-Animation */
+@keyframes leafSway {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(-8deg); }
+  70% { transform: rotate(8deg); }
+}
+
+.hover-leaf-sway:hover svg,
+.group:hover .hover-leaf-sway svg {
+  animation: leafSway 0.6s ease-in-out;
+}
+
+/* Smooth Fade In Up Reveal */
+@keyframes fadeInUpSmooth {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUpSmooth 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-botanical-float,
   .animate-pulse-subtle,
   .animate-ken-burns,
-  .fv-banner-ken-burns {
+  .fv-banner-ken-burns,
+  .animate-botanical-glow,
+  .botanical-card-hover,
+  .shimmer-btn::after,
+  .animate-fade-in-up {
     animation: none !important;
     transition: none !important;
+    transform: none !important;
   }
 }
 

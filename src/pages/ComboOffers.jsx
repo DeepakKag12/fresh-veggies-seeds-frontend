@@ -40,7 +40,7 @@ const ComboCard = ({ combo, onSelect, onAddToCart, isAdmin }) => {
 
   return (
     <div
-      className="bg-white rounded-[12px] overflow-hidden hover:shadow-xl transition-all group cursor-pointer"
+      className="bg-white rounded-[16px] overflow-hidden botanical-card-hover border border-gray-100 dark:border-gray-800 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all group cursor-pointer"
       onClick={() => onSelect(combo)}
     >
       <div className="relative h-48 overflow-hidden bg-fv-surface">
@@ -123,7 +123,7 @@ const ComboCard = ({ combo, onSelect, onAddToCart, isAdmin }) => {
               e.stopPropagation();
               onAddToCart(combo);
             }}
-            className="w-full bg-fv-primary hover:bg-fv-primary-dark text-white py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            className="w-full bg-fv-primary hover:bg-fv-primary-dark text-white py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer shimmer-btn"
           >
             <ShoppingCart className="w-4 h-4" />
             Add to Cart
@@ -202,7 +202,7 @@ const ComboOffers = () => {
       {/* Combo Detail Modal */}
       {selectedCombo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-[12px] shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-[16px] shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto animate-fade-in-up">
             {/* Modal Header */}
             <div className="sticky top-0 bg-white border-b border-fv-border  p-4 flex justify-between items-center z-10">
               <h2 className="text-2xl font-bold text-fv-heading ">Combo Details</h2>

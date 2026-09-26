@@ -51,7 +51,7 @@ const CartDrawer = () => {
         type="button"
         aria-label="Close cart"
         onClick={closeCart}
-        className="absolute inset-0 h-full w-full cursor-default bg-black/40"
+        className="absolute inset-0 h-full w-full cursor-default bg-black/40 backdrop-blur-[2px] transition-opacity duration-300"
       />
 
       <div
@@ -116,7 +116,7 @@ const CartDrawer = () => {
                 aria-valuemax={100}
                 aria-label="Progress towards free delivery"
               >
-                <span className="block h-full rounded-full bg-fv-accent transition-[width] duration-300 motion-reduce:transition-none"
+                <span className="block h-full rounded-full bg-gradient-to-r from-emerald-500 to-green-600 transition-[width] duration-500 ease-out motion-reduce:transition-none"
                       style={{ width: `${progress}%` }} />
               </span>
             </div>
@@ -200,7 +200,7 @@ const CartDrawer = () => {
                 onClick={closeCart}
                 className="mt-3 flex h-12 w-full items-center justify-center rounded-[50px] bg-fv-primary
                            text-[15px] font-semibold uppercase tracking-wide text-white hover:bg-fv-primary-dark
-                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary focus-visible:ring-offset-2 active:scale-[0.99]"
+                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary focus-visible:ring-offset-2 active:scale-[0.99] shimmer-btn"
               >
                 Checkout
               </Link>

@@ -37,7 +37,10 @@ const WhatsAppButton = () => {
         )}
         
         {/* Pulse animation */}
-        <span className="absolute inset-0 rounded-full bg-[#25D366] animate-ping opacity-60 pointer-events-none" />
+        <span
+          className="absolute inset-0 rounded-full bg-[#25D366] animate-ping opacity-25 pointer-events-none motion-reduce:hidden"
+          style={{ animationDuration: '3s' }}
+        />
       </button>
     </div>
   );

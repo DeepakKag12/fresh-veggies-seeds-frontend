@@ -386,19 +386,33 @@ const Storefront = () => {
             <div className="grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-3 xl:grid-cols-4">
               {products.map((product, i) => (
                 <React.Fragment key={product._id}>
-                  <ProductCardV2
-                    product={product}
-                    isAdmin={user?.role === 'admin'}
-                    onEdit={user?.role === 'admin' ? handleEditProduct : undefined}
-                    onDelete={user?.role === 'admin' ? handleDeleteProduct : undefined}
-                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, delay: Math.min(i * 0.03, 0.3), ease: 'easeOut' }}
+                    className="h-full flex flex-col"
+                  >
+                    <ProductCardV2
+                      product={product}
+                      isAdmin={user?.role === 'admin'}
+                      onEdit={user?.role === 'admin' ? handleEditProduct : undefined}
+                      onDelete={user?.role === 'admin' ? handleDeleteProduct : undefined}
+                    />
+                  </motion.div>
                   {/* Break the grid once, after the first full row. */}
                   {i === 5 && (
-                    <PromoTile
-                      title="Feed your plants right with our organic fertilizers"
-                      to="/"
-                      image={promoImage}
-                    />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.35, delay: 0.18 }}
+                      className="col-span-2 lg:col-span-3 xl:col-span-4"
+                    >
+                      <PromoTile
+                        title="Feed your plants right with our organic fertilizers"
+                        to="/"
+                        image={promoImage}
+                      />
+                    </motion.div>
                   )}
                 </React.Fragment>
               ))}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Sprout, Pencil, Trash2 } from 'lucide-react';
+import { Star, Sprout, Pencil, Trash2, ArrowRight } from 'lucide-react';
 
 /**
  * The single product card used across the storefront.
@@ -35,7 +35,7 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
   return (
     <article
       className="group relative flex flex-col overflow-hidden rounded-[20px] border border-gray-100/90 dark:border-gray-800 bg-white dark:bg-gray-900 transition-all
-                 duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_40px_-10px_rgba(10,76,54,0.14)] motion-reduce:transition-none"
+                 duration-300 botanical-card-hover hover:border-emerald-300 dark:hover:border-emerald-700 motion-reduce:transition-none"
     >
       {isAdmin && (
         <div className="absolute right-3 top-3 z-20 flex gap-2">
@@ -131,9 +131,11 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
             className="inline-flex h-9 sm:h-10 w-full shrink-0 items-center justify-center rounded-full bg-fv-primary
                        px-3 sm:px-5 text-[13px] sm:text-[14px] font-semibold text-white shadow-xs transition-all duration-200
                        hover:bg-fv-primary-dark hover:shadow-md active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2
-                       focus-visible:ring-fv-primary focus-visible:ring-offset-2 motion-reduce:transition-none sm:w-auto cursor-pointer"
+                       focus-visible:ring-fv-primary focus-visible:ring-offset-2 motion-reduce:transition-none sm:w-auto cursor-pointer shimmer-btn group/btn"
           >
-            View Product<span className="sr-only"> — {name}</span>
+            <span>View Product</span>
+            <ArrowRight className="w-3.5 h-3.5 ml-1.5 transition-transform duration-200 group-hover:translate-x-1" />
+            <span className="sr-only"> — {name}</span>
           </Link>
         </div>
       </div>
