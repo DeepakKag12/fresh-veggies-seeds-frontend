@@ -11,7 +11,7 @@ import { useSettings } from '../../context/SettingsContext';
 const OffersBox = () => {
   const { settings } = useSettings();
   const [coupons, setCoupons] = useState([]);
-  const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 300;
+  const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 499;
 
   useEffect(() => {
     let alive = true;

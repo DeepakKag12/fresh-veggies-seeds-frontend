@@ -9,7 +9,7 @@ const Cart = () => {
   const { settings } = useSettings();
 
   const deliveryRules = {
-    freeDeliveryThreshold: settings?.delivery?.freeDeliveryThreshold ?? 300,
+    freeDeliveryThreshold: settings?.delivery?.freeDeliveryThreshold ?? 499,
     deliveryCharge: settings?.delivery?.deliveryCharge ?? 50,
   };
 

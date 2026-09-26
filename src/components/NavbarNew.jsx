@@ -27,7 +27,7 @@ const NavbarNew = () => {
   const { settings } = useSettings();
   const storeName = settings?.store?.name || 'Fresh Veggies';
   const storeLogo = settings?.store?.logo || '/logo.png';
-  const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 300;
+  const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 499;
   const isCodAvailable = (settings?.delivery?.codAvailable ?? true) && (settings?.payments?.codEnabled ?? true);
 
   const OFFERS = [

@@ -337,6 +337,128 @@ export default function AdminSettings() {
                       className="w-full px-4 py-2.5 rounded-xl border border-fv-border bg-fv-page text-fv-heading focus:ring-2 focus:ring-fv-primary focus:outline-none resize-none"
                     />
                   </div>
+
+                  {/* Ugaoo-Style Trust Pillars Configuration */}
+                  <div className="sm:col-span-2 pt-4 border-t border-fv-border">
+                    <div className="mb-4">
+                      <h3 className="text-base font-bold text-fv-heading flex items-center gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-fv-primary" /> Storefront Trust Pillars (Ugaoo Bar)
+                      </h3>
+                      <p className="text-xs text-fv-muted mt-0.5">
+                        Customize the 4 signature trust badges shown on the homepage beneath categories.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Pillar 1 */}
+                      <div className="p-3.5 rounded-xl border border-fv-border bg-fv-page/60">
+                        <span className="text-xs font-bold text-fv-primary block mb-2">Pillar 1: Organic & Quality</span>
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            value={settings.store?.trustPillars?.pillar1Title ?? '100% Non-GMO'}
+                            onChange={(e) => handleFieldChange('store', 'trustPillars', {
+                              ...settings.store?.trustPillars,
+                              pillar1Title: e.target.value
+                            })}
+                            placeholder="e.g. 100% Non-GMO"
+                            className="w-full px-3 py-1.5 text-xs font-semibold rounded-lg border border-fv-border bg-white text-fv-heading"
+                          />
+                          <input
+                            type="text"
+                            value={settings.store?.trustPillars?.pillar1Subtitle ?? 'Heirloom certified seeds'}
+                            onChange={(e) => handleFieldChange('store', 'trustPillars', {
+                              ...settings.store?.trustPillars,
+                              pillar1Subtitle: e.target.value
+                            })}
+                            placeholder="e.g. Heirloom certified seeds"
+                            className="w-full px-3 py-1.5 text-xs rounded-lg border border-fv-border bg-white text-fv-muted"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Pillar 2 */}
+                      <div className="p-3.5 rounded-xl border border-fv-border bg-fv-page/60">
+                        <span className="text-xs font-bold text-fv-primary block mb-2">Pillar 2: Shipping Guarantee</span>
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            value={settings.store?.trustPillars?.pillar2Title ?? 'Free Delivery'}
+                            onChange={(e) => handleFieldChange('store', 'trustPillars', {
+                              ...settings.store?.trustPillars,
+                              pillar2Title: e.target.value
+                            })}
+                            placeholder="e.g. Free Delivery"
+                            className="w-full px-3 py-1.5 text-xs font-semibold rounded-lg border border-fv-border bg-white text-fv-heading"
+                          />
+                          <input
+                            type="text"
+                            value={settings.store?.trustPillars?.pillar2Subtitle ?? 'On all orders above ₹{threshold}'}
+                            onChange={(e) => handleFieldChange('store', 'trustPillars', {
+                              ...settings.store?.trustPillars,
+                              pillar2Subtitle: e.target.value
+                            })}
+                            placeholder="e.g. On all orders above ₹{threshold}"
+                            className="w-full px-3 py-1.5 text-xs rounded-lg border border-fv-border bg-white text-fv-muted"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Pillar 3 */}
+                      <div className="p-3.5 rounded-xl border border-fv-border bg-fv-page/60">
+                        <span className="text-xs font-bold text-fv-primary block mb-2">Pillar 3: Germination & Batch</span>
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            value={settings.store?.trustPillars?.pillar3Title ?? 'High Germination'}
+                            onChange={(e) => handleFieldChange('store', 'trustPillars', {
+                              ...settings.store?.trustPillars,
+                              pillar3Title: e.target.value
+                            })}
+                            placeholder="e.g. High Germination"
+                            className="w-full px-3 py-1.5 text-xs font-semibold rounded-lg border border-fv-border bg-white text-fv-heading"
+                          />
+                          <input
+                            type="text"
+                            value={settings.store?.trustPillars?.pillar3Subtitle ?? 'Tested & fresh batch'}
+                            onChange={(e) => handleFieldChange('store', 'trustPillars', {
+                              ...settings.store?.trustPillars,
+                              pillar3Subtitle: e.target.value
+                            })}
+                            placeholder="e.g. Tested & fresh batch"
+                            className="w-full px-3 py-1.5 text-xs rounded-lg border border-fv-border bg-white text-fv-muted"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Pillar 4 */}
+                      <div className="p-3.5 rounded-xl border border-fv-border bg-fv-page/60">
+                        <span className="text-xs font-bold text-fv-primary block mb-2">Pillar 4: Support Channel</span>
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            value={settings.store?.trustPillars?.pillar4Title ?? 'Expert Support'}
+                            onChange={(e) => handleFieldChange('store', 'trustPillars', {
+                              ...settings.store?.trustPillars,
+                              pillar4Title: e.target.value
+                            })}
+                            placeholder="e.g. Expert Support"
+                            className="w-full px-3 py-1.5 text-xs font-semibold rounded-lg border border-fv-border bg-white text-fv-heading"
+                          />
+                          <input
+                            type="text"
+                            value={settings.store?.trustPillars?.pillar4Subtitle ?? 'Gardener help via WhatsApp'}
+                            onChange={(e) => handleFieldChange('store', 'trustPillars', {
+                              ...settings.store?.trustPillars,
+                              pillar4Subtitle: e.target.value
+                            })}
+                            placeholder="e.g. Gardener help via WhatsApp"
+                            className="w-full px-3 py-1.5 text-xs rounded-lg border border-fv-border bg-white text-fv-muted"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <SectionActions
@@ -372,7 +494,7 @@ export default function AdminSettings() {
                       max={2000}
                       step={25}
                       prefix="₹"
-                      value={settings.delivery?.freeDeliveryThreshold ?? 300}
+                      value={settings.delivery?.freeDeliveryThreshold ?? 499}
                       onChange={(v) => handleFieldChange('delivery', 'freeDeliveryThreshold', v)}
                     />
                   </div>

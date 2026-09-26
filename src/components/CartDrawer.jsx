@@ -17,7 +17,7 @@ const CartDrawer = () => {
   const { settings } = useSettings();
   const panelRef = useRef(null);
   const returnFocusRef = useRef(null);
-  const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 300;
+  const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 499;
 
   useEffect(() => {
     if (!cartOpen) return undefined;

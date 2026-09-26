@@ -19,7 +19,7 @@ const ProductDetailNew = () => {
   const { addToCart } = useCart();
   const { settings } = useSettings();
 
-  const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 300;
+  const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 499;
   const deliveryCharge = settings?.delivery?.deliveryCharge ?? 50;
   const deliveryTime = settings?.delivery?.deliveryTime || '3–5 Days';
   const isCodAvailable = (settings?.delivery?.codAvailable ?? true) && (settings?.payments?.codEnabled ?? true);

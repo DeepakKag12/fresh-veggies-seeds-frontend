@@ -55,7 +55,7 @@ const SOCIALS = [
 const StorefrontFooter = () => {
   const { settings } = useSettings();
   const storeName = settings?.store?.name || 'Fresh Veggies';
-  const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 300;
+  const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 499;
   const storeAddress = settings?.store?.address;
 
   return (

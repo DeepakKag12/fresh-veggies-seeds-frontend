@@ -497,7 +497,7 @@ const Checkout = () => {
   };
 
   /* Pricing calculations */
-  const FREE_DELIVERY_THRESHOLD = storeSettings?.delivery?.freeDeliveryThreshold ?? 300;
+  const FREE_DELIVERY_THRESHOLD = storeSettings?.delivery?.freeDeliveryThreshold ?? 499;
   const DELIVERY_CHARGE = storeSettings?.delivery?.deliveryCharge ?? 50;
   const COD_AVAILABLE = (storeSettings?.delivery?.codAvailable ?? true) && (storeSettings?.payments?.codEnabled ?? true);
   const COD_MAX_ORDER = storeSettings?.delivery?.codMaxOrder ?? storeSettings?.payments?.codMaxOrder ?? 5000;

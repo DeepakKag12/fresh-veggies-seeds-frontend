@@ -12,8 +12,12 @@ import { motion } from 'framer-motion';
 import { Plus, Upload, X, ShoppingBag, Search, Sprout, Truck, ShieldCheck, Clock } from 'lucide-react';
 import api, { cachedGet } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 
 const Storefront = () => {
+  const { settings } = useSettings();
+  const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 499;
+  const pillars = settings?.store?.trustPillars;
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -309,7 +313,7 @@ const Storefront = () => {
         onSelect={(id) => handleFilterChange('category', id)}
       />
 
-      {/* Ugaoo Signature Trust Pillars Strip */}
+      {/* Ugaoo Signature Trust Pillars Strip — Controlled via Admin Store Settings */}
       <div className="border-y border-fv-border/70 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xs py-4 px-4 sm:px-6 lg:px-10">
         <div className="mx-auto max-w-[1500px] grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
           <div className="flex items-center gap-3">
@@ -317,8 +321,12 @@ const Storefront = () => {
               <Sprout className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[13px] sm:text-[14px] font-bold text-fv-heading dark:text-white leading-tight">100% Non-GMO</p>
-              <p className="text-[11px] sm:text-[12px] text-fv-muted dark:text-gray-400">Heirloom certified seeds</p>
+              <p className="text-[13px] sm:text-[14px] font-bold text-fv-heading dark:text-white leading-tight">
+                {pillars?.pillar1Title || '100% Non-GMO'}
+              </p>
+              <p className="text-[11px] sm:text-[12px] text-fv-muted dark:text-gray-400">
+                {pillars?.pillar1Subtitle || 'Heirloom certified seeds'}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -326,8 +334,14 @@ const Storefront = () => {
               <Truck className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[13px] sm:text-[14px] font-bold text-fv-heading dark:text-white leading-tight">Free Delivery</p>
-              <p className="text-[11px] sm:text-[12px] text-fv-muted dark:text-gray-400">On all orders above ₹300</p>
+              <p className="text-[13px] sm:text-[14px] font-bold text-fv-heading dark:text-white leading-tight">
+                {pillars?.pillar2Title || 'Free Delivery'}
+              </p>
+              <p className="text-[11px] sm:text-[12px] text-fv-muted dark:text-gray-400">
+                {pillars?.pillar2Subtitle
+                  ? pillars.pillar2Subtitle.replace('{threshold}', freeDeliveryThreshold)
+                  : `On all orders above ₹${freeDeliveryThreshold}`}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -335,8 +349,12 @@ const Storefront = () => {
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[13px] sm:text-[14px] font-bold text-fv-heading dark:text-white leading-tight">High Germination</p>
-              <p className="text-[11px] sm:text-[12px] text-fv-muted dark:text-gray-400">Tested & fresh batch</p>
+              <p className="text-[13px] sm:text-[14px] font-bold text-fv-heading dark:text-white leading-tight">
+                {pillars?.pillar3Title || 'High Germination'}
+              </p>
+              <p className="text-[11px] sm:text-[12px] text-fv-muted dark:text-gray-400">
+                {pillars?.pillar3Subtitle || 'Tested & fresh batch'}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -344,8 +362,12 @@ const Storefront = () => {
               <Clock className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[13px] sm:text-[14px] font-bold text-fv-heading dark:text-white leading-tight">Expert Support</p>
-              <p className="text-[11px] sm:text-[12px] text-fv-muted dark:text-gray-400">Gardener help via WhatsApp</p>
+              <p className="text-[13px] sm:text-[14px] font-bold text-fv-heading dark:text-white leading-tight">
+                {pillars?.pillar4Title || 'Expert Support'}
+              </p>
+              <p className="text-[11px] sm:text-[12px] text-fv-muted dark:text-gray-400">
+                {pillars?.pillar4Subtitle || (settings?.store?.whatsappNumber ? `Gardener help: +91 ${settings.store.whatsappNumber}` : 'Gardener help via WhatsApp')}
+              </p>
             </div>
           </div>
         </div>
