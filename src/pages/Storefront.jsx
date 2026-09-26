@@ -366,7 +366,7 @@ const Storefront = () => {
         </div>
       )}
 
-      <div className="mx-auto max-w-[1500px] px-4 py-8 sm:px-6 lg:px-10">
+      <div id="catalogue-heading" className="mx-auto max-w-[1500px] px-4 py-8 sm:px-6 lg:px-10 scroll-mt-20">
         {user?.role === 'admin' && (
           <button
             onClick={() => setShowComboModal(true)}
