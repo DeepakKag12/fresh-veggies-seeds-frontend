@@ -120,7 +120,7 @@ const MyOrders = () => {
                     </span>
                     {order.refund?.refundStatus === 'Processed' && (
                       <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                        ↩ Refunded
+                        Refunded
                       </span>
                     )}
                   </div>

@@ -565,7 +565,7 @@ const OrderDetail = () => {
                     order.paymentStatus === 'Refunded' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
                     'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                   }`}>
-                    {order.paymentStatus === 'Refunded' ? '↩ Refunded' : order.paymentStatus}
+                    {order.paymentStatus === 'Refunded' ? 'Refunded' : order.paymentStatus}
                   </span>
                 </div>
                 {order.paymentDetails?.razorpayPaymentId && (

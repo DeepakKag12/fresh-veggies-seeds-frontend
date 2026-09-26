@@ -351,7 +351,7 @@ const GuestMobileOtpStep = ({ onVerified, initialPhone = '' }) => {
             </label>
             <div className="flex items-stretch rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-2xs focus-within:ring-2 focus-within:ring-fv-primary focus-within:border-transparent transition-all">
               <span className="flex items-center px-3 sm:px-3.5 border-r border-gray-200 dark:border-gray-600 text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 rounded-l-xl select-none shrink-0">
-                🇮🇳 +91
+                +91
               </span>
               <input
                 type="tel"

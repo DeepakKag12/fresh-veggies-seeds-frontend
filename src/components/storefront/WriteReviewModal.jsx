@@ -99,11 +99,11 @@ const WriteReviewModal = ({ isOpen, onClose, productId, productName, orderId, ex
                 </button>
               ))}
               <span className="ml-3 text-sm font-bold text-fv-heading">
-                {rating === 5 && 'Outstanding! ⭐⭐⭐⭐⭐'}
-                {rating === 4 && 'Very Good ⭐⭐⭐⭐'}
-                {rating === 3 && 'Average ⭐⭐⭐'}
-                {rating === 2 && 'Disappointed ⭐⭐'}
-                {rating === 1 && 'Poor ⭐'}
+                {rating === 5 && 'Outstanding! (5/5)'}
+                {rating === 4 && 'Very Good (4/5)'}
+                {rating === 3 && 'Average (3/5)'}
+                {rating === 2 && 'Disappointed (2/5)'}
+                {rating === 1 && 'Poor (1/5)'}
               </span>
             </div>
           </div>
