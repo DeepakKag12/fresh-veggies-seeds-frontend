@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Star, Share2, ChevronRight, ShieldCheck, Truck, Banknote, Sprout, AlertCircle } from 'lucide-react';
+import { Star, Share2, ChevronRight, ShieldCheck, Truck, Banknote, Sprout, AlertCircle, ShoppingBag } from 'lucide-react';
 import { cachedGet } from '../utils/api';
 import { useCart } from '../context/CartContext';
 import PageLoader from '../components/PageLoader';
@@ -174,30 +174,39 @@ const ProductDetailNew = () => {
               </p>
             )}
 
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <QuantityStepper value={quantity} onChange={setQuantity} max={stock || 1} />
-              <button
-                type="button"
-                disabled={!stock}
-                onClick={handleAddToCart}
-                className="h-12 flex-1 rounded-xl bg-fv-primary px-6 text-[15px] font-semibold text-white shadow-xs
-                           transition-all duration-200 hover:bg-fv-primary-dark hover:shadow-md active:scale-[0.97] disabled:cursor-not-allowed
-                           disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2
-                           focus-visible:ring-fv-primary focus-visible:ring-offset-2 motion-reduce:transition-none cursor-pointer shimmer-btn"
-              >
-                Add to cart · ₹{lineTotal.toLocaleString('en-IN')}
-              </button>
-              <button
-                type="button"
-                disabled={!stock}
-                onClick={handleBuyNow}
-                className="h-12 rounded-xl border-2 border-fv-primary px-6 text-[15px] font-semibold text-fv-primary
-                           hover:bg-fv-primary hover:text-white transition-all duration-200 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50
-                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary
-                           focus-visible:ring-offset-2 cursor-pointer"
-              >
-                Buy now
-              </button>
+            <div className="mt-6 space-y-3 sm:space-y-0 sm:flex sm:items-center sm:gap-3">
+              {/* Quantity selector: comfortable row on mobile with label, inline on desktop */}
+              <div className="flex items-center justify-between sm:justify-start gap-3">
+                <span className="text-[14px] font-semibold text-fv-heading sm:hidden">Quantity:</span>
+                <QuantityStepper value={quantity} onChange={setQuantity} max={stock || 1} />
+              </div>
+
+              {/* Action buttons: 2 equal-width columns on mobile so neither button is squeezed */}
+              <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-1 sm:items-center sm:gap-3">
+                <button
+                  type="button"
+                  disabled={!stock}
+                  onClick={handleAddToCart}
+                  className="h-12 w-full sm:flex-1 rounded-xl bg-fv-primary px-3 sm:px-6 text-[14px] sm:text-[15px] font-semibold text-white shadow-xs
+                             transition-all duration-200 hover:bg-fv-primary-dark hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed
+                             disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2
+                             focus-visible:ring-fv-primary focus-visible:ring-offset-2 motion-reduce:transition-none cursor-pointer shimmer-btn flex items-center justify-center gap-1.5 whitespace-nowrap"
+                >
+                  <ShoppingBag className="w-4 h-4 shrink-0 hidden xs:inline-block" />
+                  <span>Add to cart</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={!stock}
+                  onClick={handleBuyNow}
+                  className="h-12 w-full sm:w-auto rounded-xl border-2 border-fv-primary px-3 sm:px-6 text-[14px] sm:text-[15px] font-semibold text-fv-primary
+                             hover:bg-fv-primary hover:text-white transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50
+                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary
+                             focus-visible:ring-offset-2 cursor-pointer flex items-center justify-center whitespace-nowrap"
+                >
+                  Buy now
+                </button>
+              </div>
             </div>
 
             <OffersBox />
