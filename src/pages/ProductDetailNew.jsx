@@ -21,10 +21,12 @@ const ProductDetailNew = () => {
 
   const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 300;
   const deliveryCharge = settings?.delivery?.deliveryCharge ?? 50;
+  const deliveryTime = settings?.delivery?.deliveryTime || '3–5 Days';
+  const isCodAvailable = (settings?.delivery?.codAvailable ?? true) && (settings?.payments?.codEnabled ?? true);
 
   const GUARANTEES = [
-    { Icon: Truck, title: `Free delivery over ₹${freeDeliveryThreshold}`, detail: `Flat ₹${deliveryCharge} below that` },
-    { Icon: Banknote, title: 'Cash on delivery', detail: 'Pay when it arrives' },
+    { Icon: Truck, title: `Free delivery over ₹${freeDeliveryThreshold}`, detail: `Flat ₹${deliveryCharge} below threshold · ${deliveryTime}` },
+    ...(isCodAvailable ? [{ Icon: Banknote, title: 'Cash on delivery', detail: 'Pay when it arrives' }] : []),
     { Icon: ShieldCheck, title: 'Secure payments', detail: 'UPI, cards & wallets' },
   ];
 
@@ -162,9 +164,15 @@ const ProductDetailNew = () => {
               <span className="text-[13px] text-fv-muted">Inclusive of all taxes</span>
             </p>
 
-            <p className={`mt-2 text-[14px] font-medium ${stock > 0 ? 'text-fv-success' : 'text-fv-danger'}`}>
-              {stock > 0 ? `In stock · ${stock} available` : 'Out of stock'}
-            </p>
+            {stock > 0 && stock <= (settings?.inventory?.lowStockThreshold ?? 10) && (settings?.inventory?.showOnlyXLeft ?? true) ? (
+              <p className="mt-2 text-[13px] font-semibold text-amber-800 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-md inline-flex items-center gap-1.5">
+                <span>⚡</span> Only {stock} left in stock — order soon!
+              </p>
+            ) : (
+              <p className={`mt-2 text-[14px] font-medium ${stock > 0 ? 'text-fv-success' : 'text-fv-danger'}`}>
+                {stock > 0 ? `In stock · ${stock} available` : 'Out of stock'}
+              </p>
+            )}
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <QuantityStepper value={quantity} onChange={setQuantity} max={stock || 1} />

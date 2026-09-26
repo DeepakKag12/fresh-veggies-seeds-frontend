@@ -25,12 +25,15 @@ import { Button } from './ui/Button';
 
 const NavbarNew = () => {
   const { settings } = useSettings();
+  const storeName = settings?.store?.name || 'Fresh Veggies';
+  const storeLogo = settings?.store?.logo || '/logo.png';
   const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 300;
+  const isCodAvailable = (settings?.delivery?.codAvailable ?? true) && (settings?.payments?.codEnabled ?? true);
 
   const OFFERS = [
     `🚚 Free shipping above ₹${freeDeliveryThreshold}`,
     '🌱 Fresh stock every week',
-    '💳 Cash on delivery available',
+    isCodAvailable ? '💳 Cash on delivery available' : '⚡ Fast dispatch guaranteed',
   ];
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -96,12 +99,12 @@ const NavbarNew = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
             <img 
-              src="/logo.png" 
-              alt="Fresh Veggies" 
+              src={storeLogo} 
+              alt={storeName} 
               className="h-12 w-auto object-contain group-hover:scale-105 transition-transform"
             />
             <span className="hidden font-serif text-[22px] font-bold text-fv-primary lg:block">
-              Fresh Veggies
+              {storeName}
             </span>
           </Link>
 

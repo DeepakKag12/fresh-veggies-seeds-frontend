@@ -1,32 +1,6 @@
 import React from 'react';
 import { Leaf, ShieldCheck, Truck, Headphones } from 'lucide-react';
-
-const features = [
-  {
-    icon: Leaf,
-    title: '100% Organic',
-    desc: 'All our seeds are organic and non-GMO, perfect for healthy home gardening.',
-    color: 'text-fv-primary bg-fv-cream',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Quality Assured',
-    desc: 'High germination rate guaranteed with proper growing instructions.',
-    color: 'text-fv-primary bg-fv-cream',
-  },
-  {
-    icon: Truck,
-    title: 'Fast Delivery',
-    desc: 'Quick and safe delivery across India to your doorstep.',
-    color: 'text-fv-primary bg-fv-cream',
-  },
-  {
-    icon: Headphones,
-    title: 'Expert Support',
-    desc: 'WhatsApp support for all your gardening queries and doubts.',
-    color: 'text-fv-primary bg-fv-cream',
-  },
-];
+import { useSettings } from '../context/SettingsContext';
 
 const gardenTypes = [
   { emoji: '🌱', title: 'Beginners', desc: 'Easy-to-grow seeds with detailed growing instructions.' },
@@ -34,7 +8,41 @@ const gardenTypes = [
   { emoji: '👨‍🍳', title: 'Kitchen Gardens', desc: 'Fresh herbs and vegetables for your cooking needs.' },
 ];
 
+/**
+ * [CHG-012] Dynamic About Page synced with store settings.
+ */
 const About = () => {
+  const { settings } = useSettings();
+  const storeName = settings?.store?.name || 'Fresh Veggies';
+  const deliveryTime = settings?.delivery?.deliveryTime || '3–5 Days';
+
+  const features = [
+    {
+      icon: Leaf,
+      title: '100% Organic',
+      desc: 'All our seeds are organic and non-GMO, perfect for healthy home gardening.',
+      color: 'text-fv-primary bg-fv-cream',
+    },
+    {
+      icon: ShieldCheck,
+      title: 'Quality Assured',
+      desc: 'High germination rate guaranteed with proper growing instructions.',
+      color: 'text-fv-primary bg-fv-cream',
+    },
+    {
+      icon: Truck,
+      title: 'Fast Delivery',
+      desc: `Quick and safe delivery in ${deliveryTime} across India to your doorstep.`,
+      color: 'text-fv-primary bg-fv-cream',
+    },
+    {
+      icon: Headphones,
+      title: 'Expert Support',
+      desc: 'Dedicated support for all your gardening queries and doubts.',
+      color: 'text-fv-primary bg-fv-cream',
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-fv-page py-10">
       <div className="max-w-5xl mx-auto px-4">
@@ -43,7 +51,7 @@ const About = () => {
         <div className="bg-fv-primary rounded-[18px] p-6 md:p-10 mb-8 text-white">
           <h1 className="font-serif text-[30px] md:text-[42px] font-semibold mb-3"><span aria-hidden="true">🌱</span> Treat Your Self Organic</h1>
           <p className="text-white/80 text-sm md:text-base leading-relaxed max-w-3xl">
-            Welcome to Fresh Veggies — your trusted partner in organic home gardening. We specialise in providing
+            Welcome to {storeName} — your trusted partner in organic home gardening. We specialise in providing
             premium quality organic seeds, combo packs, and complete gardening solutions for beginners and
             enthusiasts alike.
           </p>

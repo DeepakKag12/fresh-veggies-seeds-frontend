@@ -8,12 +8,14 @@ import {
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import WriteReviewModal from '../components/storefront/WriteReviewModal';
 
 const OrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
+  const { settings } = useSettings();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
@@ -118,8 +120,18 @@ const OrderDetail = () => {
     }
   };
 
-  const canRequestCancel = order &&
-    !['Delivered', 'Cancelled', 'CancellationRequested'].includes(order.orderStatus);
+  const allowCustomerCancel = settings?.orders?.allowCustomerCancellation ?? true;
+  const cancelCutoff = settings?.orders?.cancellationAllowedUntil || 'Before Shipped';
+  const isPastCutoff =
+    cancelCutoff === 'Before Packed'
+      ? ['Packed', 'Shipped', 'Delivered', 'Cancelled'].includes(order?.orderStatus)
+      : ['Shipped', 'Delivered', 'Cancelled'].includes(order?.orderStatus);
+
+  const canRequestCancel =
+    order &&
+    allowCustomerCancel &&
+    !isPastCutoff &&
+    order.orderStatus !== 'CancellationRequested';
 
   const steps = ['Pending', 'Confirmed', 'Packed', 'Shipped', 'Delivered'];
   const stepIcons = { Pending: Clock, Confirmed: CheckCircle, Packed: Package, Shipped: Truck, Delivered: CheckCircle };

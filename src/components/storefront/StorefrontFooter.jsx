@@ -54,7 +54,9 @@ const SOCIALS = [
 
 const StorefrontFooter = () => {
   const { settings } = useSettings();
+  const storeName = settings?.store?.name || 'Fresh Veggies';
   const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 300;
+  const storeAddress = settings?.store?.address;
 
   return (
     <footer className="bg-fv-primary text-white">
@@ -62,10 +64,15 @@ const StorefrontFooter = () => {
         <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_2fr]">
           {/* Brand + newsletter */}
           <div>
-            <p className="font-serif text-[32px] font-bold leading-none">Fresh Veggies</p>
+            <p className="font-serif text-[32px] font-bold leading-none">{storeName}</p>
             <p className="mt-3 max-w-xs text-[14px] leading-relaxed text-white/70">
               Seeds, soil and tools for growing your own food at home.
             </p>
+            {storeAddress && (
+              <p className="mt-2 max-w-xs text-[12px] text-white/50 leading-relaxed">
+                📍 {storeAddress}
+              </p>
+            )}
 
             <form className="mt-6 max-w-sm" onSubmit={(e) => e.preventDefault()}>
               <label htmlFor="footer-email" className="sr-only">Email address</label>
@@ -134,7 +141,7 @@ const StorefrontFooter = () => {
 
       <div className="border-t border-white/15">
         <p className="mx-auto max-w-[1500px] px-4 py-5 text-[13px] text-white/65 sm:px-6 lg:px-10">
-          © {new Date().getFullYear()} Fresh Veggies · Free delivery on orders over ₹{freeDeliveryThreshold}
+          © {new Date().getFullYear()} {storeName} · Free delivery on orders over ₹{freeDeliveryThreshold}
         </p>
       </div>
 

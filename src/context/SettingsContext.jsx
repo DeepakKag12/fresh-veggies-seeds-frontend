@@ -19,7 +19,14 @@ const DEFAULT_SETTINGS = {
     codMaxOrder: 5000,
     deliveryTime: '3–5 Days',
   },
+  orders: {
+    allowCustomerCancellation: true,
+    cancellationAllowedUntil: 'Before Shipped',
+    autoCancelUnpaidOrders: true,
+    unpaidOrderTimeoutMinutes: 30,
+  },
   inventory: {
+    lowStockThreshold: 10,
     showOnlyXLeft: true,
     allowBackorders: false,
     autoHideOutOfStock: false,
@@ -97,6 +104,15 @@ export const SettingsProvider = ({ children }) => {
       window.removeEventListener('freshveggies:settings-updated', handleSettingsUpdated);
     };
   }, [fetchSettings]);
+
+  useEffect(() => {
+    if (settings?.store?.name) {
+      const storeName = settings.store.name;
+      if (!document.title.includes(storeName)) {
+        document.title = `${storeName} — Fresh & Organic Garden Supplies`;
+      }
+    }
+  }, [settings?.store?.name]);
 
   const updateSettings = useCallback((newSettings) => {
     setSettings(newSettings);
