@@ -9,7 +9,7 @@ import Pagination from '../components/Pagination';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Upload, X, ShoppingBag, Search } from 'lucide-react';
+import { Plus, Upload, X, ShoppingBag, Search, Sprout, Truck, ShieldCheck, Clock } from 'lucide-react';
 import api, { cachedGet } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -267,10 +267,9 @@ const Storefront = () => {
 
   const hasExtraFilters = filters.search || filters.season;
 
-  // Reuse a real catalogue photo for the promo tile rather than shipping
-  // another stock image; the tile falls back to a flat panel if none loads.
-  const promoImage = products.find((p) => /fertilizer|compost|soil/i.test(p.name) && p.images?.[0])?.images?.[0]
-    || products.find((p) => p.images?.[0])?.images?.[0];
+  // Authentic plant nutrition visual: prioritize catalog fertilizer/soil photo, fallback to high-res organic gardening visual
+  const promoImage = products.find((p) => /fertilizer|compost|soil|nutrition|food|care/i.test(p.name) && p.images?.[0])?.images?.[0]
+    || 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=2000&q=80';
 
   return (
     <div className="bg-fv-page">
@@ -309,6 +308,48 @@ const Storefront = () => {
         activeId={filters.category}
         onSelect={(id) => handleFilterChange('category', id)}
       />
+
+      {/* Ugaoo Signature Trust Pillars Strip */}
+      <div className="border-y border-fv-border/70 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xs py-4 px-4 sm:px-6 lg:px-10">
+        <div className="mx-auto max-w-[1500px] grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 shrink-0 rounded-full bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-fv-primary dark:text-emerald-400">
+              <Sprout className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[13px] sm:text-[14px] font-bold text-fv-heading dark:text-white leading-tight">100% Non-GMO</p>
+              <p className="text-[11px] sm:text-[12px] text-fv-muted dark:text-gray-400">Heirloom certified seeds</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 shrink-0 rounded-full bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-fv-primary dark:text-emerald-400">
+              <Truck className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[13px] sm:text-[14px] font-bold text-fv-heading dark:text-white leading-tight">Free Delivery</p>
+              <p className="text-[11px] sm:text-[12px] text-fv-muted dark:text-gray-400">On all orders above ₹300</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 shrink-0 rounded-full bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-fv-primary dark:text-emerald-400">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[13px] sm:text-[14px] font-bold text-fv-heading dark:text-white leading-tight">High Germination</p>
+              <p className="text-[11px] sm:text-[12px] text-fv-muted dark:text-gray-400">Tested & fresh batch</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 shrink-0 rounded-full bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-fv-primary dark:text-emerald-400">
+              <Clock className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[13px] sm:text-[14px] font-bold text-fv-heading dark:text-white leading-tight">Expert Support</p>
+              <p className="text-[11px] sm:text-[12px] text-fv-muted dark:text-gray-400">Gardener help via WhatsApp</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <FilterSortBar
         count={total}
@@ -399,13 +440,13 @@ const Storefront = () => {
                       onDelete={user?.role === 'admin' ? handleDeleteProduct : undefined}
                     />
                   </motion.div>
-                  {/* Break the grid once, after the first full row. */}
-                  {i === 5 && (
+                  {/* Break grid cleanly after 4 products (2 full rows on mobile, 1 full row on desktop) */}
+                  {products.length >= 4 && i === 3 && (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.98 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.35, delay: 0.18 }}
-                      className="col-span-2 lg:col-span-3 xl:col-span-4"
+                      className="col-span-2 lg:col-span-3 xl:col-span-4 my-2"
                     >
                       <PromoTile
                         title="Feed your plants right with our organic fertilizers"

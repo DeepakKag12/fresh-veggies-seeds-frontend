@@ -146,8 +146,8 @@ const CollectionBanner = ({ title = 'Bring life to your space' }) => {
     >
       <h1 className="sr-only">{title}</h1>
 
-      {/* Sleek, wide panoramic banner container with exact aspect-[2500/547] */}
-      <div className="group relative mx-auto max-w-[1500px] overflow-hidden rounded-[18px] bg-fv-surface shadow-xs aspect-[2500/547] w-full">
+      {/* Sleek, wide panoramic banner container with responsive aspect ratio */}
+      <div className="group relative mx-auto max-w-[1500px] overflow-hidden rounded-[18px] bg-fv-surface shadow-xs aspect-[16/7] sm:aspect-[21/8] lg:aspect-[2500/547] min-h-[140px] sm:min-h-[180px] w-full">
         {/* Slide Layers with Cross-Fade Transitions */}
         {slides.map((slide, idx) => {
           const isActive = idx === currentIndex;

@@ -92,8 +92,8 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
               outOfStock
                 ? 'bg-white/90 text-fv-muted border border-gray-200'
                 : featured
-                ? 'bg-fv-primary text-white border border-fv-primary/20'
-                : 'bg-fv-yellow text-fv-primary border border-fv-yellow/30'
+                ? 'bg-[#ffd029] text-[#0a4c36] border border-[#ffd029]/80 shadow-xs'
+                : 'bg-fv-primary text-white border border-fv-primary/20'
             }`}
           >
             {outOfStock ? 'Out of stock' : featured ? 'Bestseller' : `${discountPct}% off`}
@@ -101,16 +101,16 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
         )}
 
         {rating > 0 && (
-          <span className="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-white/90 dark:bg-gray-800/90 px-2.5 py-1 shadow-xs backdrop-blur-md border border-white/40 dark:border-gray-700/40">
-            <span className="text-[12px] font-bold leading-none text-fv-primary dark:text-green-400">{rating.toFixed(1)}</span>
-            <Star className="h-3 w-3 fill-fv-star text-fv-star" aria-hidden="true" />
-            {numReviews > 0 && <span className="text-[11px] leading-none text-fv-muted dark:text-gray-400 font-medium">({numReviews})</span>}
+          <span className="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-white/95 dark:bg-gray-800/95 px-2.5 py-0.5 shadow-xs backdrop-blur-md border border-gray-100 dark:border-gray-700/60">
+            <span className="text-[12px] font-bold leading-none text-emerald-800 dark:text-emerald-300">{rating.toFixed(1)}</span>
+            <Star className="h-3 w-3 fill-[#00A93D] text-[#00A93D]" aria-hidden="true" />
+            {numReviews > 0 && <span className="text-[11px] leading-none text-gray-500 dark:text-gray-400 font-medium">({numReviews})</span>}
           </span>
         )}
       </Link>
 
       <div className="flex flex-1 flex-col p-3 sm:p-4 pt-3 sm:pt-3.5">
-        <h3 className="truncate font-serif text-[16px] sm:text-[19px] font-bold leading-snug text-fv-heading dark:text-white">
+        <h3 className="truncate font-sans text-[15px] sm:text-[17px] font-semibold leading-snug text-gray-900 dark:text-white group-hover:text-fv-primary transition-colors">
           <Link
             to={`/product/${_id}`}
             className="hover:text-fv-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary"
@@ -118,12 +118,17 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
             {name}
           </Link>
         </h3>
-        {description && <p className="mt-0.5 sm:mt-1 truncate text-[12px] sm:text-[13px] text-fv-muted dark:text-gray-400">{description}</p>}
+        {description && <p className="mt-0.5 sm:mt-1 truncate text-[12px] sm:text-[13px] text-gray-500 dark:text-gray-400">{description}</p>}
 
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <p className="flex shrink-0 items-baseline gap-1.5">
-            <span className="text-[17px] sm:text-[20px] font-bold text-fv-deep dark:text-white">₹{price?.toLocaleString('en-IN')}</span>
-            {hasDiscount && <s className="text-[12px] sm:text-[14px] text-fv-muted line-through opacity-70">₹{originalPrice.toLocaleString('en-IN')}</s>}
+        <div className="mt-3 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <p className="flex shrink-0 flex-wrap items-baseline gap-1.5">
+            <span className="text-[17px] sm:text-[20px] font-bold text-gray-900 dark:text-white">₹{price?.toLocaleString('en-IN')}</span>
+            {hasDiscount && (
+              <>
+                <s className="text-[12px] sm:text-[13px] text-gray-400 line-through">₹{originalPrice.toLocaleString('en-IN')}</s>
+                <span className="text-[11px] sm:text-[12px] font-bold text-emerald-700 dark:text-emerald-400">({discountPct}% OFF)</span>
+              </>
+            )}
           </p>
 
           <Link
