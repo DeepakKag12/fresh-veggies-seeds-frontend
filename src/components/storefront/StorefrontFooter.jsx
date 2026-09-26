@@ -13,7 +13,7 @@ const COLUMNS = [
   {
     heading: 'Shop',
     links: [
-      { label: 'All products', to: '/shop' },
+      { label: 'All products', to: '/' },
       { label: 'Combo offers', to: '/combos' },
       { label: 'Your cart', to: '/cart' },
     ],

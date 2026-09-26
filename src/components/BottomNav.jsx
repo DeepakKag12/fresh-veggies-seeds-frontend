@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Grid3X3, ShoppingCart, Package, User } from 'lucide-react';
+import { Home, ShoppingCart, Package, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 
@@ -13,7 +13,6 @@ const BottomNav = () => {
 
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
-    { path: '/shop', label: 'Shop', icon: Grid3X3 },
     { path: '/cart', label: 'Cart', icon: ShoppingCart, badge: cartCount, action: () => openCart() },
     { path: user ? '/orders' : '/login', label: 'Orders', icon: Package },
     { path: user ? '/settings' : '/login', label: 'Account', icon: User },

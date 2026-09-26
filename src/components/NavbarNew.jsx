@@ -62,7 +62,7 @@ const NavbarNew = () => {
     { path: '/admin/orders', label: 'All Orders' },
     { path: '/admin/categories', label: 'Categories' },
   ] : [
-    { path: '/', label: 'Shop' },
+    { path: '/', label: 'Home' },
     { path: '/combos', label: 'Combos' },
     { path: '/about', label: 'About' },
     { path: '/contact', label: 'Contact' },

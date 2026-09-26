@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
  * columns so the grid rhythm is preserved rather than broken.
  * Decorative image; the heading and link carry all the meaning.
  */
-const PromoTile = ({ title, cta = 'Shop now', to = '/shop', image }) => (
+const PromoTile = ({ title, cta = 'Shop now', to = '/', image }) => (
   <article className="relative col-span-2 overflow-hidden rounded-[18px] bg-fv-primary">
     {image && (
       <img src={image} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
