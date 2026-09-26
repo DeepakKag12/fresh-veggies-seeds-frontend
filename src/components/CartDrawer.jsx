@@ -58,10 +58,8 @@ const CartDrawer = () => {
         ref={panelRef}
         tabIndex={-1}
         className="absolute right-0 top-0 flex h-full w-full max-w-[440px] flex-col bg-white shadow-2xl
-                   focus:outline-none animate-[fv-slide-in_240ms_ease-out] motion-reduce:animate-none"
+                   focus:outline-none animate-fv-slide-in motion-reduce:animate-none"
       >
-        <style>{`@keyframes fv-slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
-
         <div className="flex items-center justify-between border-b border-fv-border px-5 py-4">
           <h2 className="font-serif text-[22px] font-semibold text-fv-heading">Cart</h2>
           <button

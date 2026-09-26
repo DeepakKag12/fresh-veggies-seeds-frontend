@@ -10,35 +10,6 @@ import { BADGES } from './sandboxAssets';
  * and both stop under prefers-reduced-motion — this is decoration and carries
  * no information, so removing it costs nothing.
  */
-const MARQUEE_CSS = `
-  .fv-marquee-track {
-    display: flex;
-    width: max-content;
-    animation: fv-marquee-scroll 45s linear infinite;
-    will-change: transform;
-  }
-  /* Each pass is at least a full viewport wide, so translating exactly one pass
-     can never expose a gap on a wide screen. */
-  .fv-marquee-pass {
-    display: flex;
-    flex-shrink: 0;
-    min-width: 100vw;
-    justify-content: space-around;
-  }
-  @keyframes fv-marquee-scroll {
-    from { transform: translateX(0); }
-    to   { transform: translateX(-50%); }
-  }
-  .fv-marquee-badge {
-    animation: fv-marquee-spin 16s linear infinite;
-    will-change: transform;
-  }
-  @keyframes fv-marquee-spin { to { transform: rotate(360deg); } }
-  @media (prefers-reduced-motion: reduce) {
-    .fv-marquee-track, .fv-marquee-badge { animation: none; }
-  }
-`;
-
 const BadgeMarquee = ({ repeat = 12 }) => {
   const pass = Array.from({ length: repeat }, (_, i) => BADGES[i % BADGES.length]);
 
@@ -61,7 +32,6 @@ const BadgeMarquee = ({ repeat = 12 }) => {
 
   return (
     <div className="overflow-hidden bg-fv-primary py-4" aria-hidden="true">
-      <style>{MARQUEE_CSS}</style>
       {/* Two identical passes; the -50% travel lands exactly on the seam. */}
       <div className="fv-marquee-track">
         {renderPass('a')}

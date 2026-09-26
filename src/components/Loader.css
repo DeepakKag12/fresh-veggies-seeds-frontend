@@ -40,6 +40,11 @@
   animation: fv-loader-breathe 1800ms ease-in-out infinite;
 }
 
+.fv-loader__mark svg {
+  width: calc(var(--fv-loader-size, 56px) * 0.4);
+  height: calc(var(--fv-loader-size, 56px) * 0.4);
+}
+
 .fv-loader__text {
   font-size: 14px;
   color: #5D6B5F;

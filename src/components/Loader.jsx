@@ -12,7 +12,7 @@ const Loader = ({ size = 56, text = 'Loading…', className = '' }) => (
   <div className={`fv-loader ${className}`} style={{ '--fv-loader-size': `${size}px` }} role="status">
     <span className="fv-loader__ring">
       <span className="fv-loader__mark">
-        <Sprout style={{ width: size * 0.4, height: size * 0.4 }} aria-hidden="true" />
+        <Sprout aria-hidden="true" />
       </span>
     </span>
     {text && <span className="fv-loader__text">{text}</span>}

@@ -20,10 +20,12 @@ const AdminCategories = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await api.get('/categories');
-      setCategories(response.data.data);
+      const response = await api.get('/categories?all=true');
+      const data = response.data?.data;
+      setCategories(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching categories:', error);
+      setCategories([]);
     }
   };
 

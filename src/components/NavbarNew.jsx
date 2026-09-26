@@ -76,12 +76,6 @@ const NavbarNew = () => {
     >
       {showOffersBar && (
       <div className="overflow-hidden bg-fv-primary py-2" aria-hidden="true">
-        <style>{`
-          .fv-offers-track { display:flex; width:max-content; animation: fv-offers 28s linear infinite; will-change:transform; }
-          @keyframes fv-offers { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-          .fv-offers-pass { display:flex; flex-shrink:0; min-width:100vw; justify-content:space-around; }
-          @media (prefers-reduced-motion: reduce) { .fv-offers-track { animation:none; } }
-        `}</style>
         <div className="fv-offers-track">
           {['a', 'b'].map((pass) => (
             <div className="fv-offers-pass" key={pass}>

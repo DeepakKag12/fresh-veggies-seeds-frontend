@@ -4,6 +4,141 @@ import { cachedGet } from '../utils/api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
+// Calculate actual original price from included products
+const calculateOriginalPrice = (combo) => {
+  if (combo.originalPrice > 0) return combo.originalPrice;
+  if (!combo.includedProducts || combo.includedProducts.length === 0) {
+    return combo.price;
+  }
+  return combo.includedProducts.reduce((sum, item) => {
+    const productPrice = item.productId?.price || 0;
+    const quantity = item.quantity || 1;
+    return sum + (productPrice * quantity);
+  }, 0);
+};
+
+// A saving is only a saving when it is positive.
+const calculateSaving = (combo) =>
+  Math.max(0, calculateOriginalPrice(combo) - combo.price);
+
+// Top-level ComboCard component with auto-rotating images
+const ComboCard = ({ combo, onSelect, onAddToCart, isAdmin }) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imgFailed, setImgFailed] = useState(false);
+  
+  const allImages = combo.includedProducts?.map(item => item.productId?.images?.[0]).filter(Boolean) || [];
+  const images = allImages.length > 0 ? allImages : [combo.images?.[0] || 'https://via.placeholder.com/400x240?text=Combo+Pack'];
+  
+  useEffect(() => {
+    if (images.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentImageIndex((prev) => (prev + 1) % images.length);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [images.length]);
+
+  return (
+    <div
+      className="bg-white rounded-[12px] overflow-hidden hover:shadow-xl transition-all group cursor-pointer"
+      onClick={() => onSelect(combo)}
+    >
+      <div className="relative h-48 overflow-hidden bg-fv-surface">
+        {images[currentImageIndex] && !imgFailed ? (
+          <img
+            src={images[currentImageIndex]}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            onError={() => setImgFailed(true)}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-fv-cream to-fv-surface">
+            <Package className="h-12 w-12 text-fv-primary/25" aria-hidden="true" />
+          </div>
+        )}
+        {combo.discount > 0 && (
+          <div className="absolute left-3 top-3 rounded-[6px] bg-fv-yellow px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-fv-primary">
+            {combo.discount}% off
+          </div>
+        )}
+        <div className="absolute right-3 top-3 rounded-[6px] bg-fv-primary px-2.5 py-1 text-[11px] font-medium text-white">
+          {combo.comboType}
+        </div>
+        {images.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+            {images.map((_, idx) => (
+              <div
+                key={idx}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  idx === currentImageIndex ? 'bg-white w-4' : 'bg-white/50'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="p-4">
+        <h3 className="font-serif text-[20px] font-semibold text-fv-heading mb-2 line-clamp-2">
+          {combo.name}
+        </h3>
+        
+        <p className="text-sm text-fv-muted mb-3 line-clamp-2">
+          {combo.description}
+        </p>
+
+        {combo.features && combo.features.length > 0 && (
+          <div className="mb-3 space-y-1">
+            {combo.features.slice(0, 3).map((feature, index) => (
+              <p key={index} className="text-xs text-fv-muted">
+                ✓ {feature}
+              </p>
+            ))}
+          </div>
+        )}
+
+        <div className="mb-3 p-2 bg-fv-cream dark:bg-green-900/20 rounded-lg">
+          <p className="text-xs text-fv-primary-dark dark:text-green-400 font-medium">
+            {combo.includedProducts?.length || 0} products{calculateSaving(combo) > 0 ? ` • Save ₹${calculateSaving(combo).toFixed(0)}` : ''}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-2xl font-bold text-fv-primary dark:text-green-400">
+            ₹{combo.price}
+          </span>
+          {calculateOriginalPrice(combo) > combo.price && (
+            <div className="text-sm text-fv-muted line-through">
+              ₹{calculateOriginalPrice(combo).toFixed(0)}
+            </div>
+          )}
+        </div>
+
+        {!isAdmin && combo.stock > 0 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddToCart(combo);
+            }}
+            className="w-full bg-fv-primary hover:bg-fv-primary-dark text-white py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            Add to Cart
+          </button>
+        )}
+
+        {combo.stock === 0 && (
+          <div className="w-full bg-gray-300 text-fv-muted py-2 rounded-lg font-semibold text-center">
+            Out of Stock
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const ComboOffers = () => {
   const [combos, setCombos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,153 +162,6 @@ const ComboOffers = () => {
 
   const handleAddToCart = (combo) => {
     addToCart(combo, 1, true);
-  };
-
-  // Calculate actual original price from included products
-  const calculateOriginalPrice = (combo) => {
-    // An explicit originalPrice is what the admin set the combo up against, so
-    // it wins. Summing the members' current (already discounted) prices is only
-    // a fallback, and can legitimately come out below the combo price.
-    if (combo.originalPrice > 0) return combo.originalPrice;
-
-    if (!combo.includedProducts || combo.includedProducts.length === 0) {
-      return combo.price;
-    }
-
-    const total = combo.includedProducts.reduce((sum, item) => {
-      const productPrice = item.productId?.price || 0;
-      const quantity = item.quantity || 1;
-      return sum + (productPrice * quantity);
-    }, 0);
-    
-    return total;
-  };
-
-  // A saving is only a saving when it is positive.
-  const calculateSaving = (combo) =>
-    Math.max(0, calculateOriginalPrice(combo) - combo.price);
-
-  // ComboCard component with auto-rotating images
-  const ComboCard = ({ combo }) => {
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    // A combo can be created without imagery, and a member product's URL can
-    // die on its own; either way the card must not show a broken-image icon.
-    const [imgFailed, setImgFailed] = useState(false);
-    
-    // Get all product images from combo - use includedProducts from backend
-    const allImages = combo.includedProducts?.map(item => item.productId?.images?.[0]).filter(Boolean) || [];
-    const images = allImages.length > 0 ? allImages : [combo.images?.[0] || 'https://via.placeholder.com/400x240?text=Combo+Pack'];
-    
-    useEffect(() => {
-      if (images.length > 1) {
-        const interval = setInterval(() => {
-          setCurrentImageIndex((prev) => (prev + 1) % images.length);
-        }, 1000); // Change image every 1 second
-        
-        return () => clearInterval(interval);
-      }
-    }, [images.length]);
-
-    return (
-      <div
-       className="bg-white rounded-[12px]  overflow-hidden hover:shadow-xl transition-all group cursor-pointer"
-        onClick={() => setSelectedCombo(combo)}
-      >
-        <div className="relative h-48 overflow-hidden bg-fv-surface">
-          {images[currentImageIndex] && !imgFailed ? (
-            <img
-              src={images[currentImageIndex]}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              onError={() => setImgFailed(true)}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105
-                         motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-fv-cream to-fv-surface">
-              <Package className="h-12 w-12 text-fv-primary/25" aria-hidden="true" />
-            </div>
-          )}
-          {combo.discount > 0 && (
-            <div className="absolute left-3 top-3 rounded-[6px] bg-fv-yellow px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-fv-primary">
-              {combo.discount}% off
-            </div>
-          )}
-          <div className="absolute right-3 top-3 rounded-[6px] bg-fv-primary px-2.5 py-1 text-[11px] font-medium text-white">
-            {combo.comboType}
-          </div>
-          {images.length > 1 && (
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-              {images.map((_, idx) => (
-                <div
-                  key={idx}
-                 className={`w-2 h-2 rounded-full transition-all ${
-                    idx === currentImageIndex ? 'bg-white w-4' : 'bg-white/50'
-                  }`}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="p-4">
-          <h3 className="font-serif text-[20px] font-semibold text-fv-heading  mb-2 line-clamp-2">
-            {combo.name}
-          </h3>
-          
-          <p className="text-sm text-fv-muted  mb-3 line-clamp-2">
-            {combo.description}
-          </p>
-
-          {combo.features && combo.features.length > 0 && (
-            <div className="mb-3 space-y-1">
-              {combo.features.slice(0, 3).map((feature, index) => (
-                <p key={index} className="text-xs text-fv-muted ">
-                  ✓ {feature}
-                </p>
-              ))}
-            </div>
-          )}
-
-          <div className="mb-3 p-2 bg-fv-cream dark:bg-green-900/20 rounded-lg">
-            <p className="text-xs text-fv-primary-dark dark:text-green-400 font-medium">
-              {combo.includedProducts?.length || 0} products{calculateSaving(combo) > 0 ? ` \u2022 Save \u20b9${calculateSaving(combo).toFixed(0)}` : ''}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-2xl font-bold text-fv-primary dark:text-green-400">
-              ₹{combo.price}
-            </span>
-            {calculateOriginalPrice(combo) > combo.price && (
-              <div className="text-sm text-fv-muted  line-through">
-                ₹{calculateOriginalPrice(combo).toFixed(0)}
-              </div>
-            )}
-          </div>
-
-          {user?.role !== 'admin' && combo.stock > 0 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleAddToCart(combo);
-              }}
-             className="w-full bg-fv-primary hover:bg-fv-primary-dark text-white py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
-            >
-              <ShoppingCart className="w-4 h-4" />
-              Add to Cart
-            </button>
-          )}
-
-          {combo.stock === 0 && (
-            <div className="w-full bg-gray-300  text-fv-muted  py-2 rounded-lg font-semibold text-center">
-              Out of Stock
-            </div>
-          )}
-        </div>
-      </div>
-    );
   };
 
   if (loading) {
@@ -204,7 +192,7 @@ const ComboOffers = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {combos.map((combo) => (
-              <ComboCard key={combo._id} combo={combo} />
+              <ComboCard key={combo._id} combo={combo} onSelect={setSelectedCombo} onAddToCart={handleAddToCart} isAdmin={user?.role === 'admin'} />
             ))}
           </div>
         )}

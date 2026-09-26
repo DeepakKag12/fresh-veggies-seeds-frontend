@@ -213,3 +213,95 @@ html {
 .glow {
   animation: glow 2s ease-in-out infinite;
 }
+
+/* ─── Global & Component Specific Animations ────────────────────────────── */
+
+/* Offers Track (Navbar) */
+.fv-offers-track {
+  display: flex;
+  width: max-content;
+  animation: fv-offers 28s linear infinite;
+  will-change: transform;
+}
+
+@keyframes fv-offers {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.fv-offers-pass {
+  display: flex;
+  flex-shrink: 0;
+  min-width: 100vw;
+  justify-content: space-around;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fv-offers-track { animation: none; }
+}
+
+/* Storefront Badge Marquee */
+.fv-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: fv-marquee-scroll 45s linear infinite;
+  will-change: transform;
+}
+
+.fv-marquee-pass {
+  display: flex;
+  flex-shrink: 0;
+  min-width: 100vw;
+  justify-content: space-around;
+}
+
+@keyframes fv-marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.fv-marquee-badge {
+  animation: fv-marquee-spin 16s linear infinite;
+  will-change: transform;
+}
+
+@keyframes fv-marquee-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fv-marquee-track,
+  .fv-marquee-badge { animation: none; }
+}
+
+/* Cart Drawer Slide-In */
+@keyframes fv-slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-fv-slide-in {
+  animation: fv-slide-in 240ms ease-out;
+}
+
+/* Notification Bell Wiggle */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-15deg); }
+  75% { transform: rotate(15deg); }
+}
+
+.animate-wiggle {
+  animation: wiggle 0.5s ease-in-out infinite;
+}
+
+/* Slide-Up Transition */
+@keyframes slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.2s ease-out;
+}
+
