@@ -24,15 +24,15 @@ const Tile = ({ category, active, onSelect }) => {
     <li className="shrink-0">
       <Tag
         {...tagProps}
-        className="group flex w-[120px] flex-col items-center gap-3 rounded-[18px] p-1 text-center sm:w-[150px]
+        className="group flex w-[72px] flex-col items-center gap-1.5 rounded-[14px] p-0.5 text-center sm:w-[124px] sm:gap-3 sm:rounded-[18px] sm:p-1
                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary
-                   focus-visible:ring-offset-2 sm:w-[124px]"
+                   focus-visible:ring-offset-2"
       >
         <span
-          className={`flex h-[88px] w-[88px] items-center justify-center overflow-hidden rounded-full bg-white
+          className={`flex h-[52px] w-[52px] items-center justify-center overflow-hidden rounded-full bg-white
                       transition-transform duration-200 group-hover:scale-105
                       motion-reduce:transition-none motion-reduce:group-hover:scale-100 sm:h-[108px] sm:w-[108px]
-                      ${active ? 'ring-2 ring-fv-primary' : 'ring-1 ring-fv-border'}`}
+                      ${active ? 'ring-2 ring-fv-primary shadow-sm' : 'ring-1 ring-fv-border'}`}
         >
           {showArt ? (
             <img
@@ -43,13 +43,13 @@ const Tile = ({ category, active, onSelect }) => {
               loading="lazy"
               decoding="async"
               onError={() => setFailed(true)}
-              className="h-[68%] w-[68%] object-contain"
+              className="h-[62%] w-[62%] object-contain sm:h-[68%] sm:w-[68%]"
             />
           ) : (
-            <span className="text-3xl" aria-hidden="true">{category.icon || '🌱'}</span>
+            <span className="text-xl sm:text-3xl" aria-hidden="true">{category.icon || '🌱'}</span>
           )}
         </span>
-        <span className={`text-[15px] leading-snug ${active ? 'font-semibold text-fv-primary' : 'text-fv-heading'}`}>
+        <span className={`text-[11px] leading-tight line-clamp-1 max-w-[68px] sm:max-w-none sm:text-[15px] sm:leading-snug ${active ? 'font-semibold text-fv-primary' : 'text-fv-heading'}`}>
           {category.name}
         </span>
       </Tag>
@@ -60,9 +60,9 @@ const Tile = ({ category, active, onSelect }) => {
 const CategoryCircleRow = ({ categories = [], activeId, onSelect }) => {
   if (!categories.length) return null;
   return (
-    <nav aria-label="Browse categories" className="bg-fv-page px-4 py-6 sm:px-6 lg:px-10">
+    <nav aria-label="Browse categories" className="bg-fv-page px-3 py-3 sm:px-6 sm:py-6 lg:px-10">
       {/* Scrolls within itself on small screens rather than pushing the page wide. */}
-      <ul className="mx-auto flex max-w-[1500px] justify-start gap-1 overflow-x-auto pb-2 lg:justify-center
+      <ul className="mx-auto flex max-w-[1500px] justify-start gap-2 overflow-x-auto pb-1 sm:gap-1 sm:pb-2 lg:justify-center
                      [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {categories.map((c) => (
           <Tile key={c._id} category={c} active={c._id === activeId} onSelect={onSelect} />
