@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   User, MapPin, Package, Lock, Mail, LogOut, Save, Loader2,
   CheckCircle2, AlertCircle, Clock, Plus, Edit2, Trash2, Star,
@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { validatePassword, PASSWORD_RULE_TEXT } from '../utils/passwordPolicy';
 import { useAuth } from '../context/AuthContext';
-import { cachedGet } from '../utils/api';
+import api, { cachedGet } from '../utils/api';
 import PasswordInput from '../components/ui/PasswordInput';
 import Input from '../components/ui/Input';
 import { fetchCurrentAddress } from '../utils/locationService';
@@ -20,6 +20,7 @@ import { lookupPincode, isValidPincodeFormat } from '../utils/pincodeService';
  */
 const SECTIONS = [
   { id: 'profile', label: 'My profile', Icon: User },
+  { id: 'orders', label: 'My Orders', Icon: Package },
   { id: 'address', label: 'Delivery address', Icon: MapPin },
   { id: 'email', label: 'Change email', Icon: Mail },
   { id: 'password', label: 'Change password', Icon: Lock },
@@ -445,12 +446,161 @@ const AddressPanel = () => {
   );
 };
 
+/* ─── Orders Panel for Account Settings ────────────────────────────────── */
+const OrdersPanel = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await api.get('/orders/myorders', { params: { page: 1, limit: 10 } });
+        if (alive) {
+          setOrders(res.data?.data || []);
+        }
+      } catch (err) {
+        if (alive) {
+          console.error('Failed to load orders in Settings:', err);
+          setError('Failed to load your orders. Please try refreshing.');
+        }
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  const getStatusBadge = (status) => {
+    const map = {
+      Pending: 'bg-amber-50 text-amber-800 border-amber-200',
+      Confirmed: 'bg-blue-50 text-blue-800 border-blue-200',
+      Packed: 'bg-indigo-50 text-indigo-800 border-indigo-200',
+      Shipped: 'bg-purple-50 text-purple-800 border-purple-200',
+      Delivered: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+      Cancelled: 'bg-rose-50 text-rose-800 border-rose-200',
+      CancellationRequested: 'bg-orange-50 text-orange-800 border-orange-200',
+    };
+    return map[status] || 'bg-gray-50 text-gray-800 border-gray-200';
+  };
+
+  return (
+    <div className="rounded-[18px] border border-fv-border bg-white p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-5 pb-3 border-b border-fv-border">
+        <div>
+          <h2 className="font-serif text-[22px] font-semibold text-fv-heading">My Orders</h2>
+          <p className="mt-0.5 text-[13px] text-fv-muted">
+            Track and review your recent garden orders and shipments.
+          </p>
+        </div>
+        <Link
+          to="/orders"
+          className="text-xs font-semibold text-fv-primary hover:underline hidden sm:inline-flex items-center gap-1"
+        >
+          View Full History →
+        </Link>
+      </div>
+
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-fv-primary mb-2" />
+          <p className="text-xs text-fv-muted">Loading your orders...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-8">
+          <AlertCircle className="w-8 h-8 text-rose-500 mx-auto mb-2" />
+          <p className="text-sm text-rose-600 mb-3">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-xs font-semibold px-4 py-2 bg-fv-primary text-white rounded-lg hover:bg-fv-primary-dark transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      ) : orders.length === 0 ? (
+        <div className="text-center py-12 text-fv-muted">
+          <Package className="w-12 h-12 mx-auto mb-3 opacity-30 text-fv-primary" />
+          <p className="text-[15px] font-medium text-fv-heading mb-1">No orders yet</p>
+          <p className="text-[13px] text-fv-muted mb-4">You haven't placed any orders with Fresh Veggies yet.</p>
+          <Link
+            to="/"
+            className="inline-block px-5 py-2.5 bg-fv-primary hover:bg-fv-primary-dark text-white text-xs font-bold rounded-full transition-colors"
+          >
+            Start Shopping
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {orders.map((order) => (
+            <div
+              key={order._id}
+              onClick={() => navigate(`/orders/${order._id}`)}
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-fv-border hover:border-fv-primary/40 hover:shadow-xs transition-all cursor-pointer bg-fv-page/30 hover:bg-white group"
+            >
+              <div className="flex items-start gap-3.5 min-w-0">
+                <div className="w-11 h-11 rounded-xl bg-fv-cream text-fv-primary flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                  <Package className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="text-sm font-bold text-fv-heading font-mono">
+                      {order.orderNumber || `#${order._id.slice(-8).toUpperCase()}`}
+                    </span>
+                    <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${getStatusBadge(order.orderStatus)}`}>
+                      {order.orderStatus}
+                    </span>
+                  </div>
+                  <p className="text-xs text-fv-muted">
+                    {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                      year: 'numeric', month: 'short', day: 'numeric',
+                    })}
+                    {' · '}
+                    {order.orderItems?.length || 0} item{(order.orderItems?.length || 0) !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between sm:justify-end gap-4 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                <span className="text-base font-bold text-fv-primary">
+                  ₹{order.totalAmount}
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-fv-primary group-hover:translate-x-0.5 transition-transform">
+                  View Details →
+                </span>
+              </div>
+            </div>
+          ))}
+
+          <div className="pt-3 text-center sm:text-right border-t border-fv-border mt-4">
+            <Link
+              to="/orders"
+              className="text-xs font-bold text-fv-primary hover:underline inline-flex items-center gap-1"
+            >
+              Go to Full Orders Page →
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 /* ─── Main Settings page ─────────────────────────────────────────────── */
 const Settings = () => {
   const { user, logout, updateProfile, changeEmail, changePassword } = useAuth();
-  const [active, setActive] = useState('profile');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'profile';
+  const [active, setActive] = useState(initialTab);
   const [now, setNow] = useState(() => new Date());
   const [orderCount, setOrderCount] = useState(null);
+
+  const handleTabChange = (tabId) => {
+    setActive(tabId);
+    setSearchParams({ tab: tabId }, { replace: true });
+  };
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -590,7 +740,7 @@ const Settings = () => {
                 <li key={id}>
                   <button
                     type="button"
-                    onClick={() => setActive(id)}
+                    onClick={() => handleTabChange(id)}
                     aria-current={active === id ? 'true' : undefined}
                     className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-3 text-left text-[15px]
                                 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2
@@ -600,24 +750,14 @@ const Settings = () => {
                   >
                     <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                     {label}
+                    {id === 'orders' && orderCount !== null && (
+                      <span className="ml-auto rounded-[6px] bg-white/20 px-2 py-0.5 text-[12px] font-semibold">
+                        {orderCount}
+                      </span>
+                    )}
                   </button>
                 </li>
               ))}
-              <li>
-                <Link
-                  to="/orders"
-                  className="flex w-full items-center gap-3 rounded-[10px] px-3 py-3 text-[15px] hover:bg-white/10
-                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-yellow"
-                >
-                  <Package className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  Order history
-                  {orderCount !== null && (
-                    <span className="ml-auto rounded-[6px] bg-white/20 px-2 py-0.5 text-[12px] font-semibold">
-                      {orderCount}
-                    </span>
-                  )}
-                </Link>
-              </li>
               <li className="pt-2">
                 <button
                   type="button"
@@ -646,6 +786,8 @@ const Settings = () => {
                 </p>
               </Panel>
             )}
+
+            {active === 'orders' && <OrdersPanel />}
 
             {active === 'address' && <AddressPanel />}
 

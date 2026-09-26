@@ -294,8 +294,15 @@ const OrderDetail = () => {
         {/* Header */}
         <div className="flex items-start gap-3 mb-6">
           <button
-            onClick={() => navigate('/orders')}
-           className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex-shrink-0 mt-0.5"
+            onClick={() => {
+              if (window.history.length > 2) {
+                navigate(-1);
+              } else {
+                navigate('/orders');
+              }
+            }}
+            aria-label="Back to orders"
+            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex-shrink-0 mt-0.5"
           >
             <ArrowLeft className="w-5 h-5 text-fv-muted " />
           </button>
