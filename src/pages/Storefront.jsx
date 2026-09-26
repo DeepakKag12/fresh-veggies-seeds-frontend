@@ -34,6 +34,21 @@ const Storefront = () => {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [middleBanner, setMiddleBanner] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    api.get('/banners/active', { params: { position: 'middle' } })
+      .then((res) => {
+        if (!alive) return;
+        const list = res.data?.data;
+        if (Array.isArray(list) && list.length > 0) {
+          setMiddleBanner(list[0]);
+        }
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   // Admin combo modal states
   const [showComboModal, setShowComboModal] = useState(false);
@@ -275,6 +290,55 @@ const Storefront = () => {
   const promoImage = products.find((p) => /fertilizer|compost|soil|nutrition|food|care/i.test(p.name) && p.images?.[0])?.images?.[0]
     || 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=2000&q=80';
 
+  // Dynamic promotional banner resolution (from admin backend or organic plant nutrition default)
+  const fertilizerCategory = categories.find(
+    (c) => c.slug === 'fertilizers' || /fertilizer/i.test(c.name)
+  );
+
+  const dynamicPromo = middleBanner ? {
+    title: middleBanner.title,
+    tag: middleBanner.description || 'Organic Plant Nutrition',
+    cta: 'Shop now',
+    to: middleBanner.linkUrl || (fertilizerCategory ? `/?category=${fertilizerCategory._id}` : '/#catalogue-heading'),
+    image: middleBanner.imageUrl || promoImage,
+    bannerId: middleBanner._id,
+  } : {
+    title: 'Feed your plants right with our organic fertilizers',
+    tag: 'Organic Plant Nutrition',
+    cta: 'Shop now',
+    to: fertilizerCategory ? `/?category=${fertilizerCategory._id}` : '/?category=fertilizers',
+    image: promoImage,
+    bannerId: null,
+  };
+
+  const handlePromoRedirect = (targetUrl) => {
+    if (!targetUrl) return;
+
+    // Check if targetUrl contains a category query param
+    const catMatch = targetUrl.match(/[?&]category=([^&#]+)/);
+    if (catMatch) {
+      const catVal = decodeURIComponent(catMatch[1]);
+      handleFilterChange('category', catVal);
+      const target = document.getElementById('catalogue-heading');
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+
+    if (targetUrl.startsWith('#')) {
+      const target = document.querySelector(targetUrl);
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+
+    if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    navigate(targetUrl);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="bg-fv-page">
       <CollectionBanner />
@@ -313,8 +377,8 @@ const Storefront = () => {
         onSelect={(id) => handleFilterChange('category', id)}
       />
 
-      {/* Ugaoo Signature Trust Pillars Strip — Controlled via Admin Store Settings */}
-      <div className="border-y border-fv-border/70 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xs py-4 px-4 sm:px-6 lg:px-10">
+      {/* Ugaoo Signature Trust Pillars Strip — Controlled via Admin Store Settings (Hidden on mobile phones per user request) */}
+      <div className="hidden md:block border-y border-fv-border/70 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xs py-4 px-4 sm:px-6 lg:px-10">
         <div className="mx-auto max-w-[1500px] grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 shrink-0 rounded-full bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-fv-primary dark:text-emerald-400">
@@ -471,9 +535,13 @@ const Storefront = () => {
                       className="col-span-2 lg:col-span-3 xl:col-span-4 my-2"
                     >
                       <PromoTile
-                        title="Feed your plants right with our organic fertilizers"
-                        to="/"
-                        image={promoImage}
+                        title={dynamicPromo.title}
+                        tag={dynamicPromo.tag}
+                        cta={dynamicPromo.cta}
+                        to={dynamicPromo.to}
+                        image={dynamicPromo.image}
+                        bannerId={dynamicPromo.bannerId}
+                        onCtaClick={handlePromoRedirect}
                       />
                     </motion.div>
                   )}

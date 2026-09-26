@@ -68,7 +68,7 @@ const CategoryCircleRow = ({ categories = [], activeId, onSelect }) => {
       <ul className="mx-auto flex w-full max-w-[1500px] items-center justify-evenly gap-1 overflow-x-auto pb-1 sm:justify-center sm:gap-2 sm:pb-2
                      [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {categories.map((c) => (
-          <Tile key={c._id} category={c} active={c._id === activeId} onSelect={onSelect} />
+          <Tile key={c._id} category={c} active={c._id === activeId || c.slug === activeId} onSelect={onSelect} />
         ))}
       </ul>
     </nav>

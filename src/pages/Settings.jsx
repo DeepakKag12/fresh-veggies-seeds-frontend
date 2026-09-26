@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   User, MapPin, Package, Lock, Mail, LogOut, Save, Loader2,
   CheckCircle2, AlertCircle, Clock, Plus, Edit2, Trash2, Star,

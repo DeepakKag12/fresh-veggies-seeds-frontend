@@ -180,7 +180,7 @@ const ProductDetailNew = () => {
                 type="button"
                 disabled={!stock}
                 onClick={handleAddToCart}
-                className="h-12 flex-1 rounded-full bg-fv-primary px-6 text-[15px] font-semibold text-white shadow-xs
+                className="h-12 flex-1 rounded-xl bg-fv-primary px-6 text-[15px] font-semibold text-white shadow-xs
                            transition-all duration-200 hover:bg-fv-primary-dark hover:shadow-md active:scale-[0.97] disabled:cursor-not-allowed
                            disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2
                            focus-visible:ring-fv-primary focus-visible:ring-offset-2 motion-reduce:transition-none cursor-pointer shimmer-btn"
@@ -191,7 +191,7 @@ const ProductDetailNew = () => {
                 type="button"
                 disabled={!stock}
                 onClick={handleBuyNow}
-                className="h-12 rounded-full border-2 border-fv-primary px-6 text-[15px] font-semibold text-fv-primary
+                className="h-12 rounded-xl border-2 border-fv-primary px-6 text-[15px] font-semibold text-fv-primary
                            hover:bg-fv-primary hover:text-white transition-all duration-200 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50
                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary
                            focus-visible:ring-offset-2 cursor-pointer"
@@ -253,7 +253,7 @@ const ProductDetailNew = () => {
             type="button"
             disabled={!stock}
             onClick={handleAddToCart}
-            className="h-12 min-h-[44px] shrink-0 rounded-full bg-fv-primary px-6 text-[15px] font-semibold text-white
+            className="h-11 min-h-[44px] shrink-0 rounded-xl bg-fv-primary px-5 text-[14px] font-semibold text-white
                        disabled:opacity-50 active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary shadow-xs cursor-pointer shimmer-btn"
           >
             Add to cart
