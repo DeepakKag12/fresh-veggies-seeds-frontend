@@ -21,10 +21,10 @@ const Tile = ({ category, active, onSelect }) => {
     : { to: `/?category=${category._id}`, 'aria-current': active ? 'page' : undefined };
 
   return (
-    <li className="shrink-0">
+    <li className="flex-1 min-w-[68px] max-w-[88px] shrink-0 flex justify-center sm:w-[124px] sm:max-w-none sm:flex-initial">
       <Tag
         {...tagProps}
-        className="group flex w-[72px] flex-col items-center gap-1.5 rounded-[14px] p-0.5 text-center sm:w-[124px] sm:gap-3 sm:rounded-[18px] sm:p-1
+        className="group flex w-full flex-col items-center gap-1.5 rounded-[14px] p-0.5 text-center sm:gap-3 sm:rounded-[18px] sm:p-1
                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary
                    focus-visible:ring-offset-2"
       >
@@ -49,7 +49,7 @@ const Tile = ({ category, active, onSelect }) => {
             <span className="text-xl sm:text-3xl" aria-hidden="true">{category.icon || '🌱'}</span>
           )}
         </span>
-        <span className={`text-[11px] leading-tight line-clamp-1 max-w-[68px] sm:max-w-none sm:text-[15px] sm:leading-snug ${active ? 'font-semibold text-fv-primary' : 'text-fv-heading'}`}>
+        <span className={`text-[11px] leading-tight line-clamp-1 max-w-[74px] sm:max-w-none sm:text-[15px] sm:leading-snug ${active ? 'font-semibold text-fv-primary' : 'text-fv-heading'}`}>
           {category.name}
         </span>
       </Tag>
@@ -60,9 +60,9 @@ const Tile = ({ category, active, onSelect }) => {
 const CategoryCircleRow = ({ categories = [], activeId, onSelect }) => {
   if (!categories.length) return null;
   return (
-    <nav aria-label="Browse categories" className="bg-fv-page px-3 py-3 sm:px-6 sm:py-6 lg:px-10">
-      {/* Scrolls within itself on small screens rather than pushing the page wide. */}
-      <ul className="mx-auto flex max-w-[1500px] justify-start gap-2 overflow-x-auto pb-1 sm:gap-1 sm:pb-2 lg:justify-center
+    <nav aria-label="Browse categories" className="bg-fv-page px-2 py-3 sm:px-6 sm:py-6 lg:px-10">
+      {/* Covers space evenly across phone screen, scrolling smoothly if categories overflow */}
+      <ul className="mx-auto flex w-full max-w-[1500px] items-center justify-evenly gap-1 overflow-x-auto pb-1 sm:justify-center sm:gap-2 sm:pb-2
                      [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {categories.map((c) => (
           <Tile key={c._id} category={c} active={c._id === activeId} onSelect={onSelect} />
