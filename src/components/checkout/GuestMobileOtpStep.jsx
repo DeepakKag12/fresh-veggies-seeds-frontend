@@ -132,10 +132,11 @@ const GuestMobileOtpStep = ({ onVerified, initialPhone = '' }) => {
         return true;
       } catch (backendErr) {
         setLoading(false);
-        const errMsg =
+        const errMsg = extractErrMsg(
           backendErr.response?.data?.message ||
           backendErr.message ||
-          'Failed to send OTP. Please try again.';
+          'Failed to send OTP. Please try again.'
+        );
         setError(errMsg);
         return false;
       }
