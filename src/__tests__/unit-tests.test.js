@@ -7,7 +7,6 @@ import {
   dedupe,
   setCacheBypass,
   isCacheBypassed,
-  _stats,
 } from '../utils/cache';
 import { isValidPincodeFormat } from '../utils/pincodeService';
 
