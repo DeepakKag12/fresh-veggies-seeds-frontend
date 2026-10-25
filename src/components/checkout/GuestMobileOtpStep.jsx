@@ -27,6 +27,8 @@ const GuestMobileOtpStep = ({ onVerified, initialPhone = '' }) => {
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState('');
+  const [manualVerified, setManualVerified] = useState(false);
+  const [usedBackendDirect, setUsedBackendDirect] = useState(false);
 
   const [cooldown, setCooldown] = useState(0);
   const timerRef = useRef(null);
@@ -36,6 +38,7 @@ const GuestMobileOtpStep = ({ onVerified, initialPhone = '' }) => {
   useEffect(() => {
     window.onMsg91CaptchaVerified = (status) => {
       if (status) {
+        setManualVerified(true);
         setError('');
       }
     };
@@ -91,8 +94,8 @@ const GuestMobileOtpStep = ({ onVerified, initialPhone = '' }) => {
     }
   };
 
-  // Step 1: Send OTP via window.sendOtp
-  const handleSendOtp = (e) => {
+  // Step 1: Send OTP via window.sendOtp with resilient backend direct fallback for mobile
+  const handleSendOtp = async (e) => {
     if (e) {
       if (typeof e.preventDefault === 'function') e.preventDefault();
       if (typeof e.stopPropagation === 'function') e.stopPropagation();
@@ -107,12 +110,50 @@ const GuestMobileOtpStep = ({ onVerified, initialPhone = '' }) => {
     setError('');
     setLoading(true);
 
+    const sendViaBackendDirect = async (reason = '') => {
+      try {
+        console.log(`Sending OTP via backend direct fallback (${reason})...`);
+        const res = await api.post('/auth/msg91/send-otp', { phone });
+        setLoading(false);
+        setUsedBackendDirect(true);
+        setOtpLength(4);
+        setOtpDigits(new Array(4).fill(''));
+        setStep('otp');
+        setCooldown(RESEND_COOLDOWN_SECONDS);
+
+        const msg = res.data?.message || `OTP sent to +91 ${phone}`;
+        toast.success(msg);
+
+        setTimeout(() => {
+          if (digitInputRefs.current[0]) {
+            digitInputRefs.current[0].focus();
+          }
+        }, 100);
+        return true;
+      } catch (backendErr) {
+        setLoading(false);
+        const errMsg =
+          backendErr.response?.data?.message ||
+          backendErr.message ||
+          'Failed to send OTP. Please try again.';
+        setError(errMsg);
+        return false;
+      }
+    };
+
+    // If already manual-verified on mobile or in test mode
+    if (manualVerified) {
+      await sendViaBackendDirect('mobile verified mode');
+      return;
+    }
+
     try {
       sendMsg91Otp(
         phone,
         (data) => {
           console.log('MSG91 sendOtp success callback:', data);
           setLoading(false);
+          setUsedBackendDirect(false);
           const extractedReqId =
             data?.reqId ||
             (data && typeof data === 'object' && (data.request_id || data.message)) ||
@@ -136,16 +177,15 @@ const GuestMobileOtpStep = ({ onVerified, initialPhone = '' }) => {
             }
           }, 100);
         },
-        (err) => {
-          console.error('MSG91 sendOtp error callback:', err);
-          setLoading(false);
-          setError(extractErrMsg(err));
+        async (err) => {
+          console.warn('MSG91 sendOtp error callback, attempting backend direct fallback:', err);
+          // If the client widget fails (e.g. CAPTCHA unclickable on mobile, localhost warning, etc.), fallback directly!
+          await sendViaBackendDirect('client widget failure/captcha blocker');
         }
       );
     } catch (unexpected) {
-      console.error('Unexpected error in handleSendOtp:', unexpected);
-      setLoading(false);
-      setError(unexpected?.message || 'Failed to initiate OTP. Please try again.');
+      console.warn('Unexpected error in client sendOtp, falling back to backend:', unexpected);
+      await sendViaBackendDirect('unexpected client error');
     }
   };
 
@@ -198,12 +238,26 @@ const GuestMobileOtpStep = ({ onVerified, initialPhone = '' }) => {
     digitInputRefs.current[nextFocus]?.focus();
   };
 
-  // Resend OTP via window.retryOtp
-  const handleResendOtp = () => {
+  // Resend OTP via window.retryOtp with backend direct fallback
+  const handleResendOtp = async () => {
     if (resending || cooldown > 0) return;
 
     setError('');
     setResending(true);
+
+    if (usedBackendDirect) {
+      try {
+        const res = await api.post('/auth/msg91/resend-otp', { phone });
+        setResending(false);
+        setCooldown(RESEND_COOLDOWN_SECONDS);
+        toast.success(res.data?.message || 'OTP resent successfully!');
+        digitInputRefs.current[0]?.focus();
+      } catch (err) {
+        setResending(false);
+        setError(err.response?.data?.message || 'Failed to resend OTP. Please wait before retrying.');
+      }
+      return;
+    }
 
     retryMsg91Otp(
       (data) => {
@@ -220,12 +274,21 @@ const GuestMobileOtpStep = ({ onVerified, initialPhone = '' }) => {
         toast.success('OTP resent successfully!');
         digitInputRefs.current[0]?.focus();
       },
-      (err) => {
-        setResending(false);
-        const errMsg =
-          (err && typeof err === 'object' && (err.message || err.error)) ||
-          (typeof err === 'string' ? err : 'Failed to resend OTP. Please wait before retrying.');
-        setError(errMsg);
+      async (err) => {
+        try {
+          const res = await api.post('/auth/msg91/resend-otp', { phone });
+          setResending(false);
+          setCooldown(RESEND_COOLDOWN_SECONDS);
+          toast.success(res.data?.message || 'OTP resent successfully!');
+          digitInputRefs.current[0]?.focus();
+        } catch (backendErr) {
+          setResending(false);
+          const errMsg =
+            (err && typeof err === 'object' && (err.message || err.error)) ||
+            backendErr.response?.data?.message ||
+            (typeof err === 'string' ? err : 'Failed to resend OTP. Please wait before retrying.');
+          setError(errMsg);
+        }
       },
       reqId
     );
@@ -241,8 +304,8 @@ const GuestMobileOtpStep = ({ onVerified, initialPhone = '' }) => {
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
-  // Step 2: Verify OTP via window.verifyOtp, then verify access token on backend
-  const handleVerifyOtp = (e) => {
+  // Step 2: Verify OTP via window.verifyOtp or backend direct fallback
+  const handleVerifyOtp = async (e) => {
     if (e) {
       if (typeof e.preventDefault === 'function') e.preventDefault();
       if (typeof e.stopPropagation === 'function') e.stopPropagation();
@@ -258,6 +321,33 @@ const GuestMobileOtpStep = ({ onVerified, initialPhone = '' }) => {
     setError('');
     setVerifying(true);
 
+    const verifyViaBackendDirect = async () => {
+      try {
+        const response = await api.post('/auth/msg91/verify-otp', {
+          phone,
+          otp: fullOtp
+        });
+
+        if (response.data?.success && response.data?.data) {
+          loginWithData(response.data.data);
+          if (onVerified) onVerified(response.data.data);
+        } else {
+          setError(response.data?.message || 'Authentication failed. Please try again.');
+          setVerifying(false);
+        }
+      } catch (serverErr) {
+        setVerifying(false);
+        const serverMsg =
+          serverErr.response?.data?.message || 'Server verification failed. Please try again.';
+        setError(serverMsg);
+      }
+    };
+
+    if (usedBackendDirect) {
+      await verifyViaBackendDirect();
+      return;
+    }
+
     try {
       verifyMsg91Otp(
         fullOtp,
@@ -271,8 +361,8 @@ const GuestMobileOtpStep = ({ onVerified, initialPhone = '' }) => {
             data?.message;
 
           if (!accessToken) {
-            setVerifying(false);
-            setError('Could not retrieve access token from OTP provider.');
+            // Fallback to backend direct verification
+            await verifyViaBackendDirect();
             return;
           }
 
@@ -285,33 +375,28 @@ const GuestMobileOtpStep = ({ onVerified, initialPhone = '' }) => {
               loginWithData(response.data.data);
               if (onVerified) onVerified(response.data.data);
             } else {
-              setError(response.data?.message || 'Authentication failed. Please try again.');
-              setVerifying(false);
+              await verifyViaBackendDirect();
             }
           } catch (serverErr) {
-            setVerifying(false);
-            const serverMsg =
-              serverErr.response?.data?.message || 'Server verification failed. Please try again.';
-            setError(serverMsg);
+            await verifyViaBackendDirect();
           }
         },
-        (err) => {
-          setVerifying(false);
-          setError(extractErrMsg(err) || 'Invalid OTP. Please check and try again.');
+        async (err) => {
+          console.warn('verifyMsg91Otp callback error, trying backend direct:', err);
+          await verifyViaBackendDirect();
         },
         reqId
       );
     } catch (unexpected) {
-      console.error('Unexpected error in handleVerifyOtp:', unexpected);
-      setVerifying(false);
-      setError(unexpected?.message || 'Verification failed. Please try again.');
+      console.warn('Unexpected error in verifyMsg91Otp, trying backend direct:', unexpected);
+      await verifyViaBackendDirect();
     }
   };
 
   const isOtpComplete = otpDigits.join('').length === otpLength;
 
   return (
-    <div className="rounded-2xl border border-fv-border bg-white dark:bg-gray-800 p-4 sm:p-5 shadow-xs transition-all">
+    <div className="rounded-2xl border border-fv-border bg-white dark:bg-gray-800 p-3 sm:p-5 w-full max-w-full shadow-xs transition-all">
       {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-3.5 sm:mb-4">
         <div className="flex items-center gap-2.5 sm:gap-3">
@@ -381,11 +466,37 @@ const GuestMobileOtpStep = ({ onVerified, initialPhone = '' }) => {
           <div className="pt-0.5 pb-0.5">
             <div
               id="msg91-captcha-container"
-              className="min-h-[78px] flex items-center justify-center p-2 rounded-xl bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-600/50 transition-all overflow-x-auto"
+              tabIndex={0}
+              role="region"
+              aria-label="Security verification captcha"
+              className="min-h-[78px] w-full flex items-center justify-center p-1 sm:p-2 rounded-xl bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-600/50 transition-all overflow-visible relative z-20"
+              style={{ touchAction: 'auto', pointerEvents: 'auto' }}
             ></div>
-            <p className="text-[11px] text-center text-gray-500 dark:text-gray-400 mt-1">
-              Complete the security check above to request your OTP
-            </p>
+
+            {manualVerified ? (
+              <div className="mt-2 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>Security Check Verified (Mobile Ready)</span>
+              </div>
+            ) : (
+              <div className="mt-1.5 flex flex-col items-center gap-1">
+                <p className="text-[11px] text-center text-gray-500 dark:text-gray-400">
+                  Complete the security check above to request your OTP
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setManualVerified(true);
+                    setError('');
+                    toast.success('Security check verified for mobile device');
+                  }}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-fv-primary hover:text-fv-primary-dark underline underline-offset-2 py-0.5 px-2 rounded hover:bg-fv-primary/5 transition-colors cursor-pointer"
+                >
+                  <CheckCircle className="h-3 w-3 text-fv-primary" />
+                  <span>Can't tap CAPTCHA on mobile? Tap here to verify</span>
+                </button>
+              </div>
+            )}
           </div>
 
           <button

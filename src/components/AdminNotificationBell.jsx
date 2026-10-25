@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import api from '../utils/api';
 
-const AdminNotificationBell = () => {
+const AdminNotificationBell = ({ variant = 'topbar' }) => {
   const [open, setOpen] = useState(false);
   const [stats, setStats] = useState(null);
   const [lastFetched, setLastFetched] = useState(null);
@@ -60,9 +60,9 @@ const AdminNotificationBell = () => {
           count: stats.pendingOrders || 0,
           desc: 'Awaiting confirmation',
           icon: ShoppingCart,
-          color: 'text-yellow-600',
-          bg: 'bg-yellow-50 border-yellow-200',
-          iconBg: 'bg-yellow-100',
+          color: 'text-amber-600',
+          bg: 'bg-amber-50 border-amber-200',
+          iconBg: 'bg-amber-100',
           link: '/admin/orders?status=Pending',
           urgent: true,
         },
@@ -70,7 +70,7 @@ const AdminNotificationBell = () => {
           id: 'cancel',
           label: 'Cancellation Requests',
           count: stats.cancellationRequests || 0,
-          desc: 'Waiting for your decision',
+          desc: 'Waiting for decision',
           icon: AlertTriangle,
           color: 'text-orange-600',
           bg: 'bg-orange-50 border-orange-200',
@@ -82,7 +82,7 @@ const AdminNotificationBell = () => {
           id: 'payment',
           label: 'Failed Payments',
           count: stats.failedPayments || 0,
-          desc: 'Orders with payment issues',
+          desc: 'Payment issues',
           icon: CreditCard,
           color: 'text-red-600',
           bg: 'bg-red-50 border-red-200',
@@ -94,19 +94,19 @@ const AdminNotificationBell = () => {
           id: 'stock',
           label: 'Low Stock',
           count: stats.lowStockProducts || 0,
-          desc: 'Products below 10 units',
+          desc: 'Products below threshold',
           icon: Package,
-          color: 'text-blue-600',
-          bg: 'bg-blue-50 border-blue-200',
-          iconBg: 'bg-blue-100',
-          link: '/admin/products',
+          color: 'text-emerald-700',
+          bg: 'bg-emerald-50 border-emerald-200',
+          iconBg: 'bg-emerald-100',
+          link: '/admin/products?lowstock=true',
           urgent: false,
         },
         {
           id: 'reviews',
           label: 'Pending Reviews',
           count: stats.pendingReviews || 0,
-          desc: 'Awaiting approval',
+          desc: 'Awaiting moderation',
           icon: Star,
           color: 'text-purple-600',
           bg: 'bg-purple-50 border-purple-200',
@@ -128,33 +128,65 @@ const AdminNotificationBell = () => {
     setOpen(false);
   };
 
+  const isBottomNav = variant === 'bottomnav';
+
   return (
     <div className="relative" ref={panelRef}>
       {/* Bell Button */}
-      <button
-        onClick={() => {
-          setOpen((prev) => !prev);
-          if (!open) fetchStats(true);
-        }}
-        className="relative flex flex-col items-center justify-center h-full py-2 px-3 transition-colors"
-        aria-label="Admin notifications"
-      >
-        <div className={`p-1.5 rounded-full transition-colors ${open ? 'bg-green-600' : ''}`}>
-          <Bell className={`w-5 h-5 ${open ? 'text-white' : 'text-gray-400'} ${urgentCount > 0 && !open ? 'animate-[wiggle_1s_ease-in-out_infinite]' : ''}`} />
-        </div>
-        {totalCount > 0 && (
-          <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
-            {totalCount > 99 ? '99+' : totalCount}
+      {isBottomNav ? (
+        <button
+          onClick={() => {
+            setOpen((prev) => !prev);
+            if (!open) fetchStats(true);
+          }}
+          className="relative flex flex-col items-center justify-center h-full py-2 px-3 transition-colors"
+          aria-label="Admin notifications"
+        >
+          <div className={`p-1.5 rounded-full transition-colors ${open ? 'bg-fv-primary text-white' : 'text-gray-400'}`}>
+            <Bell className={`w-5 h-5 ${urgentCount > 0 && !open ? 'animate-[wiggle_1s_ease-in-out_infinite]' : ''}`} />
+          </div>
+          {totalCount > 0 && (
+            <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+              {totalCount > 99 ? '99+' : totalCount}
+            </span>
+          )}
+          <span className={`text-[10px] mt-1 font-medium ${open ? 'text-fv-primary' : 'text-gray-400'}`}>
+            Alerts
           </span>
-        )}
-        <span className={`text-[10px] mt-1 font-medium ${open ? 'text-green-400' : 'text-gray-400'}`}>
-          Alerts
-        </span>
-      </button>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            setOpen((prev) => !prev);
+            if (!open) fetchStats(true);
+          }}
+          className={`relative p-2 rounded-xl transition-all duration-200 ${
+            open
+              ? 'bg-fv-primary text-white shadow-xs'
+              : 'text-gray-700 dark:text-gray-200 hover:bg-fv-surface dark:hover:bg-gray-700'
+          }`}
+          aria-label="Admin notifications"
+          title="Operational Alerts"
+        >
+          <Bell className={`w-4 h-4 ${urgentCount > 0 && !open ? 'animate-bounce text-red-500' : ''}`} />
+          {totalCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold border-2 border-white dark:border-gray-800 shadow-xs">
+              {totalCount > 99 ? '99+' : totalCount}
+            </span>
+          )}
+        </button>
+      )}
 
       {/* Dropdown Panel */}
       {open && (
-        <div className="fixed bottom-20 right-2 left-2 sm:left-auto sm:right-4 sm:w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 z-[60] overflow-hidden">
+        <div
+          className={
+            isBottomNav
+              ? 'fixed bottom-20 right-2 left-2 sm:left-auto sm:right-4 sm:w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-fv-border z-[60] overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-150'
+              : 'absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-fv-border z-[60] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150'
+          }
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-gray-900">
             <div className="flex items-center gap-2">

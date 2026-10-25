@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   User, MapPin, Package, Lock, Mail, LogOut, Save, Loader2,
   CheckCircle2, AlertCircle, Clock, Plus, Edit2, Trash2, Star,
-  Navigation, Check, X, Phone,
+  Navigation, Check, X, Phone, ChevronRight, ArrowLeft
 } from 'lucide-react';
 import { validatePassword, PASSWORD_RULE_TEXT } from '../utils/passwordPolicy';
 import { useAuth } from '../context/AuthContext';
-import api, { cachedGet } from '../utils/api';
+import api from '../utils/api';
 import PasswordInput from '../components/ui/PasswordInput';
 import Input from '../components/ui/Input';
 import { fetchCurrentAddress } from '../utils/locationService';
@@ -616,6 +616,8 @@ const OrdersPanel = () => {
 
 /* ─── Main Settings page ─────────────────────────────────────────────── */
 const Settings = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout, updateProfile, changeEmail, changePassword } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') || 'profile';
@@ -639,7 +641,7 @@ const Settings = () => {
     let alive = true;
     (async () => {
       try {
-        const res = await cachedGet('/orders/myorders', { params: { limit: 1 } });
+        const res = await api.get('/orders/myorders', { params: { limit: 1 } });
         if (alive) setOrderCount(res?.data?.total ?? (res?.data?.data || []).length);
       } catch { /* leave the badge off */ }
     })();
@@ -725,6 +727,39 @@ const Settings = () => {
   return (
     <div className="bg-fv-page">
       <div className="mx-auto max-w-[1200px] px-4 py-10 sm:px-6 lg:px-10">
+        {/* Breadcrumbs & Back Navigation */}
+        <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+          <nav aria-label="Breadcrumb">
+            <ol className="flex items-center gap-1.5 text-xs text-fv-muted">
+              <li>
+                <Link to="/" className="hover:text-fv-primary hover:underline font-medium">
+                  Shop
+                </Link>
+              </li>
+              <li aria-hidden="true"><ChevronRight className="h-3 w-3" /></li>
+              <li aria-current="page" className="font-semibold text-fv-heading">
+                Account Settings
+              </li>
+            </ol>
+          </nav>
+          <button
+            type="button"
+            onClick={() => {
+              if (location.state?.from) {
+                navigate(location.state.from);
+              } else if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate('/');
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-fv-border bg-white dark:bg-gray-800 hover:bg-fv-surface text-xs font-semibold text-fv-heading transition-colors shadow-2xs"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-fv-primary" />
+            <span>Back</span>
+          </button>
+        </div>
+
         <h1 className="text-center font-serif text-[30px] font-semibold text-fv-heading sm:text-[38px]">
           {greeting()}{getRealName(user?.name) ? `, ${getRealName(user.name).split(' ')[0]}` : ''}!
         </h1>
@@ -762,28 +797,37 @@ const Settings = () => {
             </div>
 
             <ul className="mt-3 space-y-1">
-              {SECTIONS.map(({ id, label, Icon }) => (
-                <li key={id}>
-                  <button
-                    type="button"
-                    onClick={() => handleTabChange(id)}
-                    aria-current={active === id ? 'true' : undefined}
-                    className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-3 text-left text-[15px]
-                                transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2
-                                focus-visible:ring-fv-yellow motion-reduce:transition-none ${
-                      active === id ? 'bg-white/15 font-semibold' : 'hover:bg-white/10'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    {label}
-                    {id === 'orders' && orderCount !== null && (
-                      <span className="ml-auto rounded-[6px] bg-white/20 px-2 py-0.5 text-[12px] font-semibold">
-                        {orderCount}
-                      </span>
-                    )}
-                  </button>
-                </li>
-              ))}
+              {SECTIONS.map(({ id, label, Icon }) => {
+                const displayLabel =
+                  id === 'email'
+                    ? (user?.email ? 'Change email' : 'Add email')
+                    : id === 'password'
+                    ? (user?.hasPassword ? 'Change password' : 'Set password')
+                    : label;
+
+                return (
+                  <li key={id}>
+                    <button
+                      type="button"
+                      onClick={() => handleTabChange(id)}
+                      aria-current={active === id ? 'true' : undefined}
+                      className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-3 text-left text-[15px]
+                                  transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2
+                                  focus-visible:ring-fv-yellow motion-reduce:transition-none ${
+                        active === id ? 'bg-white/15 font-semibold' : 'hover:bg-white/10'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      {displayLabel}
+                      {id === 'orders' && orderCount !== null && (
+                        <span className="ml-auto rounded-[6px] bg-white/20 px-2 py-0.5 text-[12px] font-semibold">
+                          {orderCount}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
               <li className="pt-2">
                 <button
                   type="button"
@@ -808,7 +852,9 @@ const Settings = () => {
                 <Input label="Contact number" type="tel" inputMode="numeric" value={profileData.phone}
                        onChange={e => setProfileData(p => ({ ...p, phone: e.target.value }))} />
                 <p className="text-[13px] text-fv-muted">
-                  Your email is {user?.email}. Change it from the "Change email" section.
+                  {user?.email
+                    ? `Your email is ${user.email}. Change it from the "Change email" section.`
+                    : 'No email address linked yet. Add one from the "Add email" section.'}
                 </p>
               </Panel>
             )}
@@ -818,25 +864,43 @@ const Settings = () => {
             {active === 'address' && <AddressPanel />}
 
             {active === 'email' && (
-              <Panel title="Change email" description="You will need to confirm the new address." onSubmit={handleEmailChange} busy={loading.email} submitLabel="Update email">
+              <Panel
+                title={user?.email ? "Change email" : "Add email"}
+                description={user?.email ? "Update your account email address." : "Link an email address to your account for invoices & updates."}
+                onSubmit={handleEmailChange}
+                busy={loading.email}
+                submitLabel={user?.email ? "Update email" : "Save email"}
+              >
                 <Input label="New email address" type="email" required value={emailData.newEmail}
                        onChange={e => setEmailData(d => ({ ...d, newEmail: e.target.value }))} />
-                <PasswordInput label="Current password" required value={emailData.password}
-                               onChange={e => setEmailData(d => ({ ...d, password: e.target.value }))} />
+                {user?.hasPassword !== false ? (
+                  <PasswordInput label="Current password" required value={emailData.password}
+                                 onChange={e => setEmailData(d => ({ ...d, password: e.target.value }))} />
+                ) : (
+                  <p className="text-xs text-fv-muted">You signed in with phone OTP. No current password is required.</p>
+                )}
               </Panel>
             )}
 
             {active === 'password' && (
-              <Panel title="Change password" onSubmit={handlePasswordChange} busy={loading.password} submitLabel="Update password">
-                <PasswordInput label="Current password" required value={passwordData.currentPassword}
-                               onChange={e => setPasswordData(d => ({ ...d, currentPassword: e.target.value }))} />
+              <Panel
+                title={user?.hasPassword !== false ? "Change password" : "Set password"}
+                description={user?.hasPassword !== false ? "Update your account password." : "Create a password for your account."}
+                onSubmit={handlePasswordChange}
+                busy={loading.password}
+                submitLabel={user?.hasPassword !== false ? "Update password" : "Set password"}
+              >
+                {user?.hasPassword !== false && (
+                  <PasswordInput label="Current password" required value={passwordData.currentPassword}
+                                 onChange={e => setPasswordData(d => ({ ...d, currentPassword: e.target.value }))} />
+                )}
                 <div>
-                  <PasswordInput label="New password" required showStrengthIndicator value={passwordData.newPassword}
+                  <PasswordInput label={user?.hasPassword !== false ? "New password" : "Password"} required showStrengthIndicator value={passwordData.newPassword}
                                  error={errors.newPassword}
                                  onChange={e => setPasswordData(d => ({ ...d, newPassword: e.target.value }))} />
                   {!errors.newPassword && <p className="mt-1.5 text-xs text-fv-muted">{PASSWORD_RULE_TEXT}</p>}
                 </div>
-                <PasswordInput label="Confirm new password" required value={passwordData.confirmPassword}
+                <PasswordInput label="Confirm password" required value={passwordData.confirmPassword}
                                error={errors.confirmPassword}
                                onChange={e => setPasswordData(d => ({ ...d, confirmPassword: e.target.value }))} />
               </Panel>

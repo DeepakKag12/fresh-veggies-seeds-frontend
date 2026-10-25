@@ -625,8 +625,8 @@
     top: auto;
     left: auto;
     z-index: 15;
-    pointer-events: all;
-    padding: 1.5rem 1.25rem 0.5rem 1.25rem;
+    padding: 1.25rem 0.5rem 0.5rem 0.5rem;
+    overflow: visible;
   }
 
   .fv-signin-signup {
@@ -635,11 +635,16 @@
     left: auto;
     transform: none;
     width: 100%;
-    max-width: 380px;
+    max-width: 100%;
     margin: 0 auto;
     transition: none;
     display: block;
     z-index: 15;
+  }
+
+  .fv-auth-tabs {
+    width: 100%;
+    max-width: 100%;
   }
 
   .fv-auth-container.sign-up-mode .fv-signin-signup {

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Loader, ShoppingCart, Package, X, Check } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Loader, ShoppingCart, Package, X, Check, ArrowLeft, ChevronRight } from 'lucide-react';
 import { cachedGet } from '../utils/api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -107,7 +108,7 @@ const ComboCard = ({ combo, onSelect, onAddToCart, isAdmin }) => {
         </div>
 
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-2xl font-bold text-fv-primary dark:text-green-400">
+          <span className="text-2xl font-extrabold text-[#00B566]">
             ₹{combo.price}
           </span>
           {calculateOriginalPrice(combo) > combo.price && (
@@ -146,6 +147,8 @@ const ComboOffers = () => {
   const [selectedCombo, setSelectedCombo] = useState(null);
   const { addToCart } = useCart();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     fetchCombos();
@@ -174,8 +177,40 @@ const ComboOffers = () => {
   }
 
   return (
-    <div className="min-h-screen bg-fv-page pt-24 pb-12">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen bg-fv-page pt-6 pb-16">
+      <div className="container mx-auto px-4 max-w-[1500px]">
+        {/* Breadcrumb & Back Navigation */}
+        <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+          <nav aria-label="Breadcrumb">
+            <ol className="flex items-center gap-1.5 text-xs text-fv-muted">
+              <li>
+                <Link to="/" className="hover:text-fv-primary hover:underline font-medium">
+                  Shop
+                </Link>
+              </li>
+              <li aria-hidden="true"><ChevronRight className="h-3 w-3" /></li>
+              <li aria-current="page" className="font-semibold text-fv-heading">
+                Combos & Starter Kits
+              </li>
+            </ol>
+          </nav>
+          <button
+            type="button"
+            onClick={() => {
+              if (location.state?.from) {
+                navigate(location.state.from);
+              } else if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate('/');
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-fv-border bg-white dark:bg-gray-800 hover:bg-fv-surface text-xs font-semibold text-fv-heading transition-colors shadow-2xs"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-fv-primary" />
+            <span>Back</span>
+          </button>
+        </div>
         <h1 className="text-3xl lg:text-4xl font-bold text-fv-heading  mb-2">
           Combo Packs - Best Value
         </h1>

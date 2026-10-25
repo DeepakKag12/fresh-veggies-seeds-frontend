@@ -13,7 +13,8 @@ import {
   Users,
   Layers,
   Home,
-  Settings
+  Settings,
+  ShieldAlert
 } from 'lucide-react';
 import api from '../utils/api';
 import AdminNotificationBell from './AdminNotificationBell';
@@ -71,6 +72,7 @@ const AdminBottomNav = () => {
       items: [
         { path: '/admin/users', label: 'Customers', icon: Users },
         { path: '/admin/settings', label: 'Store Settings', icon: Settings },
+        { path: '/admin/danger-zone', label: 'Danger Zone', icon: ShieldAlert },
       ]
     }
   ];
@@ -177,8 +179,8 @@ const AdminBottomNav = () => {
             );
           })}
 
-          {/* Notification Bell */}
-          <AdminNotificationBell />
+          {/* Notification Bell with bottomnav variant */}
+          <AdminNotificationBell variant="bottomnav" />
           
           {/* More Button */}
           <button

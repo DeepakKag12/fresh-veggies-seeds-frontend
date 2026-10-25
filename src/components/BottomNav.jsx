@@ -11,14 +11,22 @@ const BottomNav = () => {
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/combos', label: 'Combos', icon: Layers },
-    { path: user ? '/orders' : '/login', label: 'Orders', icon: Package },
+    { path: '/orders', target: '/orders', label: 'Orders', icon: Package },
     { path: '/contact', label: 'Help', icon: HelpCircle },
-    { path: user ? '/settings' : '/login', label: 'Account', icon: User },
+    { path: '/settings', target: '/settings', label: 'Account', icon: User },
   ];
 
-  const isActive = (path) => {
-    if (path === '/') return location.pathname === '/';
-    return location.pathname.startsWith(path);
+  const isActive = (item) => {
+    if (item.path === '/') return location.pathname === '/';
+    return location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+  };
+
+  const handleNavClick = (item) => {
+    if (!user && (item.label === 'Orders' || item.label === 'Account')) {
+      navigate('/login', { state: { from: item.target } });
+    } else {
+      navigate(item.path);
+    }
   };
 
   return (
@@ -26,13 +34,13 @@ const BottomNav = () => {
       <div className="flex justify-around items-center h-16 px-1 pb-[env(safe-area-inset-bottom)]">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const active = isActive(item.path);
+          const active = isActive(item);
 
           return (
             <button
               key={item.label}
               type="button"
-              onClick={() => navigate(item.path)}
+              onClick={() => handleNavClick(item)}
               aria-label={item.label}
               className="flex flex-col items-center justify-center flex-1 h-full py-1 min-h-[48px] min-w-[48px] transition-colors relative"
             >

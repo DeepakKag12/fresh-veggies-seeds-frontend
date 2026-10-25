@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, Link, useNavigationType } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import './animations.css';
 import NavbarNew from './components/NavbarNew';
 import CartDrawer from './components/CartDrawer';
+import WishlistDrawer from './components/WishlistDrawer';
 import Footer from './components/storefront/StorefrontFooter';
 import BottomNav from './components/BottomNav';
 import AdminBottomNav from './components/AdminBottomNav';
@@ -49,12 +50,26 @@ const ShopRedirect = () => {
   return <Navigate to={{ pathname: '/', search }} replace />;
 };
 
-// Scroll to top on route change
+// Scroll to top on route change only when explicitly navigating forward (PUSH)
 function ScrollToTop() {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
+  const navType = useNavigationType();
+
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
+    if (hash) {
+      const id = hash.replace('#', '');
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView();
+        return;
+      }
+    }
+    // When popping back through history, let the browser restore scroll position
+    if (navType !== 'POP') {
+      window.scrollTo(0, 0);
+    }
+  }, [pathname, hash, navType]);
+
   return null;
 }
 
@@ -64,6 +79,7 @@ function App() {
   const { hideCartPopup } = useCart();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/forgot-password' || location.pathname === '/mobile-login' || location.pathname.startsWith('/reset-password/') || location.pathname.startsWith('/verify-email/');
   const isAdmin = user?.role === 'admin';
+  const isAdminPage = location.pathname.startsWith('/admin');
 
   // Hide cart popup whenever the user navigates to a new page
   useEffect(() => {
@@ -74,10 +90,28 @@ function App() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <CartDrawer />
+      <WishlistDrawer />
       <ScrollToTop />
-      {!isAuthPage && <NavbarNew />}
-      {!isAuthPage && isAdmin && location.pathname.startsWith('/admin') && <AdminHeader />}
-      <main className={`flex-grow overflow-x-hidden ${isAuthPage ? 'pb-0 min-h-screen w-full' : 'pb-20 md:pb-0'}`}>
+      {/* Admin Mode Top Pill when viewing customer storefront */}
+      {!isAuthPage && !isAdminPage && isAdmin && (
+        <div className="bg-[#0A4C36] text-white text-xs py-1.5 px-4 flex items-center justify-between border-b border-emerald-700/60 sticky top-0 z-50 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="font-semibold">Administrator Mode</span>
+            <span className="hidden sm:inline text-emerald-200">· You are inspecting the live storefront</span>
+          </div>
+          <Link
+            to="/admin/dashboard"
+            className="inline-flex items-center gap-1 font-bold text-amber-300 hover:text-white transition-colors text-xs"
+          >
+            <span>Open Admin Console</span>
+            <span>→</span>
+          </Link>
+        </div>
+      )}
+      {!isAuthPage && !isAdminPage && <NavbarNew />}
+      {!isAuthPage && isAdminPage && <AdminHeader />}
+      <main className={`flex-grow overflow-x-hidden ${isAuthPage ? 'pb-0 min-h-screen w-full' : isAdminPage ? 'pb-16 lg:pb-0' : 'pb-20 md:pb-0'}`}>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Storefront />} />
@@ -120,12 +154,14 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      {/* Footer hidden on /checkout and on auth pages for a dedicated full-screen focus */}
-      {!isAuthPage && location.pathname !== '/checkout' && <Footer />}
-      {/* Admin always sees AdminBottomNav, regular users see BottomNav (hidden on checkout for clean mobile focus) */}
-      {!isAuthPage && isAdmin && <AdminBottomNav />}
-      {!isAuthPage && !isAdmin && location.pathname !== '/checkout' && <BottomNav />}
-      {!isAuthPage && !isAdmin && location.pathname !== '/checkout' && <WhatsAppButton />}
+      {/* Storefront Footer: isolated from admin screens and checkout */}
+      {!isAuthPage && !isAdminPage && location.pathname !== '/checkout' && <Footer />}
+      {/* Admin Mobile Bottom Navigation */}
+      {isAdminPage && <AdminBottomNav />}
+      {/* Customer Mobile Navigation */}
+      {!isAuthPage && !isAdminPage && location.pathname !== '/checkout' && <BottomNav />}
+      {/* WhatsApp customer support button */}
+      {!isAuthPage && !isAdminPage && location.pathname !== '/checkout' && <WhatsAppButton />}
       <Toaster
         position="top-center"
         toastOptions={{

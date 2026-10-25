@@ -4,13 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, 
   Search,
   ShoppingCart, 
+  Heart,
   User, 
   Menu, 
   X, 
   LogOut, 
   Package,
   LayoutDashboard,
-  Plus,
   ClipboardList,
   CheckCircle,
   Users,
@@ -20,6 +20,7 @@ import { ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
 import { Button } from './ui/Button';
 
@@ -41,6 +42,7 @@ const NavbarNew = () => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const { cartItems, openCart } = useCart();
+  const { wishlistCount, openWishlist } = useWishlist();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -52,21 +54,35 @@ const NavbarNew = () => {
     setUserMenuOpen(false);
   };
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (targetPath) => {
+    if (targetPath.includes('?')) {
+      const [pathPart, queryPart] = targetPath.split('?');
+      if (location.pathname !== pathPart) return false;
+      const targetParams = new URLSearchParams(queryPart);
+      const currentParams = new URLSearchParams(location.search);
+      for (const [key, val] of targetParams.entries()) {
+        if (currentParams.get(key)?.toLowerCase() !== val.toLowerCase()) return false;
+      }
+      return true;
+    }
+    if (targetPath === '/') {
+      return location.pathname === '/' && !location.search;
+    }
+    return location.pathname === targetPath || location.pathname.startsWith(targetPath + '/');
+  };
 
   // Offers belong on the storefront. On checkout, the account pages and admin
   // screens they are a distraction from the task the page exists for.
   const showOffersBar = location.pathname === '/';
 
-  const navLinks = user?.role === 'admin' ? [
-    { path: '/', label: 'Home' },
-    { path: '/admin/dashboard', label: 'Dashboard' },
-    { path: '/admin/products', label: 'Products' },
-    { path: '/admin/orders', label: 'All Orders' },
-    { path: '/admin/categories', label: 'Categories' },
-  ] : [
-    { path: '/', label: 'Home' },
-    { path: '/combos', label: 'Combos' },
+  const navLinks = [
+    { path: '/', label: 'All' },
+    { path: '/?category=Plants', label: 'Plants' },
+    { path: '/?category=Seeds', label: 'Seeds' },
+    { path: '/?category=Pots', label: 'Pots & Planters' },
+    { path: '/?category=Soils', label: 'Soil & Care' },
+    { path: '/combos', label: 'Combos & Kits' },
+    { path: '/?category=Garden%20Tools', label: 'Garden Tools' },
     { path: '/about', label: 'About' },
     { path: '/contact', label: 'Contact' },
   ];
@@ -78,13 +94,13 @@ const NavbarNew = () => {
       className="sticky top-0 z-50 bg-white border-b border-fv-border"
     >
       {showOffersBar && (
-      <div className="overflow-hidden bg-fv-primary py-2" aria-hidden="true">
+      <div className="overflow-hidden bg-[#FFF3D9] border-b border-[#E8D7B8]/60 py-2" aria-hidden="true">
         <div className="fv-offers-track">
           {['a', 'b'].map((pass) => (
             <div className="fv-offers-pass" key={pass}>
               {OFFERS.map((o) => (
-                <span key={o} className="whitespace-nowrap px-8 text-[12px] font-semibold uppercase tracking-wide text-white">
-                  {o}
+                <span key={o} className="whitespace-nowrap px-8 text-[12px] font-bold uppercase tracking-wider text-[#0A4D3C]">
+                  ⚡ {o}
                 </span>
               ))}
             </div>
@@ -118,38 +134,20 @@ const NavbarNew = () => {
           >
             <label htmlFor="site-search" className="sr-only">Search products</label>
             <div className="relative">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-fv-muted" aria-hidden="true" />
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-fv-primary/60" aria-hidden="true" />
               <input
                 id="site-search"
                 name="q"
                 type="search"
-                placeholder="Search for seeds, soil, tools…"
-                className="h-11 w-full rounded-[50px] bg-fv-surface pl-12 pr-4 text-[15px] text-fv-ink
-                           placeholder:text-fv-muted focus:outline-none focus:ring-2 focus:ring-fv-primary"
+                placeholder="Search plants, seeds, planters, soil…"
+                className="h-11 w-full rounded-[50px] bg-[#F4E6C6]/60 border border-[#E8D7B8] pl-12 pr-4 text-[15px] text-[#0A4C36]
+                           placeholder:text-[#0A4C36]/60 focus:bg-white focus:border-[#0A4C36] focus:outline-none focus:ring-2 focus:ring-[#0A4C36]/20 transition-all"
               />
             </div>
           </form>
 
           {/* Right Actions */}
           <div className="ml-auto flex items-center gap-2 lg:ml-0">
-            {/* Admin Buttons */}
-            {user?.role === 'admin' && (
-              <>
-                <Link to="/admin/orders?status=Pending">
-                  <button className="hidden md:flex items-center gap-2 px-4 py-2 bg-fv-yellow text-fv-primary hover:brightness-95 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg">
-                    <ClipboardList className="w-4 h-4" />
-                    <span className="text-sm">New Orders</span>
-                  </button>
-                </Link>
-                <Link to="/admin/products">
-                  <button className="hidden md:flex items-center gap-2 px-4 py-2 bg-fv-primary hover:bg-fv-primary-dark text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg">
-                    <Plus className="w-4 h-4" />
-                    <span className="text-sm">Add Product</span>
-                  </button>
-                </Link>
-              </>
-            )}
-            
             {/* Mobile Search Trigger */}
             <button
               type="button"
@@ -164,30 +162,51 @@ const NavbarNew = () => {
               <Search className="h-5 w-5" aria-hidden="true" />
             </button>
 
-            {/* Cart Button - Only for non-admin users */}
-            {user?.role !== 'admin' && (
-              <button
-                type="button"
-                onClick={openCart}
-                aria-label={cartItemsCount > 0 ? `Open cart, ${cartItemsCount} items` : 'Open cart'}
-                className="relative flex h-11 w-11 items-center justify-center rounded-full text-fv-primary
-                           hover:bg-fv-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary"
-              >
-                <ShoppingCart className="h-5 w-5" aria-hidden="true" />
-                {cartItemsCount > 0 && (
-                  <motion.span
-                    key={cartItemsCount}
-                    initial={{ scale: 0.5, y: -3 }}
-                    animate={{ scale: 1, y: 0 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 22 }}
-                    className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full
-                               bg-fv-primary text-xs font-semibold text-white shadow-xs"
-                  >
-                    {cartItemsCount}
-                  </motion.span>
-                )}
-              </button>
-            )}
+            {/* Wishlist Button */}
+            <button
+              type="button"
+              onClick={openWishlist}
+              aria-label={wishlistCount > 0 ? `Open wishlist, ${wishlistCount} items` : 'Open wishlist'}
+              className="relative flex h-11 w-11 items-center justify-center rounded-full text-fv-primary
+                         hover:bg-fv-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary"
+            >
+              <Heart className="h-5 w-5" aria-hidden="true" />
+              {wishlistCount > 0 && (
+                <motion.span
+                  key={wishlistCount}
+                  initial={{ scale: 0.5, y: -3 }}
+                  animate={{ scale: 1, y: 0 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 22 }}
+                  className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full
+                             bg-rose-500 text-xs font-semibold text-white shadow-xs"
+                >
+                  {wishlistCount}
+                </motion.span>
+              )}
+            </button>
+
+            {/* Cart Button */}
+            <button
+              type="button"
+              onClick={openCart}
+              aria-label={cartItemsCount > 0 ? `Open cart, ${cartItemsCount} items` : 'Open cart'}
+              className="relative flex h-11 w-11 items-center justify-center rounded-full text-fv-primary
+                         hover:bg-fv-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary"
+            >
+              <ShoppingCart className="h-5 w-5" aria-hidden="true" />
+              {cartItemsCount > 0 && (
+                <motion.span
+                  key={cartItemsCount}
+                  initial={{ scale: 0.5, y: -3 }}
+                  animate={{ scale: 1, y: 0 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 22 }}
+                  className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full
+                             bg-fv-primary text-xs font-semibold text-white shadow-xs"
+                >
+                  {cartItemsCount}
+                </motion.span>
+              )}
+            </button>
 
             {/* User Menu */}
             {user ? (
@@ -337,6 +356,7 @@ const NavbarNew = () => {
             ) : (
               <Link
                 to="/login"
+                state={{ from: location }}
                 aria-label="Sign in to your account"
                 className="hidden h-11 w-11 items-center justify-center rounded-full text-fv-primary
                            hover:bg-fv-surface focus-visible:outline-none focus-visible:ring-2
@@ -378,19 +398,19 @@ const NavbarNew = () => {
                 }}
               >
                 <div className="relative flex items-center">
-                  <Search className="pointer-events-none absolute left-3.5 h-4 w-4 text-fv-muted" aria-hidden="true" />
+                  <Search className="pointer-events-none absolute left-3.5 h-4 w-4 text-fv-primary/60" aria-hidden="true" />
                   <input
                     name="q"
                     type="search"
                     autoFocus
-                    placeholder="Search seeds, soil, tools…"
-                    className="h-11 w-full rounded-full bg-fv-surface pl-10 pr-10 text-[15px] sm:text-[14px] text-fv-heading
-                               placeholder:text-fv-muted focus:outline-none focus:ring-2 focus:ring-fv-primary/30"
+                    placeholder="Search plants, seeds, planters, soil…"
+                    className="h-11 w-full rounded-full bg-[#F4E6C6]/60 border border-[#E8D7B8] pl-10 pr-10 text-[15px] sm:text-[14px] text-[#0A4C36]
+                               placeholder:text-[#0A4C36]/60 focus:bg-white focus:border-[#0A4C36] focus:outline-none focus:ring-2 focus:ring-[#0A4C36]/20 transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setMobileSearchOpen(false)}
-                    className="absolute right-1 flex h-10 w-10 items-center justify-center rounded-full text-fv-muted hover:text-fv-heading"
+                    className="absolute right-1 flex h-10 w-10 items-center justify-center rounded-full text-fv-primary/70 hover:text-fv-primary"
                     aria-label="Close search"
                   >
                     <X className="h-4 w-4" />
@@ -488,6 +508,25 @@ const NavbarNew = () => {
                       <Package className="w-4 h-4" />
                       My Orders
                     </Link>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        openWishlist();
+                      }}
+                      className="flex items-center justify-between w-full min-h-[44px] px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Heart className="w-4 h-4 text-rose-500" />
+                        <span>My Wishlist</span>
+                      </div>
+                      {wishlistCount > 0 && (
+                        <span className="bg-rose-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
+                          {wishlistCount}
+                        </span>
+                      )}
+                    </button>
                     
                     <Link
                       to="/settings"
@@ -513,6 +552,7 @@ const NavbarNew = () => {
                   <div className="px-4 py-2 space-y-2 border-t border-gray-200 dark:border-gray-800 mt-2">
                     <Link
                       to="/login"
+                      state={{ from: location }}
                       onClick={() => setMobileMenuOpen(false)}
                       className="block"
                     >
@@ -522,6 +562,7 @@ const NavbarNew = () => {
                     </Link>
                     <Link
                       to="/register"
+                      state={{ from: location }}
                       onClick={() => setMobileMenuOpen(false)}
                       className="block"
                     >

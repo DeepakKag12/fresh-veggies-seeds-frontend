@@ -10,8 +10,9 @@ const ProductGallery = ({ images = [], name }) => {
   const [active, setActive] = useState(0);
   const [dead, setDead] = useState(() => new Set());
 
+  const FALLBACK_IMAGE = '/sandbox-assets/guides/guide_1.webp';
   const usable = images.filter((_, i) => !dead.has(i));
-  const activeSrc = images[active] && !dead.has(active) ? images[active] : usable[0];
+  const activeSrc = (images[active] && !dead.has(active) ? images[active] : usable[0]) || FALLBACK_IMAGE;
 
   const markDead = (i) => setDead((prev) => new Set(prev).add(i));
 

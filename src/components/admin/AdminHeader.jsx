@@ -5,27 +5,37 @@ import {
   ClipboardList,
   Package,
   Layers,
-  Tag,
+  Boxes,
   Users,
   Ticket,
   Image,
   Star,
   Settings,
-  ChevronDown,
+  ShieldAlert,
   ExternalLink,
-  Boxes
+  ChevronDown,
+  LogOut,
+  Menu,
+  X,
+  UserCheck,
+  Store
 } from 'lucide-react';
 import api from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
 import AdminNotificationBell from '../AdminNotificationBell';
 
 const AdminHeader = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const { settings } = useSettings();
+
   const [stats, setStats] = useState(null);
-  const [productsOpen, setProductsOpen] = useState(false);
-  const [marketingOpen, setMarketingOpen] = useState(false);
-  const productsRef = useRef(null);
-  const marketingRef = useRef(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const userMenuRef = useRef(null);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -34,7 +44,7 @@ const AdminHeader = () => {
         setStats(res.data.data);
       }
     } catch {
-      // silently fail if network glitch
+      // silently fail on intermittent network drop
     }
   }, []);
 
@@ -44,232 +54,351 @@ const AdminHeader = () => {
     return () => clearInterval(interval);
   }, [fetchStats]);
 
-  // Click outside to close dropdowns
+  // Click outside to close user dropdown
   useEffect(() => {
     const handleOutside = (e) => {
-      if (productsRef.current && !productsRef.current.contains(e.target)) {
-        setProductsOpen(false);
-      }
-      if (marketingRef.current && !marketingRef.current.contains(e.target)) {
-        setMarketingOpen(false);
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleOutside);
     return () => document.removeEventListener('mousedown', handleOutside);
   }, []);
 
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setUserMenuOpen(false);
+  }, [location.pathname]);
+
   const isActive = (path) => {
     if (path === '/admin/dashboard') return location.pathname === '/admin/dashboard';
     return location.pathname.startsWith(path);
   };
 
-  const isProductsActive = ['/admin/products', '/admin/categories', '/admin/combos'].some((p) =>
-    location.pathname.startsWith(p)
-  );
-
-  const isMarketingActive = ['/admin/coupons', '/admin/banners'].some((p) =>
-    location.pathname.startsWith(p)
-  );
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const pendingActionCount = (stats?.pendingOrders || 0) + (stats?.cancellationRequests || 0);
+  const lowStockCount = stats?.lowStockProducts || 0;
+  const pendingReviewsCount = stats?.pendingReviews || 0;
+
+  const storeName = settings?.store?.name || 'Fresh Veggies';
+  const userInitials = (user?.name || 'Admin')
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+
+  const navLinks = [
+    {
+      path: '/admin/dashboard',
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+    },
+    {
+      path: '/admin/orders',
+      label: 'Orders',
+      icon: ClipboardList,
+      badge: pendingActionCount > 0 ? pendingActionCount : null,
+      badgeColor: 'bg-red-500 text-white animate-pulse',
+    },
+    {
+      path: '/admin/products',
+      label: 'Products',
+      icon: Package,
+      badge: lowStockCount > 0 ? lowStockCount : null,
+      badgeColor: 'bg-amber-500 text-white',
+    },
+    {
+      path: '/admin/categories',
+      label: 'Categories',
+      icon: Layers,
+    },
+    {
+      path: '/admin/combos',
+      label: 'Combos & Kits',
+      icon: Boxes,
+    },
+    {
+      path: '/admin/reviews',
+      label: 'Reviews',
+      icon: Star,
+      badge: pendingReviewsCount > 0 ? pendingReviewsCount : null,
+      badgeColor: 'bg-blue-500 text-white',
+    },
+    {
+      path: '/admin/coupons',
+      label: 'Coupons',
+      icon: Ticket,
+    },
+    {
+      path: '/admin/banners',
+      label: 'Banners',
+      icon: Image,
+    },
+    {
+      path: '/admin/users',
+      label: 'Customers',
+      icon: Users,
+    },
+    {
+      path: '/admin/settings',
+      label: 'Store Settings',
+      icon: Settings,
+    },
+    {
+      path: '/admin/danger-zone',
+      label: 'Danger Zone',
+      icon: ShieldAlert,
+      danger: true,
+    },
+  ];
 
   return (
-    <div className="hidden md:block bg-white dark:bg-gray-800 border-b border-fv-border shadow-xs sticky top-[65px] z-40">
-      <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between h-12">
-        {/* Left Navigation Links */}
-        <div className="flex items-center gap-1 lg:gap-2">
-          {/* 1. Dashboard */}
-          <Link
-            to="/admin/dashboard"
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              isActive('/admin/dashboard')
-                ? 'bg-fv-primary text-white shadow-xs'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-fv-cream dark:hover:bg-gray-700'
-            }`}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            Dashboard
-          </Link>
+    <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-fv-border shadow-xs">
+      {/* Tier 1: Brand Bar & Quick Controls */}
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 border-b border-fv-border/60">
+          {/* Left: Brand Identity */}
+          <div className="flex items-center gap-3">
+            <Link
+              to="/admin/dashboard"
+              className="flex items-center gap-2.5 group transition-transform active:scale-95"
+            >
+              <img
+                src="/logo.png"
+                alt="Store Logo"
+                className="h-8 w-8 object-contain rounded-lg shadow-2xs group-hover:scale-105 transition-transform"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+              <div className="flex flex-col">
+                <span className="font-bold text-sm tracking-tight text-fv-heading dark:text-white leading-none">
+                  {storeName}
+                </span>
+                <span className="text-[10px] font-semibold tracking-wider text-emerald-700 dark:text-emerald-400 uppercase mt-0.5">
+                  Admin Console
+                </span>
+              </div>
+            </Link>
 
-          {/* 2. Orders with Live Badge */}
-          <Link
-            to="/admin/orders"
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              isActive('/admin/orders')
-                ? 'bg-fv-primary text-white shadow-xs'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-fv-cream dark:hover:bg-gray-700'
-            }`}
-          >
-            <ClipboardList className="w-3.5 h-3.5" />
-            Orders
-            {pendingActionCount > 0 && (
-              <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-red-500 text-white leading-none animate-pulse">
-                {pendingActionCount}
-              </span>
-            )}
-          </Link>
+            {/* Live Status Pill */}
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Live Operational</span>
+            </div>
+          </div>
 
-          {/* 3. Products Group Dropdown */}
-          <div className="relative" ref={productsRef}>
+          {/* Right: Actions, Alerts & Admin Profile */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* View Live Storefront Button */}
+            <Link
+              to="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-fv-heading bg-fv-surface dark:bg-gray-700 hover:bg-fv-border dark:hover:bg-gray-600 transition-colors"
+              title="Open storefront in a new tab"
+            >
+              <Store className="w-3.5 h-3.5 text-fv-primary dark:text-emerald-400" />
+              <span className="hidden sm:inline">View Store</span>
+              <ExternalLink className="w-3 h-3 text-fv-muted" />
+            </Link>
+
+            {/* Live Operational Alerts Bell */}
+            <AdminNotificationBell variant="topbar" />
+
+            {/* Admin User Profile Dropdown */}
+            <div className="relative" ref={userMenuRef}>
+              <button
+                type="button"
+                onClick={() => setUserMenuOpen((prev) => !prev)}
+                className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-xl border border-fv-border hover:bg-fv-surface dark:hover:bg-gray-700 transition-all text-left"
+                aria-label="Admin Profile Menu"
+              >
+                <div className="w-7 h-7 rounded-lg bg-fv-primary text-white flex items-center justify-center font-bold text-xs shadow-2xs">
+                  {userInitials}
+                </div>
+                <div className="hidden md:flex flex-col">
+                  <span className="text-xs font-bold text-fv-heading dark:text-white leading-none">
+                    {user?.name || 'Administrator'}
+                  </span>
+                  <span className="text-[10px] text-fv-muted leading-tight mt-0.5 capitalize">
+                    {user?.role || 'Admin'}
+                  </span>
+                </div>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-fv-muted transition-transform duration-200 ${
+                    userMenuOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              {userMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-60 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-fv-border p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="px-3 py-2.5 border-b border-fv-border/70 mb-1">
+                    <p className="text-xs font-bold text-fv-heading dark:text-white truncate">
+                      {user?.name || 'Administrator'}
+                    </p>
+                    <p className="text-[11px] text-fv-muted truncate">{user?.email || 'admin@store.com'}</p>
+                    <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold">
+                      <UserCheck className="w-3 h-3" />
+                      <span>Authorized Administrator</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigate('/admin/settings');
+                      setUserMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-fv-heading dark:text-gray-200 hover:bg-fv-surface dark:hover:bg-gray-700 rounded-xl transition-colors text-left"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-fv-primary dark:text-emerald-400" />
+                    Store Configuration
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigate('/admin/danger-zone');
+                      setUserMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-xl transition-colors text-left"
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                    Production Reset & Purge
+                  </button>
+
+                  <div className="border-t border-fv-border/70 my-1" />
+
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-colors text-left"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Menu Hamburger */}
             <button
               type="button"
-              onClick={() => setProductsOpen(!productsOpen)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                isProductsActive
-                  ? 'bg-fv-primary/10 text-fv-primary dark:text-green-400 font-bold'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-fv-cream dark:hover:bg-gray-700'
-              }`}
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              className="lg:hidden p-2 rounded-xl border border-fv-border hover:bg-fv-surface dark:hover:bg-gray-700 text-fv-heading dark:text-white"
+              aria-label="Toggle Navigation Menu"
             >
-              <Package className="w-3.5 h-3.5" />
-              Products
-              <ChevronDown className={`w-3 h-3 transition-transform ${productsOpen ? 'rotate-180' : ''}`} />
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
+          </div>
+        </div>
 
-            {productsOpen && (
-              <div className="absolute left-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-fv-border p-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                <button
-                  type="button"
-                  onClick={() => { navigate('/admin/products'); setProductsOpen(false); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-fv-cream dark:hover:bg-gray-700 rounded-lg text-left"
-                >
-                  <Package className="w-3.5 h-3.5 text-fv-primary" />
-                  All Products
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { navigate('/admin/categories'); setProductsOpen(false); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-fv-cream dark:hover:bg-gray-700 rounded-lg text-left"
-                >
-                  <Layers className="w-3.5 h-3.5 text-fv-primary" />
-                  Categories
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { navigate('/admin/combos'); setProductsOpen(false); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-fv-cream dark:hover:bg-gray-700 rounded-lg text-left"
-                >
-                  <Tag className="w-3.5 h-3.5 text-fv-primary" />
-                  Combos & Deals
-                </button>
-                <div className="border-t border-fv-border my-1" />
-                <button
-                  type="button"
-                  onClick={() => { navigate('/admin/products?lowstock=true'); setProductsOpen(false); }}
-                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg text-left"
+        {/* Tier 2: Desktop Horizontal Navigation Tabs */}
+        <nav className="hidden lg:flex items-center gap-1 py-1.5 overflow-x-auto scrollbar-none">
+          {navLinks.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.path);
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-150 ${
+                  active
+                    ? 'bg-fv-primary text-white shadow-2xs font-bold'
+                    : item.danger
+                    ? 'text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                    : 'text-gray-700 dark:text-gray-300 hover:text-fv-primary hover:bg-fv-surface dark:hover:bg-gray-700'
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 ${active ? 'text-white' : ''}`} />
+                <span>{item.label}</span>
+                {item.badge != null && (
+                  <span
+                    className={`px-1.5 py-0.5 text-[9px] font-bold rounded-full leading-none ${
+                      item.badgeColor || 'bg-gray-200 text-gray-800'
+                    }`}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Mobile Drawer / Slide Down Menu */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden border-t border-fv-border bg-white dark:bg-gray-800 px-4 py-3 shadow-xl max-h-[calc(100vh-4rem)] overflow-y-auto animate-in slide-in-from-top-2 duration-200">
+          <div className="space-y-1 pb-4">
+            <p className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-fv-muted">
+              Admin Navigation
+            </p>
+            {navLinks.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.path);
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                    active
+                      ? 'bg-fv-primary text-white shadow-xs font-bold'
+                      : item.danger
+                      ? 'text-amber-700 dark:text-amber-400 hover:bg-amber-50'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-fv-surface dark:hover:bg-gray-700'
+                  }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Boxes className="w-3.5 h-3.5 text-amber-600" />
-                    Low Stock Alerts
+                    <Icon className="w-4 h-4" />
+                    <span>{item.label}</span>
                   </div>
-                  {(stats?.lowStockProducts || 0) > 0 && (
-                    <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-200 text-amber-900">
-                      {stats.lowStockProducts}
+                  {item.badge != null && (
+                    <span
+                      className={`px-2 py-0.5 text-[10px] font-bold rounded-full leading-none ${
+                        item.badgeColor || 'bg-gray-200 text-gray-800'
+                      }`}
+                    >
+                      {item.badge}
                     </span>
                   )}
-                </button>
-              </div>
-            )}
+                </Link>
+              );
+            })}
           </div>
 
-          {/* 4. Customers */}
-          <Link
-            to="/admin/users"
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              isActive('/admin/users')
-                ? 'bg-fv-primary text-white shadow-xs'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-fv-cream dark:hover:bg-gray-700'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            Customers
-          </Link>
-
-          {/* 5. Marketing Group Dropdown */}
-          <div className="relative" ref={marketingRef}>
+          <div className="border-t border-fv-border pt-3 space-y-2">
+            <Link
+              to="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-fv-surface dark:bg-gray-700 text-fv-heading dark:text-white hover:bg-fv-border"
+            >
+              <Store className="w-4 h-4 text-fv-primary" />
+              <span>View Live Storefront</span>
+              <ExternalLink className="w-3.5 h-3.5 text-fv-muted" />
+            </Link>
             <button
               type="button"
-              onClick={() => setMarketingOpen(!marketingOpen)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                isMarketingActive
-                  ? 'bg-fv-primary/10 text-fv-primary dark:text-green-400 font-bold'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-fv-cream dark:hover:bg-gray-700'
-              }`}
+              onClick={handleLogout}
+              className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
             >
-              <Ticket className="w-3.5 h-3.5" />
-              Marketing
-              <ChevronDown className={`w-3 h-3 transition-transform ${marketingOpen ? 'rotate-180' : ''}`} />
+              <LogOut className="w-4 h-4" />
+              <span>Sign Out</span>
             </button>
-
-            {marketingOpen && (
-              <div className="absolute left-0 top-full mt-1 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-fv-border p-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                <button
-                  type="button"
-                  onClick={() => { navigate('/admin/coupons'); setMarketingOpen(false); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-fv-cream dark:hover:bg-gray-700 rounded-lg text-left"
-                >
-                  <Ticket className="w-3.5 h-3.5 text-fv-primary" />
-                  Coupons
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { navigate('/admin/banners'); setMarketingOpen(false); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-fv-cream dark:hover:bg-gray-700 rounded-lg text-left"
-                >
-                  <Image className="w-3.5 h-3.5 text-fv-primary" />
-                  Promo Banners
-                </button>
-              </div>
-            )}
           </div>
-
-          {/* 6. Reviews */}
-          <Link
-            to="/admin/reviews"
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              isActive('/admin/reviews')
-                ? 'bg-fv-primary text-white shadow-xs'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-fv-cream dark:hover:bg-gray-700'
-            }`}
-          >
-            <Star className="w-3.5 h-3.5" />
-            Reviews
-            {(stats?.pendingReviews || 0) > 0 && (
-              <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-blue-500 text-white leading-none">
-                {stats.pendingReviews}
-              </span>
-            )}
-          </Link>
-
-          {/* 7. Store Settings */}
-          <Link
-            to="/admin/settings"
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              isActive('/admin/settings')
-                ? 'bg-fv-primary text-white shadow-xs'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-fv-cream dark:hover:bg-gray-700'
-            }`}
-          >
-            <Settings className="w-3.5 h-3.5" />
-            Settings
-          </Link>
         </div>
-
-        {/* Right Section: Notification Bell + View Live Store */}
-        <div className="flex items-center gap-3">
-          <AdminNotificationBell />
-
-          <Link
-            to="/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-fv-muted hover:text-fv-primary hover:bg-fv-cream dark:hover:bg-gray-700 transition-colors"
-          >
-            <span>View Store</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      </div>
-    </div>
+      )}
+    </header>
   );
 };
 

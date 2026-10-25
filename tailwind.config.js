@@ -13,41 +13,42 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        // Outfit for UI, Fraunces for display headings.
-        sans: ['Outfit', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        serif: ['Fraunces', 'Georgia', 'serif'],
+        // Ugaoo uses Outfit for all typography: display headings, product titles, UI & body
+        sans: ['Outfit', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        serif: ['Outfit', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
       colors: {
-        // Storefront design system. Single source of truth — prefer these over
-        // raw hex values in components.
+        // Storefront design system — reverse engineered directly from Ugaoo production tokens
         fv: {
-          primary: '#0A4C36',       // nav, primary buttons, badges
+          primary: '#0A4D3C',       // Ugaoo deep evergreen forest green (nav, primary CTA, badges)
           'primary-dark': '#083B2A',// hover / pressed
-          accent: '#00B566',        // prices, accent fills
-          leaf: '#2E9E5B',          // full-bleed support panel
-          page: '#FFF6F4',          // page background (warm, not white)
-          cream: '#FDF6EE',         // alternating section band
+          accent: '#00B566',        // Ugaoo vibrant emerald green (--color-price)
+          leaf: '#00A93D',          // Ugaoo brand green (--jdgm-primary-color)
+          page: '#FFFFFF',          // Clean bright white canvas
+          cream: '#FFF3D9',         // Ugaoo signature warm sunny cream (header, category strip)
+          coral: '#FF8962',         // Ugaoo trust badge accent coral/orange
           butter: '#FFF9E4',
-          yellow: '#FFD51F',        // trust strip, highlight CTA
-          star: '#FFB503',
-          ink: '#212326',
-          heading: '#1C1C1C',
+          sand: '#F4E6C6',          // Ugaoo warm sand search box
+          yellow: '#FED02F',        // Ugaoo bright gold badge (--color-sale-badge-background)
+          star: '#00A93D',          // Ugaoo review star rating green
+          ink: '#212326',           // Ugaoo body text (--color-base-text)
+          heading: '#1C1C1C',       // Ugaoo heading text (--color-base-heading)
           deep: '#042018',
           muted: '#5D6B5F',
-          border: '#CADFD4',
+          border: '#CADFD4',        // Ugaoo border (--color-base-border)
           surface: '#F7F7F7',       // image placeholder
-          danger: '#D72C0D',
-          success: '#008060',
+          danger: '#D72C0D',        // Ugaoo critical error (--color-critical)
+          success: '#008060',       // Ugaoo success (--color-success)
         },
-        // Fresh Veggies Brand Colors
+        // Brand Colors
         brand: {
-          green: "#4caf50",
-          "green-light": "#66bb6a",
-          "green-dark": "#388e3c",
+          green: "#0A4C36",
+          "green-light": "#00B566",
+          "green-dark": "#083B2A",
           olive: "#6d7c00",
           "olive-light": "#8a9d00",
           "olive-dark": "#4e5a00",
-          black: "#000000",
+          black: "#1C1C1C",
           "gray-dark": "#1A1A1A",
           "gray-medium": "#333333",
           light: "#EEEEEE",

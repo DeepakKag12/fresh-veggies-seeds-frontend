@@ -2,3 +2,4 @@ node_modules/
 build/
 .env
 .DS_Store
+public/responsive_audit/

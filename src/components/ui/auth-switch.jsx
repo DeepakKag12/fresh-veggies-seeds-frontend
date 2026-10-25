@@ -25,12 +25,15 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
   }, [initialMode]);
 
   // Auth Context & Navigation
-  const { login, register } = useAuth();
+  const { login, register, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Sign In Mode: 'email' | 'phone'
-  const [signInMethod, setSignInMethod] = useState('email');
+  const [signInMethod, setSignInMethod] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('method') === 'phone' || params.get('tab') === 'phone' ? 'phone' : 'email';
+  });
 
   // Dual Identifier (Email or Phone) State for Password login
   const [signInIdentifier, setSignInIdentifier] = useState('');
@@ -49,10 +52,61 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
   const [signUpError, setSignUpError] = useState('');
   const [signUpSuccess, setSignUpSuccess] = useState('');
 
-  // Destination redirect helper
-  const navigateToDestination = () => {
+  // If already authenticated as admin, redirect to admin dashboard
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      const nextParam = new URLSearchParams(location.search).get('next');
+      const from = location.state?.from;
+      if (nextParam && nextParam.startsWith('/admin')) {
+        navigate(nextParam, { replace: true });
+      } else if (typeof from === 'string' && from.startsWith('/admin')) {
+        navigate(from, { replace: true });
+      } else {
+        navigate('/admin', { replace: true });
+      }
+    }
+  }, [user, location, navigate]);
+
+  // Destination redirect helper: redirects admin to /admin dashboard
+  const navigateToDestination = (loggedInUser) => {
+    const targetUser = loggedInUser || user;
+    const isUserAdmin = targetUser?.role === 'admin';
+
     const nextParam = new URLSearchParams(location.search).get('next');
-    navigate(location.state?.from?.pathname || nextParam || '/', { replace: true });
+    const from = location.state?.from;
+
+    // If logging in as admin, route directly to the admin dashboard
+    if (isUserAdmin) {
+      if (nextParam && nextParam.startsWith('/admin')) {
+        navigate(nextParam, { replace: true });
+        return;
+      }
+      if (typeof from === 'string' && from.startsWith('/admin')) {
+        navigate(from, { replace: true });
+        return;
+      }
+      if (typeof from === 'object' && from.pathname && from.pathname.startsWith('/admin')) {
+        const fullTarget = (from.pathname || '/admin') + (from.search || '') + (from.hash || '');
+        navigate(fullTarget, { replace: true });
+        return;
+      }
+      navigate('/admin', { replace: true });
+      return;
+    }
+
+    if (from) {
+      if (typeof from === 'string') {
+        navigate(from, { replace: true });
+        return;
+      }
+      if (typeof from === 'object' && from.pathname) {
+        const fullTarget = (from.pathname || '/') + (from.search || '') + (from.hash || '');
+        navigate(fullTarget, { replace: true });
+        return;
+      }
+    }
+
+    navigate(nextParam || '/', { replace: true });
   };
 
   // Switch to Phone OTP mode seamlessly
@@ -100,7 +154,7 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
     try {
       const result = await login(trimmedIdentifier, signInPassword);
       if (result.success) {
-        navigateToDestination();
+        navigateToDestination(result.user);
       } else {
         setSignInError(result.message || 'Login failed. Please check your credentials.');
       }
@@ -178,9 +232,24 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
           <span className="fv-brand-title">Fresh Veggies</span>
         </Link>
 
-        <Link to="/" className="fv-back-btn">
-          <ArrowLeft className="w-4 h-4" /> Return to Store
-        </Link>
+        <button
+          type="button"
+          onClick={() => {
+            const from = location.state?.from;
+            if (from) {
+              if (typeof from === 'string') navigate(from);
+              else if (from.pathname) navigate((from.pathname || '/') + (from.search || '') + (from.hash || ''));
+              else navigate(-1);
+            } else if (window.history.length > 1) {
+              navigate(-1);
+            } else {
+              navigate('/');
+            }
+          }}
+          className="fv-back-btn cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" /> Go Back
+        </button>
       </div>
 
       <div className={isSignUp ? "fv-auth-container sign-up-mode" : "fv-auth-container"}>
@@ -341,10 +410,10 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
               {/* PHONE & OTP LOGIN */}
               {signInMethod === 'phone' && (
                 <div className="w-full flex flex-col items-center">
-                  <div className="w-full max-w-[360px] my-1">
+                  <div className="w-full max-w-full sm:max-w-[360px] my-1">
                     <GuestMobileOtpStep
                       initialPhone={signInPhone}
-                      onVerified={() => navigateToDestination()}
+                      onVerified={(verifiedUser) => navigateToDestination(verifiedUser)}
                     />
                   </div>
                   {/* Mobile Quick Switcher Link */}

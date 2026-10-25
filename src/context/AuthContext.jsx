@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', token);
       setUser(userData);
       toast.success(`Welcome back, ${userData.name || 'User'}!`);
-      return { success: true };
+      return { success: true, user: userData };
     } catch (error) {
       return { 
         success: false, 
@@ -73,6 +73,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', token);
     setUser(userData);
     toast.success(`Welcome, ${userData.name || 'User'}!`);
+    return userData;
   };
 
   const register = async (userData) => {
@@ -122,7 +123,9 @@ export const AuthProvider = ({ children }) => {
   const changeEmail = async (newEmail, password) => {
     try {
       const response = await api.put('/auth/change-email', { newEmail, password });
-      setUser(response.data.data);
+      if (response.data.data) {
+        setUser(prev => prev ? { ...prev, ...response.data.data } : response.data.data);
+      }
       return { 
         success: true, 
         message: response.data.message || 'Email updated successfully' 
@@ -142,6 +145,7 @@ export const AuthProvider = ({ children }) => {
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
       }
+      setUser(prev => prev ? { ...prev, hasPassword: true } : prev);
       return { 
         success: true, 
         message: response.data.message || 'Password updated successfully' 

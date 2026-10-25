@@ -74,14 +74,14 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-fv-page pb-24 md:pb-6">
-      {/* Sticky Header + Tabs */}
-      <div className="sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-fv-border shadow-xs">
-        <div className="max-w-7xl mx-auto px-3 md:px-6 py-3 flex items-center justify-between">
+      {/* Sub-Header + Inner Dashboard Views */}
+      <div className="bg-white dark:bg-gray-800 border-b border-fv-border shadow-2xs">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-3.5 flex items-center justify-between">
           <div>
-            <h1 className="text-base md:text-lg font-bold text-fv-heading">Admin Dashboard</h1>
+            <h1 className="text-base md:text-lg font-bold text-fv-heading">Executive Dashboard</h1>
             <p className="text-[11px] text-fv-muted">
               {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-              &nbsp;·&nbsp;Auto-refreshes every 30s
+              &nbsp;·&nbsp;Real-time store metrics · Auto-refreshes every 30s
             </p>
           </div>
           <button
@@ -94,24 +94,24 @@ const AdminDashboard = () => {
                 fetchAnalytics(period, specificMonth);
               }
             }}
-            className="flex items-center gap-1.5 px-3 py-2 bg-fv-surface hover:bg-fv-border text-fv-heading rounded-xl text-xs font-semibold transition-colors min-h-[44px]"
+            className="flex items-center gap-1.5 px-3 py-2 bg-fv-surface hover:bg-fv-border text-fv-heading rounded-xl text-xs font-semibold transition-colors min-h-[40px]"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Refresh</span>
+            <RefreshCw className="w-3.5 h-3.5 text-fv-primary" />
+            <span className="hidden md:inline">Refresh Data</span>
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="max-w-7xl mx-auto px-3 md:px-6 pb-0 flex gap-0 overflow-x-auto">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 pb-0 flex gap-1 overflow-x-auto scrollbar-none">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => (tab.id === 'orders' ? navigate('/admin/orders') : setActiveTab(tab.id))}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold border-b-2 whitespace-nowrap transition-all min-h-[44px] ${
+                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 whitespace-nowrap transition-all min-h-[42px] ${
                   isActive
-                    ? 'border-gray-900 dark:border-white text-fv-heading'
+                    ? 'border-fv-primary text-fv-primary dark:text-emerald-400 font-bold'
                     : 'border-transparent text-fv-muted hover:text-fv-heading hover:border-fv-border'
                 }`}
               >

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { X, Trash2, Minus, Plus, Sprout, ShoppingBag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
@@ -12,6 +12,7 @@ import { useSettings } from '../context/SettingsContext';
  * the rest of the page is hidden from assistive tech while it is open.
  */
 const CartDrawer = () => {
+  const location = useLocation();
   const { cartItems, cartOpen, closeCart, updateQuantity, removeFromCart, getCartTotal,
           removedItems, clearRemovedNotice } = useCart();
   const { settings } = useSettings();
@@ -135,7 +136,7 @@ const CartDrawer = () => {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <p className="min-w-0">
-                        <Link to={`/product/${item._id}`} onClick={closeCart}
+                        <Link to={`/product/${item._id}`} state={{ from: location }} onClick={closeCart}
                               className="block truncate text-[15px] font-medium text-fv-heading hover:underline">
                           {item.name}
                         </Link>
@@ -176,10 +177,14 @@ const CartDrawer = () => {
                         <span className="w-8 text-center text-[14px] font-medium" aria-live="polite">{item.quantity}</span>
                         <button
                           type="button"
-                          onClick={() => updateQuantity(item._id, item.isCombo, item.quantity + 1, item.packageId)}
+                          disabled={item.stock !== undefined && item.quantity >= item.stock}
+                          onClick={() => {
+                            if (item.stock !== undefined && item.quantity >= item.stock) return;
+                            updateQuantity(item._id, item.isCombo, item.quantity + 1, item.packageId);
+                          }}
                           aria-label={`Increase quantity of ${item.name}`}
                           className="flex h-10 w-10 items-center justify-center rounded-r-[50px] text-fv-primary
-                                     hover:bg-fv-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary active:bg-fv-surface"
+                                     hover:bg-fv-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary active:bg-fv-surface disabled:opacity-35 disabled:cursor-not-allowed"
                         >
                           <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                         </button>

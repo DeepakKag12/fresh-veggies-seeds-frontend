@@ -134,19 +134,23 @@ export const CartProvider = ({ children }) => {
       (item.packageId || null) === (product.packageId || null);
 
     const existingItem = cartItems.find(sameLine);
+    const maxStock = product.stock !== undefined ? product.stock : (existingItem?.stock ?? 99);
 
     if (existingItem) {
+      const targetQty = existingItem.quantity + quantity;
+      const finalQty = Math.min(targetQty, maxStock);
       setCartItems(
         cartItems.map((item) =>
-          sameLine(item) ? { ...item, quantity: item.quantity + quantity } : item
+          sameLine(item) ? { ...item, quantity: finalQty, stock: product.stock ?? item.stock } : item
         )
       );
     } else {
+      const initialQty = Math.min(quantity, maxStock);
       setCartItems([
         ...cartItems,
         {
           ...product,
-          quantity,
+          quantity: initialQty,
           isCombo,
         },
       ]);
@@ -175,9 +179,12 @@ export const CartProvider = ({ children }) => {
       removeFromCart(productId, isCombo, packageId);
     } else {
       setCartItems(
-        cartItems.map((item) =>
-          matches(item, productId, isCombo, packageId) ? { ...item, quantity } : item
-        )
+        cartItems.map((item) => {
+          if (!matches(item, productId, isCombo, packageId)) return item;
+          const maxStock = item.stock !== undefined ? item.stock : 99;
+          const cappedQty = Math.max(1, Math.min(quantity, maxStock));
+          return { ...item, quantity: cappedQty };
+        })
       );
     }
   };

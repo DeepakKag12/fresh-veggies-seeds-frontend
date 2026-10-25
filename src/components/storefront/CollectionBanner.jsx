@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../../utils/api';
-import { BANNER } from './sandboxAssets';
 
 /**
  * [CHG-011] Sleek Wide Panoramic Collection Banner.
@@ -15,34 +14,34 @@ import { BANNER } from './sandboxAssets';
 const DEFAULT_SLIDES = [
   {
     id: 'slide-1',
-    imageUrl: BANNER.src,
-    tag: '100% Organic & Non-GMO',
+    imageUrl: '/sandbox-assets/hero/slide_1.webp',
+    tag: 'Premium Nursery Plants',
     title: 'Bring life to your space',
-    subtitle: 'High-germination heirloom varieties for lush home gardens & organic terrace farms.',
+    subtitle: 'Nursery-grown indoor plants, premium planters and fresh organic varieties.',
     linkUrl: '#catalogue-heading',
   },
   {
     id: 'slide-2',
-    imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=2500&q=80',
-    tag: '100% Chemical-Free',
-    title: 'Grow Crisp Greens At Home',
-    subtitle: 'Enriched organic potting mixes, coco peat, and heavy-duty UV grow bags.',
-    linkUrl: '/combos',
+    imageUrl: '/sandbox-assets/hero/slide_2.webp',
+    tag: 'Living Home Decor',
+    title: 'Aesthetic Indoor Plants',
+    subtitle: 'Magnificent specimen plants for clean air and elegant living spaces.',
+    linkUrl: '#catalogue-heading',
   },
   {
     id: 'slide-3',
-    imageUrl: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=2500&q=80',
+    imageUrl: '/sandbox-assets/hero/slide_3.webp',
     tag: 'Best Value Bundles',
     title: 'Seasonal Combo Packages',
-    subtitle: 'Save up to 40% with all-in-one gardener kits and organic enrichment packs.',
+    subtitle: 'Save up to 40% with all-in-one gardener kits and organic soil packs.',
     linkUrl: '/combos',
   },
   {
     id: 'slide-4',
-    imageUrl: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&w=2500&q=80',
-    tag: 'Fast Farm Dispatch',
-    title: 'Bountiful Harvest Guaranteed',
-    subtitle: 'Free delivery on orders over ₹300 with trusted Cash on Delivery.',
+    imageUrl: '/sandbox-assets/hero/slide_4.webp',
+    tag: 'High Germination Seeds',
+    title: 'Grow Your Own Kitchen Garden',
+    subtitle: 'Fresh salad greens, aromatic herbs, and heirloom vegetables on your sunny balcony.',
     linkUrl: '#catalogue-heading',
   },
 ];
@@ -57,7 +56,7 @@ const CollectionBanner = ({ title = 'Bring life to your space' }) => {
   // Fetch active banners from backend if configured by admin, merging with curated defaults
   useEffect(() => {
     let isMounted = true;
-    api.get('/banners/active')
+    api.get('/banners/active', { params: { position: 'top' } })
       .then((res) => {
         if (!isMounted) return;
         const remoteBanners = res.data?.data;
@@ -147,11 +146,11 @@ const CollectionBanner = ({ title = 'Bring life to your space' }) => {
       <h1 className="sr-only">{title}</h1>
 
       {/* Sleek, wide panoramic banner container with responsive aspect ratio */}
-      <div className="group relative mx-auto max-w-[1500px] overflow-hidden rounded-[18px] bg-fv-surface shadow-xs aspect-[16/7] sm:aspect-[21/8] lg:aspect-[2500/547] min-h-[140px] sm:min-h-[180px] w-full">
+      <div className="group relative mx-auto max-w-[1500px] overflow-hidden rounded-[16px] sm:rounded-[18px] bg-fv-surface shadow-xs aspect-[16/9] sm:aspect-[21/8] lg:aspect-[2500/547] min-h-[170px] sm:min-h-[200px] w-full">
         {/* Slide Layers with Cross-Fade Transitions */}
         {slides.map((slide, idx) => {
           const isActive = idx === currentIndex;
-          const isBannerArtwork = slide.imageUrl === BANNER.src || slide.imageUrl.includes('banner.jpg');
+          const isBannerArtwork = false;
 
           return (
             <div
@@ -180,18 +179,18 @@ const CollectionBanner = ({ title = 'Bring life to your space' }) => {
                       }`}
                     />
                     {!isBannerArtwork && slide.title && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/25 to-transparent flex items-center px-4 sm:px-10 lg:px-14">
-                        <div className="max-w-[70%] sm:max-w-[50%]">
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/30 to-transparent flex items-center px-4 sm:px-10 lg:px-14">
+                        <div className="max-w-[78%] sm:max-w-[50%]">
                           {slide.tag && (
-                            <span className="inline-block px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-[9px] sm:text-xs font-semibold text-emerald-200 uppercase tracking-wider mb-0.5 sm:mb-1.5">
+                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-[10px] sm:text-xs font-bold text-emerald-200 uppercase tracking-wider mb-1 sm:mb-1.5">
                               {slide.tag}
                             </span>
                           )}
-                          <h2 className="font-serif text-xs sm:text-2xl md:text-3xl font-bold text-white drop-shadow-sm line-clamp-1 sm:line-clamp-2">
+                          <h2 className="font-serif text-[18px] sm:text-2xl md:text-3xl font-bold text-white drop-shadow-sm leading-tight line-clamp-2">
                             {slide.title}
                           </h2>
                           {slide.subtitle && (
-                            <p className="hidden sm:block text-xs sm:text-sm text-white/90 mt-0.5 sm:mt-1 line-clamp-1">
+                            <p className="text-[11px] sm:text-sm text-white/90 mt-1 line-clamp-1 leading-normal">
                               {slide.subtitle}
                             </p>
                           )}
@@ -216,18 +215,18 @@ const CollectionBanner = ({ title = 'Bring life to your space' }) => {
                       }`}
                     />
                     {!isBannerArtwork && slide.title && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/25 to-transparent flex items-center px-4 sm:px-10 lg:px-14">
-                        <div className="max-w-[70%] sm:max-w-[50%]">
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/30 to-transparent flex items-center px-4 sm:px-10 lg:px-14">
+                        <div className="max-w-[78%] sm:max-w-[50%]">
                           {slide.tag && (
-                            <span className="inline-block px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-[9px] sm:text-xs font-semibold text-emerald-200 uppercase tracking-wider mb-0.5 sm:mb-1.5">
+                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-[10px] sm:text-xs font-bold text-emerald-200 uppercase tracking-wider mb-1 sm:mb-1.5">
                               {slide.tag}
                             </span>
                           )}
-                          <h2 className="font-serif text-xs sm:text-2xl md:text-3xl font-bold text-white drop-shadow-sm line-clamp-1 sm:line-clamp-2">
+                          <h2 className="font-serif text-[18px] sm:text-2xl md:text-3xl font-bold text-white drop-shadow-sm leading-tight line-clamp-2">
                             {slide.title}
                           </h2>
                           {slide.subtitle && (
-                            <p className="hidden sm:block text-xs sm:text-sm text-white/90 mt-0.5 sm:mt-1 line-clamp-1">
+                            <p className="text-[11px] sm:text-sm text-white/90 mt-1 line-clamp-1 leading-normal">
                               {slide.subtitle}
                             </p>
                           )}
@@ -250,18 +249,18 @@ const CollectionBanner = ({ title = 'Bring life to your space' }) => {
                     }`}
                   />
                   {!isBannerArtwork && slide.title && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/25 to-transparent flex items-center px-4 sm:px-10 lg:px-14">
-                      <div className="max-w-[70%] sm:max-w-[50%]">
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/30 to-transparent flex items-center px-4 sm:px-10 lg:px-14">
+                      <div className="max-w-[78%] sm:max-w-[50%]">
                         {slide.tag && (
-                          <span className="inline-block px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-[9px] sm:text-xs font-semibold text-emerald-200 uppercase tracking-wider mb-0.5 sm:mb-1.5">
+                          <span className="inline-block px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-[10px] sm:text-xs font-bold text-emerald-200 uppercase tracking-wider mb-1 sm:mb-1.5">
                             {slide.tag}
                           </span>
                         )}
-                        <h2 className="font-serif text-xs sm:text-2xl md:text-3xl font-bold text-white drop-shadow-sm line-clamp-1 sm:line-clamp-2">
+                        <h2 className="font-serif text-[18px] sm:text-2xl md:text-3xl font-bold text-white drop-shadow-sm leading-tight line-clamp-2">
                           {slide.title}
                         </h2>
                         {slide.subtitle && (
-                          <p className="hidden sm:block text-xs sm:text-sm text-white/90 mt-0.5 sm:mt-1 line-clamp-1">
+                          <p className="text-[11px] sm:text-sm text-white/90 mt-1 line-clamp-1 leading-normal">
                             {slide.subtitle}
                           </p>
                         )}

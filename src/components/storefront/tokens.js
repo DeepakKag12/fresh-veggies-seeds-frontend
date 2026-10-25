@@ -8,29 +8,37 @@
  */
 export const T = {
   // Greens
-  primary: '#0A4C36',      // nav, primary buttons, badges
-  primaryHover: '#1A4D2E', // measured hover state of their CTA
-  accent: '#00B566',       // prices, accent fills
-  section: '#009253',      // full-bleed USP band
+  primary: '#0A4D3C',      // Ugaoo signature deep evergreen (nav, CTA buttons, headings)
+  primaryHover: '#083B2A', // Measured hover state
+  accent: '#00B566',       // Ugaoo vibrant emerald green (--color-price)
+  leaf: '#00A93D',         // Ugaoo brand green (--jdgm-primary-color)
+  star: '#00A93D',         // Ugaoo review star green
 
-  // Warm neutrals — the reason it doesn't read as a generic template
-  page: '#FFF6F4',         // page background (NOT white)
-  cream: '#FDF6EE',        // alternating section band
-  softYellow: '#FFF9E4',
-
-  // Signals
-  yellow: '#FFD51F',       // trust strip + hero CTA
+  // Bright warm neutrals & accents
+  page: '#FFFFFF',         // Clean bright white canvas
+  creamYellow: '#FFF3D9',  // Ugaoo signature warm sunny cream (header, category strip)
+  coral: '#FF8962',        // Ugaoo trust badge accent coral/orange
+  yellow: '#FED02F',       // Ugaoo bright gold badge (--color-sale-badge-background)
   saleBadge: '#FED02F',
-  star: '#FFB503',
+  sand: '#F4E6C6',         // Ugaoo search background
 
-  // Ink
-  ink: '#212326',
-  heading: '#1C1C1C',
+  // Ink & Borders
+  ink: '#212326',          // Ugaoo body text (--color-base-text)
+  heading: '#1C1C1C',      // Ugaoo heading text (--color-base-heading)
   deep: '#042018',
   muted: '#5D6B5F',
-  border: '#CADFD4',
+  border: '#CADFD4',       // Ugaoo border (--color-base-border)
+  borderLight: '#EFEFEF',
   placeholder: '#F7F7F7',
 };
 
-// Geometry: pill buttons + 18px cards + effectively no shadow is the signature.
+// Typography & Geometry reverse-engineered from live Ugaoo
+export const FONT = {
+  body: 'Outfit, sans-serif',
+  heading: 'Outfit, sans-serif',
+};
+
+// Geometry: pill buttons (50px) + 18px rounded cards + clean borders
 export const RADIUS = { card: '18px', pill: '50px', chip: '4px' };
+
+

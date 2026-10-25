@@ -67,10 +67,15 @@ const MobileLogin = () => {
 
       if (response.data.success) {
         // Set user + token via context (also shows success toast)
-        loginWithData(response.data.data);
-        // Scroll to top before navigating home
+        const userData = response.data.data;
+        loginWithData(userData);
+        // Scroll to top before navigating
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-        navigate('/');
+        if (userData?.role === 'admin') {
+          navigate('/admin', { replace: true });
+        } else {
+          navigate('/', { replace: true });
+        }
       }
     } catch (err) {
       const message = err.response?.data?.message || 'Failed to verify OTP';

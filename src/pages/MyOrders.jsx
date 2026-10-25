@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import Pagination from '../components/Pagination';
-import { Link } from 'react-router-dom';
-import { Package, Loader, ChevronRight, AlertCircle } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Package, Loader, ChevronRight, AlertCircle, ArrowLeft } from 'lucide-react';
 import api from '../utils/api';
 import OrderDetailDrawer from '../components/OrderDetailDrawer';
 
 const MyOrders = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [orders, setOrders] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -85,6 +87,39 @@ const MyOrders = () => {
   return (
     <div className="min-h-screen bg-fv-page py-8 pb-28">
       <div className="max-w-2xl mx-auto px-3 sm:px-4">
+        {/* Breadcrumbs & Back Navigation */}
+        <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+          <nav aria-label="Breadcrumb">
+            <ol className="flex items-center gap-1.5 text-xs text-fv-muted">
+              <li>
+                <Link to="/" className="hover:text-fv-primary hover:underline font-medium">
+                  Shop
+                </Link>
+              </li>
+              <li aria-hidden="true"><ChevronRight className="h-3 w-3" /></li>
+              <li aria-current="page" className="font-semibold text-fv-heading">
+                My Orders
+              </li>
+            </ol>
+          </nav>
+          <button
+            type="button"
+            onClick={() => {
+              if (location.state?.from) {
+                navigate(location.state.from);
+              } else if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate('/');
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-fv-border bg-white dark:bg-gray-800 hover:bg-fv-surface text-xs font-semibold text-fv-heading transition-colors shadow-2xs"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-fv-primary" />
+            <span>Back</span>
+          </button>
+        </div>
+
         <h1 className="text-2xl sm:text-3xl font-bold text-fv-heading  mb-6">
           My Orders
         </h1>

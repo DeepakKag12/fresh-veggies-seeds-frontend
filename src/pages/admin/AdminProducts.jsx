@@ -179,7 +179,27 @@ const AdminProducts = () => {
   };
 
   const handleAddPackage = () => {
-    setPackages([...packages, { quantity: '', price: '', stock: '' }]);
+    setPackages([...packages, { quantity: '', price: '', stock: '50' }]);
+  };
+
+  const handleAddPresetPackage = (labelPreset) => {
+    // If the last package is empty, replace it; otherwise add new
+    const last = packages[packages.length - 1];
+    if (last && !last.quantity && !last.price) {
+      const updated = [...packages];
+      updated[packages.length - 1] = {
+        ...last,
+        quantity: labelPreset,
+        price: last.price || formData.price || '',
+        stock: last.stock || '50'
+      };
+      setPackages(updated);
+    } else {
+      setPackages([
+        ...packages,
+        { quantity: labelPreset, price: formData.price || '', stock: '50' }
+      ]);
+    }
   };
 
   const handleRemovePackage = (index) => {
@@ -366,13 +386,28 @@ const AdminProducts = () => {
                         Stock: {stockCount}
                       </span>
                     </div>
-                    {product.packages && product.packages.length > 0 && (
+                    {product.packages && product.packages.length > 0 ? (
                       <div className="mb-2">
-                        <span className="text-[10px] bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full font-medium">
-                          {product.packages.length} Variants
+                        <div className="flex flex-wrap gap-1">
+                          {product.packages.slice(0, 3).map((pkg, pIdx) => (
+                            <span key={pIdx} className="text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-1.5 py-0.5 rounded-md font-medium">
+                              {pkg.quantity} (₹{pkg.price})
+                            </span>
+                          ))}
+                          {product.packages.length > 3 && (
+                            <span className="text-[10px] text-fv-muted font-medium self-center">
+                              +{product.packages.length - 3} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ) : product.weight ? (
+                      <div className="mb-2">
+                        <span className="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded-md font-medium">
+                          Weight: {product.weight}
                         </span>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
 
@@ -643,62 +678,111 @@ const AdminProducts = () => {
                     </div>
                   )}
 
-                  {/* Package Variants — any product type */}
+                  {/* Package Variants — Seed Count & Weight dual support */}
                   {formData.hasPackages && (
-                    <div className="border border-green-200 dark:border-green-800 rounded-lg p-4 bg-fv-cream dark:bg-green-900/20">
-                      <div className="flex justify-between items-center mb-3">
-                        <h3 className="text-base font-semibold text-fv-heading  flex items-center gap-2">
-                          <Package className="w-5 h-5 text-fv-primary dark:text-green-400" />
-                          Package / Quantity Variants
-                        </h3>
-                        <button
-                          type="button"
-                          onClick={handleAddPackage}
-                          className="flex items-center gap-2 bg-fv-primary hover:bg-fv-primary-dark text-white px-4 py-2 rounded-lg text-sm transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                          Add Variant
-                        </button>
+                    <div className="border border-green-200 dark:border-green-800 rounded-2xl p-5 bg-[#FBFDFB] dark:bg-green-950/20 shadow-xs">
+                      <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
+                        <div>
+                          <h3 className="text-sm font-bold text-fv-heading flex items-center gap-2">
+                            <Package className="w-4 h-4 text-fv-primary dark:text-green-400" />
+                            <span>Variants (Seed Count or Weight)</span>
+                          </h3>
+                          <p className="text-xs text-fv-muted mt-0.5">
+                            Sell by seed count (e.g. 50 Seeds) or weight (e.g. 25 gm, 100 gm). Customers see interactive pills.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                            {packages.length} Variants • {packages.reduce((sum, p) => sum + (parseInt(p.stock, 10) || 0), 0)} Total Stock
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleAddPackage}
+                            className="flex items-center gap-1.5 bg-fv-primary hover:bg-fv-primary-dark text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-xs"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            Add Row
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-xs text-fv-primary-dark dark:text-green-400 mb-3">
-                        Each row is one option shown in the dropdown on the product page. Label it anything — e.g. &quot;50 Seeds&quot;, &quot;1 Bag&quot;, &quot;5 Bags&quot;, &quot;Small Box&quot;.
-                      </p>
+
+                      {/* Quick Presets Toolbar */}
+                      <div className="mb-4 p-3 bg-white dark:bg-gray-800/80 rounded-xl border border-fv-border space-y-2">
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                          <span className="font-semibold text-fv-heading text-[11px] uppercase tracking-wider mr-1">
+                            Seed Count:
+                          </span>
+                          {['50 Seeds', '100 Seeds', '250 Seeds', '500 Seeds', '1000 Seeds'].map((preset) => (
+                            <button
+                              key={preset}
+                              type="button"
+                              onClick={() => handleAddPresetPackage(preset)}
+                              className="px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 transition-colors"
+                            >
+                              + {preset}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs pt-1 border-t border-gray-100 dark:border-gray-700/60">
+                          <span className="font-semibold text-fv-heading text-[11px] uppercase tracking-wider mr-1">
+                            Weight:
+                          </span>
+                          {['8 gm', '25 gm', '50 gm', '100 gm', '250 gm', '500 gm', '1 kg'].map((preset) => (
+                            <button
+                              key={preset}
+                              type="button"
+                              onClick={() => handleAddPresetPackage(preset)}
+                              className="px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 transition-colors"
+                            >
+                              + {preset}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       {/* Column headers */}
-                      <div className="flex gap-3 mb-1 px-1">
-                        <span className="flex-1 text-xs font-medium text-fv-muted ">Label (shown to customer)</span>
-                        <span className="w-24 text-xs font-medium text-fv-muted ">Price (₹)</span>
-                        <span className="w-20 text-xs font-medium text-fv-muted ">Stock</span>
+                      <div className="flex gap-3 mb-1.5 px-1">
+                        <span className="flex-1 text-xs font-semibold text-fv-muted">Variant Label (Count or Weight)</span>
+                        <span className="w-28 text-xs font-semibold text-fv-muted">Price (₹)</span>
+                        <span className="w-24 text-xs font-semibold text-fv-muted">Stock (Qty)</span>
                         <span className="w-8"></span>
                       </div>
-                      <div className="space-y-3">
+
+                      {/* Variant Rows */}
+                      <div className="space-y-2.5">
                         {packages.map((pkg, index) => (
-                          <div key={index} className="flex gap-3 items-center">
+                          <div key={index} className="flex gap-2.5 items-center">
                             <input
                               type="text"
-                              placeholder="e.g. 50 Seeds / 1 Bag / Small Box"
+                              placeholder="e.g. 50 Seeds or 25 gm"
                               value={pkg.quantity}
                               onChange={(e) => handlePackageChange(index, 'quantity', e.target.value)}
-                              className="flex-1 px-3 py-2 border border-fv-border  rounded-lg bg-white  text-fv-heading  focus:ring-2 focus:ring-fv-primary"
+                              className="flex-1 px-3 py-2 text-sm border border-fv-border rounded-xl bg-white dark:bg-gray-800 text-fv-heading focus:ring-2 focus:ring-fv-primary"
                             />
-                            <input
-                              type="number"
-                              placeholder="Price"
-                              value={pkg.price}
-                              onChange={(e) => handlePackageChange(index, 'price', e.target.value)}
-                              className="w-24 px-3 py-2 border border-fv-border  rounded-lg bg-white  text-fv-heading  focus:ring-2 focus:ring-fv-primary"
-                            />
+                            <div className="relative w-28">
+                              <span className="absolute left-3 top-2 text-xs text-fv-muted">₹</span>
+                              <input
+                                type="number"
+                                placeholder="Price"
+                                value={pkg.price}
+                                onChange={(e) => handlePackageChange(index, 'price', e.target.value)}
+                                className="w-full pl-6 pr-2 py-2 text-sm border border-fv-border rounded-xl bg-white dark:bg-gray-800 text-fv-heading focus:ring-2 focus:ring-fv-primary"
+                              />
+                            </div>
                             <input
                               type="number"
                               placeholder="Stock"
                               value={pkg.stock}
                               onChange={(e) => handlePackageChange(index, 'stock', e.target.value)}
-                              className="w-20 px-3 py-2 border border-fv-border  rounded-lg bg-white  text-fv-heading  focus:ring-2 focus:ring-fv-primary"
+                              className="w-24 px-3 py-2 text-sm border border-fv-border rounded-xl bg-white dark:bg-gray-800 text-fv-heading focus:ring-2 focus:ring-fv-primary"
                             />
                             {packages.length > 1 ? (
                               <button
                                 type="button"
                                 onClick={() => handleRemovePackage(index)}
-                                className="p-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 rounded-lg transition-colors"
+                                className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-colors"
+                                title="Remove variant"
                               >
                                 <X className="w-4 h-4" />
                               </button>
@@ -706,8 +790,9 @@ const AdminProducts = () => {
                           </div>
                         ))}
                       </div>
-                      <p className="text-xs text-fv-muted dark:text-fv-muted mt-3">
-                        * Base Price above is used as fallback. Each variant overrides it.
+
+                      <p className="text-[11px] text-fv-muted mt-3">
+                        Tip: Customers will see interactive pills on both the product grid card and the detail page to switch between these variants instantly.
                       </p>
                     </div>
                   )}

@@ -1,14 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Star, Share2, ChevronRight, ShieldCheck, Truck, Banknote, Sprout, AlertCircle, ShoppingBag } from 'lucide-react';
+import { Star, Share2, ChevronRight, ShieldCheck, Truck, Banknote, Sprout, AlertCircle, ShoppingBag, Heart, CheckCircle2, Sun, Droplets, Calendar, Leaf, ArrowLeft } from 'lucide-react';
 import { cachedGet } from '../utils/api';
 import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 import PageLoader from '../components/PageLoader';
 import ProductGallery from '../components/storefront/ProductGallery';
 import VariantPicker from '../components/storefront/VariantPicker';
 import QuantityStepper from '../components/storefront/QuantityStepper';
 import OffersBox from '../components/storefront/OffersBox';
+import DeliveryCheck from '../components/storefront/DeliveryCheck';
 import ReviewsSection from '../components/storefront/ReviewsSection';
 import RelatedProducts from '../components/storefront/RelatedProducts';
 import { useSettings } from '../context/SettingsContext';
@@ -16,7 +18,9 @@ import { useSettings } from '../context/SettingsContext';
 const ProductDetailNew = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { addToCart } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
   const { settings } = useSettings();
 
   const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 499;
@@ -66,6 +70,7 @@ const ProductDetailNew = () => {
   const buildCartItem = () => ({
     ...product,
     price,
+    stock,
     packageId: pkg?._id || null,
     selectedPackage: pkg ? { size: pkg.quantity, price: pkg.price } : null,
   });
@@ -109,11 +114,49 @@ const ProductDetailNew = () => {
   return (
     <div className="bg-fv-page pb-36 lg:pb-12">
       <nav aria-label="Breadcrumb" className="mx-auto max-w-[1500px] px-4 pt-6 sm:px-6 lg:px-10">
-        <ol className="flex flex-wrap items-center gap-1 text-[13px] text-fv-muted">
-          <li><Link to="/" className="hover:text-fv-primary hover:underline">Shop</Link></li>
-          <li aria-hidden="true"><ChevronRight className="h-3 w-3" /></li>
-          <li aria-current="page" className="truncate text-fv-heading">{product.name}</li>
-        </ol>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <ol className="flex flex-wrap items-center gap-1.5 text-[13px] text-fv-muted">
+            <li>
+              <Link to="/" className="hover:text-fv-primary hover:underline font-medium">
+                Shop
+              </Link>
+            </li>
+            <li aria-hidden="true"><ChevronRight className="h-3 w-3" /></li>
+            {product.categoryId?.name && (
+              <>
+                <li>
+                  <Link
+                    to={`/?category=${encodeURIComponent(product.categoryId.name)}`}
+                    className="hover:text-fv-primary hover:underline font-medium"
+                  >
+                    {product.categoryId.name}
+                  </Link>
+                </li>
+                <li aria-hidden="true"><ChevronRight className="h-3 w-3" /></li>
+              </>
+            )}
+            <li aria-current="page" className="truncate font-semibold text-fv-heading max-w-[200px] sm:max-w-md">
+              {product.name}
+            </li>
+          </ol>
+          <button
+            type="button"
+            onClick={() => {
+              if (location.state?.from) {
+                navigate(location.state.from);
+              } else if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate('/');
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-fv-border bg-white dark:bg-gray-800 hover:bg-fv-surface text-xs font-semibold text-fv-heading transition-colors shadow-2xs"
+            title="Return to previous page"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-fv-primary" />
+            <span>Back</span>
+          </button>
+        </div>
       </nav>
 
       <div className="mx-auto max-w-[1500px] px-4 py-8 sm:px-6 lg:px-10">
@@ -125,16 +168,32 @@ const ProductDetailNew = () => {
               <h1 className="font-serif text-[28px] font-semibold leading-tight text-fv-heading sm:text-[36px]">
                 {product.name}
               </h1>
-              <button
-                type="button"
-                onClick={handleShare}
-                aria-label="Share this product"
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-fv-border
-                           text-fv-primary hover:bg-white focus-visible:outline-none focus-visible:ring-2
-                           focus-visible:ring-fv-primary"
-              >
-                <Share2 className="h-4 w-4" aria-hidden="true" />
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => toggleWishlist(product)}
+                  aria-label={isInWishlist(product._id) ? "Remove from wishlist" : "Add to wishlist"}
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-fv-border
+                             text-fv-primary hover:bg-white focus-visible:outline-none focus-visible:ring-2
+                             focus-visible:ring-fv-primary transition-all cursor-pointer shadow-xs"
+                >
+                  <Heart
+                    className={`h-5 w-5 transition-colors ${
+                      isInWishlist(product._id) ? 'fill-red-500 text-red-500' : 'text-gray-600'
+                    }`}
+                  />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  aria-label="Share this product"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-fv-border
+                             text-fv-primary hover:bg-white focus-visible:outline-none focus-visible:ring-2
+                             focus-visible:ring-fv-primary transition-all cursor-pointer shadow-xs"
+                >
+                  <Share2 className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
             </div>
 
             {product.rating > 0 && (
@@ -159,9 +218,9 @@ const ProductDetailNew = () => {
             />
 
             <p className="mt-6 flex flex-wrap items-baseline gap-3">
-              <span className="text-[32px] font-semibold text-fv-deep">₹{price?.toLocaleString('en-IN')}</span>
-              {hasDiscount && <s className="text-[18px] text-fv-muted">₹{original.toLocaleString('en-IN')}</s>}
-              <span className="text-[13px] text-fv-muted">Inclusive of all taxes</span>
+              <span className="text-[32px] font-extrabold text-[#00B566]">₹{price?.toLocaleString('en-IN')}</span>
+              {hasDiscount && <s className="text-[18px] text-gray-400">₹{original.toLocaleString('en-IN')}</s>}
+              <span className="text-[13px] text-gray-500">Inclusive of all taxes</span>
             </p>
 
             {stock > 0 && stock <= (settings?.inventory?.lowStockThreshold ?? 10) && (settings?.inventory?.showOnlyXLeft ?? true) ? (
@@ -225,6 +284,54 @@ const ProductDetailNew = () => {
               ))}
             </ul>
 
+            <DeliveryCheck />
+
+            {/* Ugaoo-Inspired Gardening Specifications Grid */}
+            <section className="mt-8 rounded-2xl border border-fv-border/70 bg-white p-5 shadow-xs" aria-labelledby="specs-heading">
+              <h2 id="specs-heading" className="font-serif text-[18px] font-semibold text-fv-heading flex items-center gap-2">
+                <Leaf className="w-5 h-5 text-emerald-600" />
+                <span>Growing Specifications & Plant Info</span>
+              </h2>
+              <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="rounded-xl bg-[#F8FAF9] p-3 border border-emerald-50">
+                  <div className="flex items-center gap-2 text-emerald-700 text-xs font-semibold">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Germination Rate
+                  </div>
+                  <p className="mt-1 text-sm font-bold text-gray-900">85%+ Lab Tested</p>
+                </div>
+                <div className="rounded-xl bg-[#F8FAF9] p-3 border border-emerald-50">
+                  <div className="flex items-center gap-2 text-emerald-700 text-xs font-semibold">
+                    <Calendar className="w-3.5 h-3.5" /> Best Season
+                  </div>
+                  <p className="mt-1 text-sm font-bold text-gray-900">{product.season || 'All Season'}</p>
+                </div>
+                <div className="rounded-xl bg-[#F8FAF9] p-3 border border-emerald-50">
+                  <div className="flex items-center gap-2 text-emerald-700 text-xs font-semibold">
+                    <Sun className="w-3.5 h-3.5" /> Sunlight
+                  </div>
+                  <p className="mt-1 text-sm font-bold text-gray-900">4–6 Hours Direct</p>
+                </div>
+                <div className="rounded-xl bg-[#F8FAF9] p-3 border border-emerald-50">
+                  <div className="flex items-center gap-2 text-emerald-700 text-xs font-semibold">
+                    <Droplets className="w-3.5 h-3.5" /> Watering
+                  </div>
+                  <p className="mt-1 text-sm font-bold text-gray-900">Keep Soil Moist</p>
+                </div>
+                <div className="rounded-xl bg-[#F8FAF9] p-3 border border-emerald-50">
+                  <div className="flex items-center gap-2 text-emerald-700 text-xs font-semibold">
+                    <Sprout className="w-3.5 h-3.5" /> Sprouting Time
+                  </div>
+                  <p className="mt-1 text-sm font-bold text-gray-900">6–10 Days</p>
+                </div>
+                <div className="rounded-xl bg-[#F8FAF9] p-3 border border-emerald-50">
+                  <div className="flex items-center gap-2 text-emerald-700 text-xs font-semibold">
+                    <ShieldCheck className="w-3.5 h-3.5" /> Seed Purity
+                  </div>
+                  <p className="mt-1 text-sm font-bold text-gray-900">100% Non-GMO</p>
+                </div>
+              </div>
+            </section>
+
             {product.features?.length > 0 && (
               <section className="mt-8" aria-labelledby="features-heading">
                 <h2 id="features-heading" className="font-serif text-[20px] font-semibold text-fv-heading">Highlights</h2>
@@ -239,9 +346,26 @@ const ProductDetailNew = () => {
             )}
 
             {product.howToGrow && (
-              <section className="mt-8" aria-labelledby="grow-heading">
-                <h2 id="grow-heading" className="font-serif text-[20px] font-semibold text-fv-heading">How to grow</h2>
-                <p className="mt-2 text-[15px] leading-relaxed text-fv-ink">{product.howToGrow}</p>
+              <section className="mt-8 rounded-2xl bg-gradient-to-br from-emerald-50/50 to-white border border-emerald-100 p-5" aria-labelledby="grow-heading">
+                <h2 id="grow-heading" className="font-serif text-[20px] font-semibold text-fv-heading flex items-center gap-2">
+                  <Sprout className="w-5 h-5 text-emerald-700" />
+                  <span>How to Sow & Grow</span>
+                </h2>
+                <p className="mt-3 text-[15px] leading-relaxed text-gray-800">{product.howToGrow}</p>
+                <div className="mt-4 grid gap-2.5 sm:grid-cols-3 text-xs text-emerald-900">
+                  <div className="rounded-lg bg-white/90 p-2.5 border border-emerald-100 shadow-2xs">
+                    <strong className="block font-bold">1. Soil Prep</strong>
+                    <span className="text-gray-600 mt-0.5 block">Use loose, well-draining potting mix with vermicompost.</span>
+                  </div>
+                  <div className="rounded-lg bg-white/90 p-2.5 border border-emerald-100 shadow-2xs">
+                    <strong className="block font-bold">2. Sowing Depth</strong>
+                    <span className="text-gray-600 mt-0.5 block">Plant seeds 0.5 cm deep; cover lightly with fine soil.</span>
+                  </div>
+                  <div className="rounded-lg bg-white/90 p-2.5 border border-emerald-100 shadow-2xs">
+                    <strong className="block font-bold">3. Moisture</strong>
+                    <span className="text-gray-600 mt-0.5 block">Spray gently with water mister to keep surface moist.</span>
+                  </div>
+                </div>
               </section>
             )}
           </div>

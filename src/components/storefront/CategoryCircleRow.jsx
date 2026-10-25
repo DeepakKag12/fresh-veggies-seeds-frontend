@@ -1,58 +1,103 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Sprout } from 'lucide-react';
 import { CATEGORY_ART } from './sandboxAssets';
 
 /**
- * Row of circular illustrated category tiles. The selected category gets a ring
- * plus a bold label — colour alone never carries the state.
- *
- * The circle degrades in two steps: illustration → the category's own icon
- * character → nothing, so a missing asset never leaves an empty ring.
+ * Ugaoo-Inspired Category Circle Strip:
+ * - Perfectly round white discs with clean, high-resolution illustrated artwork
+ * - Sized generously (72px on mobile, 96-104px on tablet/desktop) with subtle borders & soft shadows
+ * - Outfit font family, centered typography with medium/semibold weights
+ * - Smooth horizontal touch scroll with zero clutter
+ * - Direct filtering and visual active states in #0A4C36
  */
+const FEATURED_CATEGORY_ORDER = [
+  'Plants',
+  'Flowers',
+  'Seeds',
+  'Pots',
+  'Vegetable Seeds',
+  'Flower Seeds',
+  'Soils',
+  'Fertilisers',
+  'Fertilizers',
+  'Garden Tools',
+  'Watering Solutions',
+  'Pest Control',
+];
+
+const getCategoryArt = (cat) => {
+  const s = (cat?.slug || cat?.name || '').toLowerCase().trim();
+  
+  if (s.includes('plant')) return '/sandbox-assets/icons/plants.webp';
+  if (s.includes('flower') || s.includes('floral')) return '/sandbox-assets/icons/flowers.png';
+  if (s.includes('pot') || s.includes('bag') || s.includes('planter')) return '/sandbox-assets/icons/pots.webp';
+  if (s.includes('soil')) return '/sandbox-assets/icons/soils.webp';
+  if (s.includes('fertil') || s.includes('compost')) return '/sandbox-assets/icons/fertilisers.webp';
+  if (s.includes('seed')) return '/sandbox-assets/icons/seeds.webp';
+  if (s.includes('tool')) return '/sandbox-assets/icons/tools.webp';
+  if (s.includes('water')) return '/sandbox-assets/icons/watering.webp';
+  if (s.includes('pest')) return '/sandbox-assets/icons/pest.webp';
+  if (CATEGORY_ART[cat?.slug]) return CATEGORY_ART[cat.slug];
+  if (cat?.imageUrl) return cat.imageUrl;
+  if (cat?.image) return cat.image;
+
+  return '/sandbox-assets/icons/seeds.webp';
+};
+
 const Tile = ({ category, active, onSelect }) => {
   const [failed, setFailed] = useState(false);
-  const art = CATEGORY_ART[category.slug];
+  const art = getCategoryArt(category);
   const showArt = art && !failed;
 
-  // On a listing page the tile filters in place; elsewhere it navigates.
   const Tag = onSelect ? 'button' : Link;
   const tagProps = onSelect
-    ? { type: 'button', onClick: () => onSelect(active ? '' : category._id), 'aria-pressed': active }
-    : { to: `/?category=${category._id}`, 'aria-current': active ? 'page' : undefined };
+    ? { 
+        type: 'button', 
+        onClick: () => onSelect(active ? '' : (category._id || category.slug)), 
+        'aria-pressed': active 
+      }
+    : { 
+        to: `/?category=${encodeURIComponent(category._id || category.slug)}`, 
+        'aria-current': active ? 'page' : undefined 
+      };
 
   return (
-    <li className="flex-1 min-w-[68px] max-w-[88px] shrink-0 flex justify-center sm:w-[124px] sm:max-w-none sm:flex-initial">
+    <li className="shrink-0 flex justify-center">
       <Tag
         {...tagProps}
-        className="group flex w-full flex-col items-center gap-1.5 rounded-[14px] p-0.5 text-center sm:gap-3 sm:rounded-[18px] sm:p-1
-                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary
-                   focus-visible:ring-offset-2"
+        className="group flex flex-col items-center gap-1.5 sm:gap-2 p-1 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A4D3C] focus-visible:ring-offset-2 cursor-pointer"
       >
+        {/* Circle Disc with responsive dimensions for mobile & desktop */}
         <span
-          className={`flex h-[52px] w-[52px] items-center justify-center overflow-hidden rounded-full bg-white
+          className={`flex h-[58px] w-[58px] min-[360px]:h-[66px] min-[360px]:w-[66px] sm:h-[88px] sm:w-[88px] lg:h-[100px] lg:w-[100px] items-center justify-center overflow-hidden rounded-full bg-white
                       transition-all duration-300 group-hover:scale-105 group-hover:shadow-md
-                      motion-reduce:transition-none motion-reduce:group-hover:scale-100 sm:h-[108px] sm:w-[108px]
-                      ${active ? 'ring-2 ring-fv-primary shadow-[0_0_18px_rgba(22,163,74,0.28)] scale-[1.04] animate-botanical-glow' : 'ring-1 ring-fv-border'}`}
+                      motion-reduce:transition-none motion-reduce:group-hover:scale-100 shadow-[0_2px_8px_rgba(0,0,0,0.06)]
+                      ${active 
+                        ? 'ring-2 ring-[#0A4D3C] ring-offset-2 scale-[1.04] border-[#0A4D3C] shadow-md' 
+                        : 'border border-[#F0EBE1] group-hover:border-[#0A4D3C]/60'}`}
         >
           {showArt ? (
             <img
               src={art}
-              alt=""
-              width="108"
-              height="108"
+              alt={category.name}
+              width="100"
+              height="100"
               loading="lazy"
               decoding="async"
               onError={() => setFailed(true)}
-              className="h-[62%] w-[62%] object-contain sm:h-[68%] sm:w-[68%]"
+              className="h-[70%] w-[70%] object-contain select-none transition-transform duration-300 group-hover:scale-105"
             />
-          ) : category.icon && !/[\u{1F300}-\u{1FAFF}]/u.test(category.icon) ? (
-            <span className="text-xl sm:text-2xl" aria-hidden="true">{category.icon}</span>
           ) : (
-            <Sprout className="w-6 h-6 sm:w-8 sm:h-8 text-fv-primary stroke-[1.75]" />
+            <Sprout className="w-6 h-6 sm:w-8 sm:h-8 text-[#0A4D3C] stroke-[1.75]" />
           )}
         </span>
-        <span className={`text-[11px] leading-tight line-clamp-1 max-w-[74px] sm:max-w-none sm:text-[15px] sm:leading-snug ${active ? 'font-semibold text-fv-primary' : 'text-fv-heading'}`}>
+
+        {/* Text Label */}
+        <span 
+          className={`font-sans text-[10px] min-[360px]:text-[11px] sm:text-[13px] lg:text-[14px] leading-tight tracking-normal transition-colors text-center whitespace-nowrap
+                     ${active ? 'font-bold text-[#0A4D3C]' : 'font-medium text-[#1C1C1C] group-hover:text-[#0A4D3C]'}`}
+        >
           {category.name}
         </span>
       </Tag>
@@ -61,17 +106,63 @@ const Tile = ({ category, active, onSelect }) => {
 };
 
 const CategoryCircleRow = ({ categories = [], activeId, onSelect }) => {
-  if (!categories.length) return null;
+  // Sort categories based on priority order while strictly respecting admin circle visibility
+  const displayCategories = useMemo(() => {
+    if (!categories.length) return [];
+
+    const filtered = categories.filter(c => {
+      // Respect admin configuration for homepage circle visibility & active status
+      if (c.showInCircle === false) return false;
+      if (c.isActive === false) return false;
+      return true;
+    });
+
+    return filtered.sort((a, b) => {
+      const nameA = a.name || '';
+      const nameB = b.name || '';
+      
+      const idxA = FEATURED_CATEGORY_ORDER.findIndex(o => o.toLowerCase() === nameA.toLowerCase() || nameA.toLowerCase().includes(o.toLowerCase()));
+      const idxB = FEATURED_CATEGORY_ORDER.findIndex(o => o.toLowerCase() === nameB.toLowerCase() || nameB.toLowerCase().includes(o.toLowerCase()));
+
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return nameA.localeCompare(nameB);
+    });
+  }, [categories]);
+
+  if (!displayCategories.length) return null;
+
   return (
-    <nav aria-label="Browse categories" className="bg-fv-page px-2 py-3 sm:px-6 sm:py-6 lg:px-10">
-      {/* Covers space evenly across phone screen, scrolling smoothly if categories overflow */}
-      <ul className="mx-auto flex w-full max-w-[1500px] items-center justify-evenly gap-1 overflow-x-auto pb-1 sm:justify-center sm:gap-2 sm:pb-2
-                     [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        {categories.map((c) => (
-          <Tile key={c._id} category={c} active={c._id === activeId || c.slug === activeId} onSelect={onSelect} />
-        ))}
-      </ul>
-    </nav>
+    <div className="relative bg-[#FFF3D9]">
+      <nav aria-label="Browse categories" className="px-1.5 pt-3 pb-2 min-[360px]:px-2 min-[360px]:pt-3.5 min-[360px]:pb-2.5 sm:px-6 sm:pt-6 sm:pb-4 lg:px-10">
+        <div className="mx-auto max-w-[1500px]">
+          <ul className="flex items-center justify-center gap-1.5 min-[360px]:gap-2.5 sm:gap-6 md:gap-8 overflow-x-auto pb-1 sm:pb-2
+                         [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-full">
+            {displayCategories.map((c) => (
+              <Tile 
+                key={c._id || c.slug} 
+                category={c} 
+                active={
+                  Boolean(activeId) && (
+                    String(c._id) === String(activeId) ||
+                    (c.slug && c.slug.toLowerCase() === String(activeId).toLowerCase()) ||
+                    (c.name && c.name.toLowerCase() === String(activeId).toLowerCase())
+                  )
+                } 
+                onSelect={onSelect} 
+              />
+            ))}
+          </ul>
+        </div>
+      </nav>
+
+      {/* Bottom Subtle Divider Line */}
+      <div 
+        className="w-full h-px bg-[#EAD8B5]/80"
+        aria-hidden="true"
+      />
+    </div>
   );
 };
 

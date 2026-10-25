@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Leaf } from 'lucide-react';
 import api from '../../utils/api';
 
 /**
@@ -94,6 +94,10 @@ const PromoTile = ({
           alt={title || ''}
           loading="lazy"
           decoding="async"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = '/sandbox-assets/banners/organic_fertilizer_promo.webp';
+          }}
           className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
         />
       )}
@@ -102,7 +106,7 @@ const PromoTile = ({
       <div className="absolute inset-0 flex flex-col items-start justify-center gap-2 sm:gap-3 p-5 sm:p-8 md:p-10 text-left max-w-xl z-10">
         {tag && (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ffd029] text-[#0a4c36] text-[11px] font-bold uppercase tracking-wider shadow-xs">
-            <Sparkles className="w-3.5 h-3.5 text-[#0a4c36]" />
+            <Leaf className="w-3.5 h-3.5 text-[#0a4c36]" />
             {tag}
           </span>
         )}

@@ -342,7 +342,7 @@ export default function AdminSettings() {
                   <div className="sm:col-span-2 pt-4 border-t border-fv-border">
                     <div className="mb-4">
                       <h3 className="text-base font-bold text-fv-heading flex items-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-fv-primary" /> Storefront Trust Pillars (Ugaoo Bar)
+                        <CheckCircle2 className="w-5 h-5 text-fv-primary" /> Storefront Quality & Trust Pillars
                       </h3>
                       <p className="text-xs text-fv-muted mt-0.5">
                         Customize the 4 signature trust badges shown on the homepage beneath categories.

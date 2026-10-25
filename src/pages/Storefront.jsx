@@ -3,21 +3,23 @@ import CategoryCircleRow from '../components/storefront/CategoryCircleRow';
 import FilterSortBar from '../components/storefront/FilterSortBar';
 import ProductCardV2 from '../components/storefront/ProductCardV2';
 import PageLoader from '../components/PageLoader';
-import PromoTile from '../components/storefront/PromoTile';
 import SupportCta from '../components/storefront/SupportCta';
+import GardeningGuides from '../components/storefront/GardeningGuides';
+import CustomerTestimonials from '../components/storefront/CustomerTestimonials';
+import FeatureSpotlight from '../components/storefront/FeatureSpotlight';
+import FAQAccordion from '../components/storefront/FAQAccordion';
 import Pagination from '../components/Pagination';
+import TrustBadgesBar from '../components/storefront/TrustBadgesBar';
+import FarmToHome from '../components/storefront/FarmToHome';
+import ComparisonMatrix from '../components/storefront/ComparisonMatrix';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Upload, X, ShoppingBag, Search, Sprout, Truck, ShieldCheck, Clock } from 'lucide-react';
+import { Plus, Upload, X, ShoppingBag, Search } from 'lucide-react';
 import api, { cachedGet } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { useSettings } from '../context/SettingsContext';
 
 const Storefront = () => {
-  const { settings } = useSettings();
-  const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 499;
-  const pillars = settings?.store?.trustPillars;
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,21 +36,6 @@ const Storefront = () => {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [middleBanner, setMiddleBanner] = useState(null);
-
-  useEffect(() => {
-    let alive = true;
-    api.get('/banners/active', { params: { position: 'middle' } })
-      .then((res) => {
-        if (!alive) return;
-        const list = res.data?.data;
-        if (Array.isArray(list) && list.length > 0) {
-          setMiddleBanner(list[0]);
-        }
-      })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, []);
 
   // Admin combo modal states
   const [showComboModal, setShowComboModal] = useState(false);
@@ -142,7 +129,7 @@ const Storefront = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await cachedGet('/categories');
+      const response = await cachedGet('/categories', { force: true });
       const categoriesData = response.data?.data || response.data || [];
       setCategories(Array.isArray(categoriesData) ? categoriesData : []);
     } catch (error) {
@@ -152,17 +139,17 @@ const Storefront = () => {
   };
 
   const handleFilterChange = (field, value) => {
-    setFilters({ ...filters, [field]: value });
+    setFilters(prev => ({ ...prev, [field]: value }));
     setPage(1);
     
-    // Update URL params for category
-    if (field === 'category') {
-      if (value) {
-        setSearchParams({ category: value });
-      } else {
-        setSearchParams({});
-      }
+    // Update URL params so back/forward browser navigation and page refreshes preserve state
+    const newParams = new URLSearchParams(searchParams);
+    if (value) {
+      newParams.set(field, value);
+    } else {
+      newParams.delete(field);
     }
+    setSearchParams(newParams);
   };
 
   // Admin Functions
@@ -286,82 +273,37 @@ const Storefront = () => {
 
   const hasExtraFilters = filters.search || filters.season;
 
-  // Authentic plant nutrition visual: prioritize catalog fertilizer/soil photo, fallback to high-res organic gardening visual
-  const promoImage = products.find((p) => /fertilizer|compost|soil|nutrition|food|care/i.test(p.name) && p.images?.[0])?.images?.[0]
-    || 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=2000&q=80';
 
-  // Dynamic promotional banner resolution (from admin backend or organic plant nutrition default)
-  const fertilizerCategory = categories.find(
-    (c) => c.slug === 'fertilizers' || /fertilizer/i.test(c.name)
-  );
-
-  const dynamicPromo = middleBanner ? {
-    title: middleBanner.title,
-    tag: middleBanner.description || 'Organic Plant Nutrition',
-    cta: 'Shop now',
-    to: middleBanner.linkUrl || (fertilizerCategory ? `/?category=${fertilizerCategory._id}` : '/#catalogue-heading'),
-    image: middleBanner.imageUrl || promoImage,
-    bannerId: middleBanner._id,
-  } : {
-    title: 'Feed your plants right with our organic fertilizers',
-    tag: 'Organic Plant Nutrition',
-    cta: 'Shop now',
-    to: fertilizerCategory ? `/?category=${fertilizerCategory._id}` : '/?category=fertilizers',
-    image: promoImage,
-    bannerId: null,
-  };
-
-  const handlePromoRedirect = (targetUrl) => {
-    if (!targetUrl) return;
-
-    // Check if targetUrl contains a category query param
-    const catMatch = targetUrl.match(/[?&]category=([^&#]+)/);
-    if (catMatch) {
-      const catVal = decodeURIComponent(catMatch[1]);
-      handleFilterChange('category', catVal);
-      const target = document.getElementById('catalogue-heading');
-      if (target) target.scrollIntoView({ behavior: 'smooth' });
-      return;
-    }
-
-    if (targetUrl.startsWith('#')) {
-      const target = document.querySelector(targetUrl);
-      if (target) target.scrollIntoView({ behavior: 'smooth' });
-      return;
-    }
-
-    if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
-      window.open(targetUrl, '_blank', 'noopener,noreferrer');
-      return;
-    }
-
-    navigate(targetUrl);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   return (
     <div className="bg-fv-page">
       <CollectionBanner />
 
-      {/* Mobile-First Search Bar: Always visible near the top on mobile, completely separate from filter drawer */}
-      <div className="px-4 pt-3 pb-1 sm:px-6 lg:hidden">
+      <CategoryCircleRow
+        categories={categories}
+        activeId={filters.category}
+        onSelect={(id) => handleFilterChange('category', id)}
+      />
+
+      {/* Mobile-First Search Bar: Quick in-catalogue search on mobile screens */}
+      <div className="px-4 pt-2.5 pb-1 sm:px-6 lg:hidden">
         <div className="mx-auto max-w-[1500px]">
           <div className="relative flex items-center">
-            <Search className="pointer-events-none absolute left-4 h-4 w-4 text-fv-muted" aria-hidden="true" />
+            <Search className="pointer-events-none absolute left-4 h-4 w-4 text-fv-primary/60" aria-hidden="true" />
             <input
               id="mobile-shop-search"
               type="search"
               value={filters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
-              placeholder="Search for seeds, soil, tools…"
-              className="h-11 w-full rounded-full border border-fv-border bg-white pl-11 pr-10 text-[14px] text-fv-heading shadow-xs
-                         placeholder:text-fv-muted focus:border-fv-primary focus:outline-none focus:ring-2 focus:ring-fv-primary/20"
+              placeholder="Search plants, seeds, planters, soil…"
+              className="h-10 w-full rounded-full border border-[#E8D7B8] bg-[#F4E6C6]/60 pl-11 pr-10 text-[13px] text-[#0A4C36] shadow-xs
+                         placeholder:text-[#0A4C36]/60 focus:bg-white focus:border-[#0A4C36] focus:outline-none focus:ring-2 focus:ring-[#0A4C36]/20 transition-all"
             />
             {filters.search && (
               <button
                 type="button"
                 onClick={() => handleFilterChange('search', '')}
-                className="absolute right-3 flex h-7 w-7 items-center justify-center rounded-full text-fv-muted hover:text-fv-heading focus:outline-none"
+                className="absolute right-3 flex h-7 w-7 items-center justify-center rounded-full text-fv-primary/70 hover:text-fv-primary focus:outline-none"
                 aria-label="Clear search"
               >
                 <X className="h-4 w-4" />
@@ -371,71 +313,8 @@ const Storefront = () => {
         </div>
       </div>
 
-      <CategoryCircleRow
-        categories={categories}
-        activeId={filters.category}
-        onSelect={(id) => handleFilterChange('category', id)}
-      />
-
-      {/* Ugaoo Signature Trust Pillars Strip — Controlled via Admin Store Settings (Hidden on mobile phones per user request) */}
-      <div className="hidden md:block border-y border-fv-border/70 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xs py-4 px-4 sm:px-6 lg:px-10">
-        <div className="mx-auto max-w-[1500px] grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 shrink-0 rounded-full bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-fv-primary dark:text-emerald-400">
-              <Sprout className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[13px] sm:text-[14px] font-bold text-fv-heading dark:text-white leading-tight">
-                {pillars?.pillar1Title || '100% Non-GMO'}
-              </p>
-              <p className="text-[11px] sm:text-[12px] text-fv-muted dark:text-gray-400">
-                {pillars?.pillar1Subtitle || 'Heirloom certified seeds'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 shrink-0 rounded-full bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-fv-primary dark:text-emerald-400">
-              <Truck className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[13px] sm:text-[14px] font-bold text-fv-heading dark:text-white leading-tight">
-                {pillars?.pillar2Title || 'Free Delivery'}
-              </p>
-              <p className="text-[11px] sm:text-[12px] text-fv-muted dark:text-gray-400">
-                {pillars?.pillar2Subtitle
-                  ? pillars.pillar2Subtitle.replace('{threshold}', freeDeliveryThreshold)
-                  : `On all orders above ₹${freeDeliveryThreshold}`}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 shrink-0 rounded-full bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-fv-primary dark:text-emerald-400">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[13px] sm:text-[14px] font-bold text-fv-heading dark:text-white leading-tight">
-                {pillars?.pillar3Title || 'High Germination'}
-              </p>
-              <p className="text-[11px] sm:text-[12px] text-fv-muted dark:text-gray-400">
-                {pillars?.pillar3Subtitle || 'Tested & fresh batch'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 shrink-0 rounded-full bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-fv-primary dark:text-emerald-400">
-              <Clock className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[13px] sm:text-[14px] font-bold text-fv-heading dark:text-white leading-tight">
-                {pillars?.pillar4Title || 'Expert Support'}
-              </p>
-              <p className="text-[11px] sm:text-[12px] text-fv-muted dark:text-gray-400">
-                {pillars?.pillar4Subtitle || (settings?.store?.whatsappNumber ? `Gardener help: +91 ${settings.store.whatsappNumber}` : 'Gardener help via WhatsApp')}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Ugaoo Signature Trust Badges Bar */}
+      <TrustBadgesBar />
 
       <FilterSortBar
         count={total}
@@ -526,25 +405,7 @@ const Storefront = () => {
                       onDelete={user?.role === 'admin' ? handleDeleteProduct : undefined}
                     />
                   </motion.div>
-                  {/* Break grid cleanly after 4 products (2 full rows on mobile, 1 full row on desktop) */}
-                  {products.length >= 4 && i === 3 && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.98 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.35, delay: 0.18 }}
-                      className="col-span-2 lg:col-span-3 xl:col-span-4 my-2"
-                    >
-                      <PromoTile
-                        title={dynamicPromo.title}
-                        tag={dynamicPromo.tag}
-                        cta={dynamicPromo.cta}
-                        to={dynamicPromo.to}
-                        image={dynamicPromo.image}
-                        bannerId={dynamicPromo.bannerId}
-                        onCtaClick={handlePromoRedirect}
-                      />
-                    </motion.div>
-                  )}
+
                 </React.Fragment>
               ))}
             </div>
@@ -566,6 +427,18 @@ const Storefront = () => {
           </div>
         )}
       </div>
+
+      <FarmToHome />
+
+      <ComparisonMatrix />
+
+      <FeatureSpotlight />
+
+      <CustomerTestimonials />
+
+      <GardeningGuides />
+
+      <FAQAccordion />
 
       <SupportCta />
 

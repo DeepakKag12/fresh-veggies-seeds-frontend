@@ -11,27 +11,41 @@
  */
 
 export const BANNER = {
-  src: '/sandbox-assets/banner.jpg',
-  // Decorative: the headline lives in real text beside it, not in the image.
-  alt: '',
+  src: '/sandbox-assets/hero/slide_1.webp',
+  alt: 'Bring life to your space',
 };
 
-// Illustration mapped onto the category slugs the API actually returns.
-// Unmapped slugs fall back to the category's own icon character.
+// Illustrated category icons (high-resolution WebP)
 export const CATEGORY_ART = {
-  'vegetable-seeds': '/sandbox-assets/icons/seeds.png',
-  'flower-seeds': '/sandbox-assets/icons/decor.png',
-  'grow-bags': '/sandbox-assets/icons/pots.png',
-  'soil-fertilizers': '/sandbox-assets/icons/soils.png',
-  tools: '/sandbox-assets/icons/tools.png',
-  plants: '/sandbox-assets/icons/plants.png',
-  fertilizers: '/sandbox-assets/icons/fertilisers.png',
-  'watering-solutions': '/sandbox-assets/icons/watering.png',
-  'pest-control': '/sandbox-assets/icons/pest.png',
+  'vegetable-seeds': '/sandbox-assets/icons/seeds.webp',
+  'flower-seeds': '/sandbox-assets/icons/flowers.png',
+  flowers: '/sandbox-assets/icons/flowers.png',
+  'grow-bags': '/sandbox-assets/icons/pots.webp',
+  'soil-fertilizers': '/sandbox-assets/icons/soils.webp',
+  tools: '/sandbox-assets/icons/tools.webp',
+  'garden-tools': '/sandbox-assets/icons/tools.webp',
+  plants: '/sandbox-assets/icons/plants.webp',
+  fertilizers: '/sandbox-assets/icons/fertilisers.webp',
+  fertilisers: '/sandbox-assets/icons/fertilisers.webp',
+  seeds: '/sandbox-assets/icons/seeds.webp',
+  pots: '/sandbox-assets/icons/pots.webp',
+  soils: '/sandbox-assets/icons/soils.webp',
+  'watering-solutions': '/sandbox-assets/icons/watering.webp',
+  'pest-control': '/sandbox-assets/icons/pest.webp',
 };
+
+export const GARLAND_BORDER = '/sandbox-assets/garland-border.png';
+
+export const TRUST_BADGES = [
+  { icon: '/sandbox-assets/trust/tbb_soil.png', title: '90-Day Pre Fertilised Soil', desc: 'Active microbes' },
+  { icon: '/sandbox-assets/trust/tbb_healthy.png', title: 'Arrives Healthy', desc: 'Guaranteed' },
+  { icon: '/sandbox-assets/trust/tbb_replacement.png', title: 'Free Replacement', desc: 'No questions asked' },
+  { icon: '/sandbox-assets/trust/tbb_support.png', title: 'Free Plant Care Support', desc: 'Lifetime guidance' },
+];
 
 export const BADGES = [
   '/sandbox-assets/badges/b1.png',
   '/sandbox-assets/badges/b2.png',
   '/sandbox-assets/badges/b3.png',
 ];
+

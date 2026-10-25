@@ -241,6 +241,28 @@ function AdminReviews() {
                   {/* Review Comment */}
                   <p className="text-fv-ink  mb-3">{review.comment}</p>
 
+                  {/* Customer Uploaded Photos */}
+                  {Array.isArray(review.images) && review.images.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      {review.images.map((imgUrl, imgIdx) => (
+                        <a
+                          key={imgIdx}
+                          href={imgUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group relative block h-16 w-16 overflow-hidden rounded-lg border border-gray-200 hover:border-fv-primary shadow-xs"
+                          title="Click to view full size"
+                        >
+                          <img
+                            src={imgUrl}
+                            alt={`Review upload ${imgIdx + 1}`}
+                            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Review Meta */}
                   <div className="flex flex-wrap items-center gap-4 text-sm text-fv-muted  mb-3">
                     <span className="flex items-center gap-1">

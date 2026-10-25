@@ -1,7 +1,13 @@
 import axios from 'axios';
 import { buildKey, readCache, writeCache, invalidateCache, dedupe, isCacheBypassed } from './cache';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Robust URL normalization: handles trailing slashes and ensures /api prefix
+const resolveApiUrl = () => {
+  const raw = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').trim().replace(/\/+$/, '');
+  return raw.endsWith('/api') ? raw : `${raw}/api`;
+};
+
+const API_URL = resolveApiUrl();
 
 const api = axios.create({
   baseURL: API_URL,
@@ -59,15 +65,17 @@ api.interceptors.response.use(
 
 // ─── Cache invalidation on writes ────────────────────────────────────────────
 // Any successful mutation drops the cached reads for the resource it touched,
-// so an admin who edits a product sees the change immediately instead of
+// so an admin who edits a product or category sees the change immediately instead of
 // waiting out a TTL. Wiring this into the interceptor rather than into each
 // handler means a new mutation can never forget to invalidate.
 //
 // Resources that are never cached (/cart, /orders, /auth, /payments) invalidate
-// a prefix that holds nothing, so this is a no-op for them.
+// a prefix that holds nothing, so this is a safe no-op for them.
 const CASCADE = {
   // A product edit or deletion can change how a combo that includes it renders.
   '/products': ['/combos'],
+  // A category edit can change circle navigation and product taxonomy
+  '/categories': ['/products', '/combos'],
 };
 
 api.interceptors.response.use(
@@ -84,12 +92,27 @@ api.interceptors.response.use(
   (error) => Promise.reject(error)
 );
 
+// Whitelist of public read-heavy prefixes eligible for client-side memory caching.
+// Transactional, private, or write-heavy endpoints (e.g. /orders, /cart, /auth, /payments, /users, /admin)
+// MUST NEVER be cached.
+const CACHEABLE_PREFIXES = [
+  '/categories',
+  '/products',
+  '/combos',
+  '/coupons/active',
+  '/banners/active',
+  '/settings/public',
+];
+
 // Default TTLs, mirroring the Cache-Control max-age the API sends for each
 // resource so the two layers agree on how stale data may get.
 const DEFAULT_TTL = {
-  '/categories': 5 * 60 * 1000,
+  '/categories': 10 * 1000, // 10s so admin circle visibility changes propagate rapidly
   '/combos': 2 * 60 * 1000,
   '/products': 60 * 1000,
+  '/coupons': 60 * 1000,
+  '/banners': 2 * 60 * 1000,
+  '/settings': 5 * 60 * 1000,
 };
 
 /**
@@ -97,8 +120,9 @@ const DEFAULT_TTL = {
  * `{ data }` with the same body shape, so call sites keep using
  * `response.data.data` unchanged.
  *
- * Use ONLY for public catalogue reads. Anything user-specific must stay on
- * plain `api.get`.
+ * Use ONLY for public read-heavy catalogue reads. Anything user-specific or
+ * transactional is automatically rejected by the CACHEABLE_PREFIXES whitelist
+ * and routed to a direct network call.
  *
  * @param {string} url
  * @param {object} [opts]
@@ -107,15 +131,16 @@ const DEFAULT_TTL = {
  * @param {boolean}[opts.force]  - bypass the cache and refetch (e.g. pull to refresh)
  */
 export const cachedGet = (url, { params, ttl, force = false } = {}) => {
+  // Strict guard: verify the endpoint is explicitly marked as cacheable.
+  // Never cache transactional or private routes.
+  const isCacheable = CACHEABLE_PREFIXES.some((prefix) => url.startsWith(prefix));
+  if (!isCacheable || isCacheBypassed()) {
+    return api.get(url, { params }).then((res) => ({ data: res.data }));
+  }
+
   const key = buildKey(url, params);
   const root = '/' + url.replace(/^\//, '').split(/[/?]/)[0];
   const lifetime = ttl ?? DEFAULT_TTL[root] ?? 60 * 1000;
-
-  // Admins mutate the catalogue and must always read their own writes, mirroring
-  // the server rule that skips caching whenever an Authorization header is sent.
-  if (isCacheBypassed()) {
-    return api.get(url, { params }).then((res) => ({ data: res.data }));
-  }
 
   if (!force) {
     const cached = readCache(key);
