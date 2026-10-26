@@ -18,7 +18,7 @@ import {
   ArchiveRestore,
   Store
 } from 'lucide-react';
-import api from '../utils/api';
+import api from '../../utils/api';
 import AdminNotificationBell from './AdminNotificationBell';
 
 const AdminBottomNav = () => {

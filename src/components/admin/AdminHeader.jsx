@@ -27,7 +27,7 @@ import {
 import api from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
-import AdminNotificationBell from '../AdminNotificationBell';
+import AdminNotificationBell from './AdminNotificationBell';
 import AdminCommandPalette from './AdminCommandPalette';
 
 const AdminHeader = () => {

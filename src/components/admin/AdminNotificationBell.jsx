@@ -11,7 +11,7 @@ import {
   RefreshCw,
   CheckCircle
 } from 'lucide-react';
-import api from '../utils/api';
+import api from '../../utils/api';
 
 const AdminNotificationBell = ({ variant = 'topbar' }) => {
   const [open, setOpen] = useState(false);

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { X, Trash2, Heart, ShoppingBag, Sprout, ArrowRight, AlertCircle } from 'lucide-react';
+import { X, Trash2, Heart, ShoppingBag, Sprout, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWishlist } from '../context/WishlistContext';
 import { useCart } from '../context/CartContext';

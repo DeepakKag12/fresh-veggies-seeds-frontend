@@ -7,7 +7,7 @@ import CartDrawer from './components/CartDrawer';
 import WishlistDrawer from './components/WishlistDrawer';
 import Footer from './components/storefront/StorefrontFooter';
 import BottomNav from './components/BottomNav';
-import AdminBottomNav from './components/AdminBottomNav';
+import AdminBottomNav from './components/admin/AdminBottomNav';
 import WhatsAppButton from './components/WhatsAppButton';
 import { useAuth } from './context/AuthContext';
 import { useCart } from './context/CartContext';
@@ -17,8 +17,8 @@ import NotFound from './pages/NotFound';
 import ProductDetailNew from './pages/ProductDetailNew';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
-import LoginPage from './features/auth/pages/LoginPage';
-import RegisterPage from './features/auth/pages/RegisterPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
@@ -43,7 +43,7 @@ import AdminDeleteHistory from './pages/admin/AdminDeleteHistory';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminHeader from './components/admin/AdminHeader';
 import PrivateRoute from './components/PrivateRoute';
-import AdminRoute from './components/AdminRoute';
+import AdminRoute from './components/admin/AdminRoute';
 
 /** Redirects /shop to the storefront, preserving any query string. */
 const ShopRedirect = () => {
