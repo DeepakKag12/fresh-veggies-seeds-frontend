@@ -1,11 +1,15 @@
 import React from 'react';
-import { Search, Package } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Package, Download, ArrowLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useAdminOrders } from '../../hooks/admin/useAdminOrders';
 import { OrderFilterTabs } from '../../components/admin/orders/OrderFilterTabs';
 import { OrderCard } from '../../components/admin/orders/OrderCard';
 import { DeleteHistoryModal } from '../../components/admin/orders/DeleteHistoryModal';
+import { exportOrdersToCsv } from '../../utils/adminCsvExport';
 
 const AdminOrders = () => {
+  const navigate = useNavigate();
   const {
     orders,
     expandedOrderId,
@@ -27,13 +31,51 @@ const AdminOrders = () => {
     handleRejectCancel,
     promptDeleteHistoryItem,
     promptBulkDeleteHistory,
+    promptDeleteOrder,
     closeDeleteModal,
     confirmDeleteHistory,
   } = useAdminOrders();
 
+  const handleExportCsv = () => {
+    try {
+      exportOrdersToCsv(orders, `orders_${statusFilter.toLowerCase()}`);
+      toast.success(`Exported ${orders.length} orders to CSV!`);
+    } catch (err) {
+      toast.error(err.message || 'Export failed');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-fv-page p-3 md:p-6 lg:p-8 pb-28 md:pb-8">
       <div className="max-w-7xl mx-auto space-y-4">
+        {/* Navigation Breadcrumb & Back Action */}
+        <div className="flex items-center gap-2 text-xs font-medium text-fv-muted">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.history.state && window.history.state.idx > 0) {
+                navigate(-1);
+              } else {
+                navigate('/admin/dashboard');
+              }
+            }}
+            className="inline-flex items-center gap-1 hover:text-fv-primary dark:hover:text-emerald-400 transition-colors font-semibold"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back</span>
+          </button>
+          <span>/</span>
+          <button
+            type="button"
+            onClick={() => navigate('/admin/dashboard')}
+            className="hover:text-fv-primary transition-colors"
+          >
+            Dashboard
+          </button>
+          <span>/</span>
+          <span className="text-fv-heading dark:text-white font-semibold">Orders</span>
+        </div>
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -48,7 +90,7 @@ const AdminOrders = () => {
             </p>
           </div>
 
-          {/* Search & Filters */}
+          {/* Search & Actions */}
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-1 sm:w-72">
               <Search className="w-4 h-4 text-fv-muted absolute left-3 top-1/2 -translate-y-1/2" />
@@ -68,6 +110,16 @@ const AdminOrders = () => {
                 Clear
               </button>
             )}
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={!orders || orders.length === 0}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-gray-800 hover:bg-fv-surface dark:hover:bg-gray-700 text-fv-heading border border-fv-border rounded-xl text-xs font-semibold disabled:opacity-40 min-h-[44px] transition-colors shrink-0 shadow-2xs"
+              title="Download orders in CSV spreadsheet format"
+            >
+              <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span className="hidden sm:inline">Export CSV</span>
+            </button>
           </div>
         </div>
 
@@ -113,6 +165,7 @@ const AdminOrders = () => {
                 onRejectCancel={handleRejectCancel}
                 onPromptDeleteHistory={promptDeleteHistoryItem}
                 onPromptBulkDeleteHistory={promptBulkDeleteHistory}
+                onPromptDeleteOrder={promptDeleteOrder}
               />
             ))}
           </div>

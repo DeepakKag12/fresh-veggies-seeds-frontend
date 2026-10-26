@@ -12,9 +12,11 @@ import {
   Ticket,
   Users,
   Layers,
-  Home,
   Settings,
-  ShieldAlert
+  ShieldAlert,
+  ArrowLeft,
+  ArchiveRestore,
+  Store
 } from 'lucide-react';
 import api from '../utils/api';
 import AdminNotificationBell from './AdminNotificationBell';
@@ -43,8 +45,14 @@ const AdminBottomNav = () => {
     return () => clearInterval(interval);
   }, [fetchPendingOrders]);
 
-  const mainNavItems = [
-    { path: '/', label: 'Home', icon: Home },
+  const isDashboard = location.pathname === '/admin/dashboard';
+
+  const mainNavItems = isDashboard ? [
+    { path: '/', label: 'Store', icon: Store },
+    { path: '/admin/orders', label: 'Orders', icon: ClipboardList, badge: pendingCount },
+    { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  ] : [
+    { path: 'back', label: 'Back', icon: ArrowLeft, isBack: true },
     { path: '/admin/orders', label: 'Orders', icon: ClipboardList, badge: pendingCount },
     { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   ];
@@ -71,6 +79,7 @@ const AdminBottomNav = () => {
       title: 'Management & Settings',
       items: [
         { path: '/admin/users', label: 'Customers', icon: Users },
+        { path: '/admin/delete-history', label: 'Delete History', icon: ArchiveRestore },
         { path: '/admin/settings', label: 'Store Settings', icon: Settings },
         { path: '/admin/danger-zone', label: 'Danger Zone', icon: ShieldAlert },
       ]
@@ -153,7 +162,17 @@ const AdminBottomNav = () => {
             return (
               <button
                 key={item.path}
-                onClick={() => navigate(item.path)}
+                onClick={() => {
+                  if (item.isBack) {
+                    if (window.history.state && window.history.state.idx > 0) {
+                      navigate(-1);
+                    } else {
+                      navigate('/admin/dashboard');
+                    }
+                  } else {
+                    navigate(item.path);
+                  }
+                }}
                 className="flex flex-col items-center justify-center flex-1 h-full min-h-[44px] py-1 transition-colors relative"
               >
                 <div className="relative">

@@ -18,12 +18,17 @@ import {
   Menu,
   X,
   UserCheck,
-  Store
+  Store,
+  Search,
+  ArchiveRestore,
+  ArrowLeft,
+  ChevronRight
 } from 'lucide-react';
 import api from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
 import AdminNotificationBell from '../AdminNotificationBell';
+import AdminCommandPalette from './AdminCommandPalette';
 
 const AdminHeader = () => {
   const location = useLocation();
@@ -34,8 +39,21 @@ const AdminHeader = () => {
   const [stats, setStats] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   const userMenuRef = useRef(null);
+
+  // Global Ctrl+K / Cmd+K shortcut listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -151,6 +169,11 @@ const AdminHeader = () => {
       icon: Settings,
     },
     {
+      path: '/admin/delete-history',
+      label: 'Delete History',
+      icon: ArchiveRestore,
+    },
+    {
       path: '/admin/danger-zone',
       label: 'Danger Zone',
       icon: ShieldAlert,
@@ -158,13 +181,57 @@ const AdminHeader = () => {
     },
   ];
 
+  const getPageTitle = (path) => {
+    if (path.includes('/products')) return 'Products';
+    if (path.includes('/orders')) return 'Orders';
+    if (path.includes('/categories')) return 'Categories';
+    if (path.includes('/combos')) return 'Combos & Kits';
+    if (path.includes('/coupons')) return 'Coupons';
+    if (path.includes('/reviews')) return 'Reviews';
+    if (path.includes('/banners')) return 'Banners';
+    if (path.includes('/users')) return 'Customers';
+    if (path.includes('/delete-history')) return 'Delete History';
+    if (path.includes('/danger-zone')) return 'Danger Zone';
+    if (path.includes('/settings')) return 'Store Settings';
+    return 'Dashboard';
+  };
+
   return (
     <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-fv-border shadow-xs">
       {/* Tier 1: Brand Bar & Quick Controls */}
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 border-b border-fv-border/60">
-          {/* Left: Brand Identity */}
-          <div className="flex items-center gap-3">
+          {/* Left: Brand Identity & Back Navigation */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {location.pathname !== '/admin/dashboard' ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.history.state && window.history.state.idx > 0) {
+                    navigate(-1);
+                  } else {
+                    navigate('/admin/dashboard');
+                  }
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-fv-border bg-fv-surface dark:bg-gray-700 hover:bg-fv-border dark:hover:bg-gray-600 text-xs font-bold text-fv-heading dark:text-white transition-all shadow-2xs hover:-translate-x-0.5 active:scale-95 shrink-0"
+                title="Go back to previous page"
+                aria-label="Back"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 text-fv-primary dark:text-emerald-400" />
+                <span className="hidden sm:inline">Back</span>
+              </button>
+            ) : (
+              <Link
+                to="/"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-emerald-600/30 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-xs font-bold text-emerald-800 dark:text-emerald-300 transition-all shadow-2xs hover:-translate-x-0.5 active:scale-95 shrink-0"
+                title="Return to customer storefront"
+                aria-label="Return to Store"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="hidden sm:inline">Store</span>
+              </Link>
+            )}
+
             <Link
               to="/admin/dashboard"
               className="flex items-center gap-2.5 group transition-transform active:scale-95"
@@ -187,15 +254,47 @@ const AdminHeader = () => {
               </div>
             </Link>
 
+            {/* Breadcrumb Trail */}
+            {location.pathname !== '/admin/dashboard' && (
+              <div className="hidden lg:flex items-center gap-1.5 text-xs text-fv-muted font-medium pl-2 border-l border-fv-border/70">
+                <Link
+                  to="/admin/dashboard"
+                  className="hover:text-fv-primary dark:hover:text-emerald-400 transition-colors"
+                >
+                  Dashboard
+                </Link>
+                <ChevronRight className="w-3 h-3 text-gray-400" />
+                <span className="font-bold text-fv-heading dark:text-white">
+                  {getPageTitle(location.pathname)}
+                </span>
+              </div>
+            )}
+
             {/* Live Status Pill */}
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Live Operational</span>
-            </div>
+            {location.pathname === '/admin/dashboard' && (
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Live Operational</span>
+              </div>
+            )}
           </div>
 
           {/* Right: Actions, Alerts & Admin Profile */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Quick Command & Universal Search Trigger */}
+            <button
+              type="button"
+              onClick={() => setCommandPaletteOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium text-fv-muted bg-fv-surface dark:bg-gray-700 hover:text-fv-heading hover:bg-fv-border dark:hover:bg-gray-600 border border-fv-border transition-all"
+              title="Quick search / Spotlight (Ctrl+K)"
+            >
+              <Search className="w-3.5 h-3.5 text-fv-muted" />
+              <span className="hidden md:inline">Search console...</span>
+              <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono font-bold rounded bg-white dark:bg-gray-800 border border-fv-border text-fv-muted">
+                ⌘K
+              </kbd>
+            </button>
+
             {/* View Live Storefront Button */}
             <Link
               to="/"
@@ -398,6 +497,12 @@ const AdminHeader = () => {
           </div>
         </div>
       )}
+
+      {/* Universal Command Palette / Spotlight Modal */}
+      <AdminCommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+      />
     </header>
   );
 };

@@ -1,8 +1,17 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { RefreshCw, CheckCircle, ListOrdered, DollarSign, BarChart2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import {
+  RefreshCw,
+  LayoutDashboard,
+  ListOrdered,
+  DollarSign,
+  BarChart2,
+  ArrowRight,
+  ClipboardList,
+} from 'lucide-react';
 import { useAdminDashboard } from '../../hooks/admin/useAdminDashboard';
 import { DashboardKpiGrid } from '../../components/admin/dashboard/DashboardKpiGrid';
+import { DashboardQuickActions } from '../../components/admin/dashboard/DashboardQuickActions';
 import { UrgentOrdersBanner } from '../../components/admin/dashboard/UrgentOrdersBanner';
 import { RevenueSnapshot } from '../../components/admin/dashboard/RevenueSnapshot';
 import { OrderPipelineSection } from '../../components/admin/dashboard/OrderPipelineSection';
@@ -11,14 +20,13 @@ import { RevenueTab } from '../../components/admin/dashboard/RevenueTab';
 import { AnalyticsTab } from '../../components/admin/dashboard/AnalyticsTab';
 
 const TABS = [
-  { id: 'home',      label: 'Home',      icon: CheckCircle },
-  { id: 'orders',    label: 'Orders',    icon: ListOrdered },
-  { id: 'revenue',   label: 'Revenue',   icon: DollarSign },
-  { id: 'analytics', label: 'Analytics', icon: BarChart2 },
+  { id: 'home',      label: 'Executive Overview',  icon: LayoutDashboard },
+  { id: 'pipeline',  label: 'Order Pipeline',      icon: ListOrdered },
+  { id: 'revenue',   label: 'Revenue & Cashflow',  icon: DollarSign },
+  { id: 'analytics', label: 'Sales Analytics',     icon: BarChart2 },
 ];
 
 const AdminDashboard = () => {
-  const navigate = useNavigate();
   const {
     stats,
     actionLoadingId,
@@ -46,6 +54,7 @@ const AdminDashboard = () => {
     handleQuickStatusChange,
     handleQuickConfirm,
     handleQuickApproveCancel,
+    handleQuickDeleteOrder,
   } = useAdminDashboard();
 
   if (loading) {
@@ -72,33 +81,52 @@ const AdminDashboard = () => {
     );
   }
 
+  const urgentOrderCount = (stats?.pendingOrders || 0) + (stats?.cancellationRequests || 0);
+
   return (
-    <div className="min-h-screen bg-fv-page pb-24 md:pb-6">
+    <div className="min-h-screen bg-fv-page pb-24 md:pb-8">
       {/* Sub-Header + Inner Dashboard Views */}
       <div className="bg-white dark:bg-gray-800 border-b border-fv-border shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-3.5 flex items-center justify-between">
           <div>
-            <h1 className="text-base md:text-lg font-bold text-fv-heading">Executive Dashboard</h1>
+            <h1 className="text-base md:text-lg font-bold text-fv-heading dark:text-white flex items-center gap-2">
+              Executive Dashboard
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold hidden sm:inline">
+                Live Storefront Operational
+              </span>
+            </h1>
             <p className="text-[11px] text-fv-muted">
               {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
               &nbsp;·&nbsp;Real-time store metrics · Auto-refreshes every 30s
             </p>
           </div>
-          <button
-            onClick={() => {
-              fetchDashboardData();
-              if (activeTab === 'revenue') fetchRevenue(period, specificMonth);
-              else if (activeTab === 'analytics') fetchAnalytics(period, specificMonth);
-              else {
-                fetchRevenue(period, specificMonth);
-                fetchAnalytics(period, specificMonth);
-              }
-            }}
-            className="flex items-center gap-1.5 px-3 py-2 bg-fv-surface hover:bg-fv-border text-fv-heading rounded-xl text-xs font-semibold transition-colors min-h-[40px]"
-          >
-            <RefreshCw className="w-3.5 h-3.5 text-fv-primary" />
-            <span className="hidden md:inline">Refresh Data</span>
-          </button>
+
+          <div className="flex items-center gap-2">
+            <Link
+              to="/admin/orders"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 bg-fv-surface hover:bg-fv-border text-fv-heading dark:text-gray-200 rounded-xl text-xs font-semibold transition-colors min-h-[40px]"
+              title="Open full orders workspace"
+            >
+              <ClipboardList className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span>Full Orders ({stats?.totalOrders || 0})</span>
+            </Link>
+
+            <button
+              onClick={() => {
+                fetchDashboardData();
+                if (activeTab === 'revenue') fetchRevenue(period, specificMonth);
+                else if (activeTab === 'analytics') fetchAnalytics(period, specificMonth);
+                else {
+                  fetchRevenue(period, specificMonth);
+                  fetchAnalytics(period, specificMonth);
+                }
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-fv-surface hover:bg-fv-border text-fv-heading dark:text-gray-200 rounded-xl text-xs font-semibold transition-colors min-h-[40px]"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-fv-primary dark:text-emerald-400" />
+              <span className="hidden md:inline">Refresh Data</span>
+            </button>
+          </div>
         </div>
 
         {/* Tab Navigation */}
@@ -108,7 +136,7 @@ const AdminDashboard = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => (tab.id === 'orders' ? navigate('/admin/orders') : setActiveTab(tab.id))}
+                onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 whitespace-nowrap transition-all min-h-[42px] ${
                   isActive
                     ? 'border-fv-primary text-fv-primary dark:text-emerald-400 font-bold'
@@ -117,9 +145,9 @@ const AdminDashboard = () => {
               >
                 <tab.icon className="w-3.5 h-3.5" />
                 {tab.label}
-                {tab.id === 'orders' && (stats.pendingOrders + stats.cancellationRequests) > 0 && (
-                  <span className="ml-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full px-1.5 py-0.5 leading-none">
-                    {stats.pendingOrders + stats.cancellationRequests}
+                {tab.id === 'pipeline' && urgentOrderCount > 0 && (
+                  <span className="ml-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full px-1.5 py-0.5 leading-none animate-pulse">
+                    {urgentOrderCount}
                   </span>
                 )}
               </button>
@@ -129,37 +157,70 @@ const AdminDashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto p-3 md:p-6 space-y-6">
-        {/* HOME TAB */}
+        {/* EXECUTIVE OVERVIEW (HOME) TAB */}
         {activeTab === 'home' && (
           <>
+            {/* Urgent attention banner for pending orders or customer cancellation requests */}
             <UrgentOrdersBanner
               stats={stats}
               actionLoadingId={actionLoadingId}
               onQuickConfirm={handleQuickConfirm}
               onQuickApproveCancel={handleQuickApproveCancel}
             />
+
+            {/* Quick 1-click Management Launchpad Shortcuts */}
+            <DashboardQuickActions stats={stats} />
+
+            {/* High level KPI statistics grid */}
             <DashboardKpiGrid stats={stats} />
+
+            {/* Snapshot of Revenue & Cashflow */}
             <RevenueSnapshot stats={stats} />
+
+            {/* Recent Orders Live Table with In-Place Status Update & Delete */}
             <RecentOrdersTable
               recentOrders={recentOrders}
               actionLoadingId={actionLoadingId}
               showAllOrders={showAllOrders}
               onQuickStatusChange={handleQuickStatusChange}
+              onQuickDeleteOrder={handleQuickDeleteOrder}
             />
           </>
         )}
 
-        {/* ORDERS TAB */}
-        {activeTab === 'orders' && (
-          <>
+        {/* ORDER PIPELINE TAB */}
+        {activeTab === 'pipeline' && (
+          <div className="space-y-6">
+            {/* Top Workspace Banner */}
+            <div className="bg-gradient-to-r from-emerald-900 to-teal-900 text-white rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base font-bold flex items-center gap-2">
+                  <ListOrdered className="w-5 h-5 text-emerald-400" />
+                  Visual Order Fulfillment Funnel
+                </h3>
+                <p className="text-xs text-emerald-100 mt-1">
+                  Track orders across every operational stage from verification to final doorstep delivery
+                </p>
+              </div>
+              <Link
+                to="/admin/orders"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white text-emerald-900 hover:bg-emerald-50 rounded-xl text-xs font-bold transition-all shadow-xs shrink-0"
+              >
+                <span>Full Orders Workspace</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
             <OrderPipelineSection stats={stats} lowStockProducts={lowStockProducts} />
+
             <RecentOrdersTable
               recentOrders={recentOrders}
               actionLoadingId={actionLoadingId}
               showAllOrders={true}
               onQuickStatusChange={handleQuickStatusChange}
+              onQuickDeleteOrder={handleQuickDeleteOrder}
             />
-          </>
+          </div>
         )}
 
         {/* REVENUE TAB */}

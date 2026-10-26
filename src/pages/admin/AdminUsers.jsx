@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Trash2, Phone, Mail, Shield, User, ShoppingBag, X, AlertCircle } from 'lucide-react';
+import { Search, Trash2, Phone, Mail, Shield, User, ShoppingBag, X, AlertCircle, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 import Pagination from '../../components/Pagination';
 import { useNavigate } from 'react-router-dom';
+import AdminConfirmModal from '../../components/admin/AdminConfirmModal';
 
 const AdminUsers = () => {
   const navigate = useNavigate();
@@ -16,6 +17,8 @@ const AdminUsers = () => {
   const [roleModalUser, setRoleModalUser] = useState(null);
   const [selectedRole, setSelectedRole] = useState('customer');
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -61,22 +64,51 @@ const AdminUsers = () => {
     }
   };
 
-  const handleDelete = async (id, name) => {
-    if (!window.confirm(
-      `Deactivate or delete customer "${name}"?\n\nIf they have placed orders, the account is deactivated to preserve financial and audit records.`
-    )) return;
-
+  const handleConfirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    setIsDeleting(true);
     try {
-      const res = await api.delete(`/admin/users/${id}`);
+      const res = await api.delete(`/admin/users/${userToDelete._id}`);
       fetchUsers();
-      toast.success(res.data?.message || 'User status updated successfully');
+      toast.success(res.data?.message || 'Customer account updated successfully');
+      setUserToDelete(null);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to remove user');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 pb-28 md:pb-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6 pb-28 md:pb-6 space-y-4">
+      {/* Navigation Breadcrumb & Back Action */}
+      <div className="flex items-center gap-2 text-xs font-medium text-fv-muted">
+        <button
+          type="button"
+          onClick={() => {
+            if (window.history.state && window.history.state.idx > 0) {
+              navigate(-1);
+            } else {
+              navigate('/admin/dashboard');
+            }
+          }}
+          className="inline-flex items-center gap-1 hover:text-fv-primary dark:hover:text-emerald-400 transition-colors font-semibold"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back</span>
+        </button>
+        <span>/</span>
+        <button
+          type="button"
+          onClick={() => navigate('/admin/dashboard')}
+          className="hover:text-fv-primary transition-colors"
+        >
+          Dashboard
+        </button>
+        <span>/</span>
+        <span className="text-fv-heading dark:text-white font-semibold">Customers</span>
+      </div>
+
       {/* Header & Search */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -213,7 +245,7 @@ const AdminUsers = () => {
                       </button>
                       {u.role !== 'admin' && (
                         <button
-                          onClick={() => handleDelete(u._id, u.name)}
+                          onClick={() => setUserToDelete(u)}
                           className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 text-xs font-semibold"
                           title="Deactivate or Delete"
                         >
@@ -331,7 +363,7 @@ const AdminUsers = () => {
                           </button>
                           {u.role !== 'admin' && (
                             <button
-                              onClick={() => handleDelete(u._id, u.name)}
+                              onClick={() => setUserToDelete(u)}
                               className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                               title="Deactivate or Remove"
                             >
@@ -448,6 +480,25 @@ const AdminUsers = () => {
           </div>
         </div>
       )}
+
+      {/* Customer Deletion / Deactivation Modal */}
+      <AdminConfirmModal
+        isOpen={Boolean(userToDelete)}
+        title="Deactivate or Remove Customer Account?"
+        message={
+          userToDelete
+            ? `Are you sure you want to proceed for "${userToDelete.name || userToDelete.email || 'this user'}"? If they have prior orders, their account will be safely deactivated to preserve accounting records.`
+            : ''
+        }
+        confirmLabel={isDeleting ? 'Processing...' : 'Proceed'}
+        cancelLabel="Keep Account"
+        isDanger={true}
+        isLoading={isDeleting}
+        onConfirm={handleConfirmDeleteUser}
+        onClose={() => {
+          if (!isDeleting) setUserToDelete(null);
+        }}
+      />
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
@@ -20,7 +21,8 @@ import {
   Clock,
   MessageCircle,
   Loader2,
-  Info
+  Info,
+  ArrowLeft
 } from 'lucide-react';
 import api from '../../utils/api';
 import { useSettings } from '../../context/SettingsContext';
@@ -36,6 +38,7 @@ const SECTIONS = [
 ];
 
 export default function AdminSettings() {
+  const navigate = useNavigate();
   const { updateSettings } = useSettings();
   const [activeSection, setActiveSection] = useState('store');
   const [loading, setLoading] = useState(true);
@@ -175,9 +178,37 @@ export default function AdminSettings() {
 
   return (
     <div className="min-h-screen bg-fv-page py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto space-y-4">
+        {/* Navigation Breadcrumb & Back Action */}
+        <div className="flex items-center gap-2 text-xs font-medium text-fv-muted">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.history.state && window.history.state.idx > 0) {
+                navigate(-1);
+              } else {
+                navigate('/admin/dashboard');
+              }
+            }}
+            className="inline-flex items-center gap-1 hover:text-fv-primary dark:hover:text-emerald-400 transition-colors font-semibold"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back</span>
+          </button>
+          <span>/</span>
+          <button
+            type="button"
+            onClick={() => navigate('/admin/dashboard')}
+            className="hover:text-fv-primary transition-colors"
+          >
+            Dashboard
+          </button>
+          <span>/</span>
+          <span className="text-fv-heading dark:text-white font-semibold">Store Settings</span>
+        </div>
+
         {/* Top Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-fv-heading font-serif">Store Settings</h1>
           <p className="text-sm text-fv-muted mt-1">
             Manage business details, shipping fees, orders, inventory alerts, and payment methods easily.

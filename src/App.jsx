@@ -39,6 +39,7 @@ import AdminCoupons from './pages/admin/AdminCoupons';
 import AdminReviews from './pages/admin/AdminReviews';
 import AdminBanners from './pages/admin/AdminBanners';
 import AdminDangerZone from './pages/admin/AdminDangerZone';
+import AdminDeleteHistory from './pages/admin/AdminDeleteHistory';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminHeader from './components/admin/AdminHeader';
 import PrivateRoute from './components/PrivateRoute';
@@ -137,18 +138,29 @@ function App() {
           <Route path="/order/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
           <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
 
-          {/* Admin Routes */}
+          {/* Admin Routes & Convenience Aliases */}
+          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="/admin/login" element={<Navigate to="/login" replace />} />
           <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
+          <Route path="/admin/inventory" element={<Navigate to="/admin/products" replace />} />
           <Route path="/admin/categories" element={<AdminRoute><AdminCategories /></AdminRoute>} />
           <Route path="/admin/combos" element={<AdminRoute><AdminCombos /></AdminRoute>} />
           <Route path="/admin/orders" element={<AdminRoute><AdminOrders /></AdminRoute>} />
+          <Route path="/admin/orders/:id" element={<AdminRoute><OrderDetail /></AdminRoute>} />
+          <Route path="/admin/order/:id" element={<AdminRoute><OrderDetail /></AdminRoute>} />
           <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+          <Route path="/admin/customers" element={<Navigate to="/admin/users" replace />} />
           <Route path="/admin/coupons" element={<AdminRoute><AdminCoupons /></AdminRoute>} />
           <Route path="/admin/reviews" element={<AdminRoute><AdminReviews /></AdminRoute>} />
           <Route path="/admin/banners" element={<AdminRoute><AdminBanners /></AdminRoute>} />
+          <Route path="/admin/delete-history" element={<AdminRoute><AdminDeleteHistory /></AdminRoute>} />
+          <Route path="/admin/audit-logs" element={<Navigate to="/admin/delete-history" replace />} />
+          <Route path="/admin/history" element={<Navigate to="/admin/delete-history" replace />} />
           <Route path="/admin/danger-zone" element={<AdminRoute><AdminDangerZone /></AdminRoute>} />
           <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
+          <Route path="/admin/profile" element={<Navigate to="/admin/settings" replace />} />
+          <Route path="/admin/*" element={<Navigate to="/admin/dashboard" replace />} />
 
           {/* Catch-all — must stay last. */}
           <Route path="*" element={<NotFound />} />

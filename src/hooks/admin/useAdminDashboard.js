@@ -180,6 +180,20 @@ export function useAdminDashboard() {
     }
   };
 
+  const handleQuickDeleteOrder = async (orderId) => {
+    setActionLoadingId(orderId);
+    try {
+      await api.delete(`/orders/${orderId}`);
+      toast.success('Order deleted successfully!');
+      fetchDashboardData();
+      fetchRevenue(period, specificMonth);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete order');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   return {
     stats,
     actionLoadingId,
@@ -208,5 +222,6 @@ export function useAdminDashboard() {
     handleQuickStatusChange,
     handleQuickConfirm,
     handleQuickApproveCancel,
+    handleQuickDeleteOrder,
   };
 }

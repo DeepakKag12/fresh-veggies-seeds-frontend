@@ -10,10 +10,19 @@ import {
   RefreshCw,
   CheckCircle2,
   PackageCheck,
+  Trash2,
+  Printer,
+  Phone,
+  MessageCircle,
+  Copy,
+  Check
 } from 'lucide-react';
 import { ALL_STATUS_OPTIONS, NEXT_PRIMARY_ACTION } from '../../../config/adminOrderConfig';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { OrderHistoryTimeline } from './OrderHistoryTimeline';
+import AdminInvoiceModal from './AdminInvoiceModal';
+import DispatchModal from './DispatchModal';
+import { useSettings } from '../../../context/SettingsContext';
 
 export const OrderCard = ({
   order,
@@ -24,22 +33,49 @@ export const OrderCard = ({
   onRejectCancel,
   onPromptDeleteHistory,
   onPromptBulkDeleteHistory,
+  onPromptDeleteOrder,
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [processing, setProcessing] = useState(false);
   const [customNote, setCustomNote] = useState('');
+  const [showInvoice, setShowInvoice] = useState(false);
+  const [showDispatchModal, setShowDispatchModal] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState(false);
 
+  const { settings } = useSettings();
   const primaryAction = NEXT_PRIMARY_ACTION[order.orderStatus];
 
-  const handleStatusChange = async (newStatus, note) => {
-    if (newStatus === order.orderStatus) return;
+  const handleStatusChange = async (newStatus, note, shipping) => {
+    if (newStatus === order.orderStatus && !shipping) return;
+    if (newStatus === 'Shipped' && !shipping && !order.shipping?.awbNumber) {
+      setShowDispatchModal(true);
+      return;
+    }
     setIsUpdating(true);
-    await onUpdateStatus(order._id, newStatus, note || customNote);
+    await onUpdateStatus(order._id, newStatus, note || customNote, shipping);
     setIsUpdating(false);
     setCustomNote('');
   };
+
+  const handleCopyAddress = (e) => {
+    e.stopPropagation();
+    const addr = `${order.shippingAddress?.name || ''}, ${order.shippingAddress?.addressLine1 || order.shippingAddress?.street || ''}, ${order.shippingAddress?.city || ''}, ${order.shippingAddress?.state || ''} - ${order.shippingAddress?.pincode || ''}. Phone: ${order.shippingAddress?.phone || ''}`;
+    navigator.clipboard.writeText(addr);
+    setCopiedAddress(true);
+    toast.success('Address copied to clipboard!');
+    setTimeout(() => setCopiedAddress(false), 2000);
+  };
+
+  const customerPhone = order.shippingAddress?.phone || order.userId?.phone;
+  const sanitizedPhone = customerPhone ? String(customerPhone).replace(/\D/g, '').slice(-10) : '';
+  const orderNum = order.orderNumber || order._id.slice(-6).toUpperCase();
+  const whatsappUrl = sanitizedPhone
+    ? `https://wa.me/91${sanitizedPhone}?text=${encodeURIComponent(
+        `Hello ${order.shippingAddress?.name || 'Customer'}, this is Fresh Veggies regarding your order #${orderNum}. Current status: ${order.orderStatus}. Total: ₹${order.totalAmount}. Thank you!`
+      )}`
+    : null;
 
   const handleApprove = async () => {
     setProcessing(true);
@@ -161,6 +197,28 @@ export const OrderCard = ({
                 </select>
               </div>
 
+              {/* Print Packing Slip / Invoice */}
+              <button
+                type="button"
+                onClick={() => setShowInvoice(true)}
+                className="p-2.5 text-fv-muted hover:text-fv-heading hover:bg-fv-surface dark:hover:bg-gray-700 rounded-xl min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors border border-fv-border"
+                title="Print Packing Slip / Tax Invoice"
+              >
+                <Printer className="w-4 h-4 text-fv-primary" />
+              </button>
+
+              {/* Quick Delete Order Action */}
+              {onPromptDeleteOrder && (
+                <button
+                  type="button"
+                  onClick={() => onPromptDeleteOrder(order)}
+                  className="p-2.5 text-fv-muted hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors"
+                  title="Delete order"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+
               {/* Accordion expand toggle */}
               <button
                 onClick={onToggleExpand}
@@ -187,15 +245,33 @@ export const OrderCard = ({
             {/* Customer & Delivery Address */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-fv-border">
-                <h4 className="text-xs font-bold text-fv-muted uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-fv-primary" /> Customer Info
-                </h4>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-bold text-fv-muted uppercase tracking-wider flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-fv-primary" /> Customer Info
+                  </h4>
+                  {whatsappUrl && (
+                    <a
+                      href={whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-[11px] font-semibold border border-emerald-200 transition-colors"
+                      title="Chat on WhatsApp"
+                    >
+                      <MessageCircle className="w-3 h-3 text-emerald-600" />
+                      <span>WhatsApp</span>
+                    </a>
+                  )}
+                </div>
                 <div className="text-sm space-y-1">
                   <p className="font-semibold text-fv-heading">
                     {order.userId?.name || order.shippingAddress?.name || 'Customer'}
                   </p>
-                  <p className="text-xs text-fv-muted">
-                    Phone: <a href={`tel:${order.shippingAddress?.phone || order.userId?.phone}`} className="text-fv-primary font-medium hover:underline">{order.shippingAddress?.phone || order.userId?.phone || 'N/A'}</a>
+                  <p className="text-xs text-fv-muted flex items-center gap-1.5">
+                    <span>Phone:</span>
+                    <a href={`tel:${order.shippingAddress?.phone || order.userId?.phone}`} className="text-fv-primary font-medium hover:underline flex items-center gap-1">
+                      <Phone className="w-3 h-3" />
+                      {order.shippingAddress?.phone || order.userId?.phone || 'N/A'}
+                    </a>
                   </p>
                   {order.userId?.email && (
                     <p className="text-xs text-fv-muted">Email: {order.userId.email}</p>
@@ -204,9 +280,20 @@ export const OrderCard = ({
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-fv-border">
-                <h4 className="text-xs font-bold text-fv-muted uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-blue-600" /> Delivery Address
-                </h4>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-bold text-fv-muted uppercase tracking-wider flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-blue-600" /> Delivery Address
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={handleCopyAddress}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-fv-surface hover:bg-fv-border text-fv-heading text-[11px] font-semibold border border-fv-border transition-colors"
+                    title="Copy full address"
+                  >
+                    {copiedAddress ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-fv-muted" />}
+                    <span>{copiedAddress ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
                 <div className="text-xs text-fv-heading leading-relaxed">
                   <p>{order.shippingAddress?.addressLine1 || order.shippingAddress?.street || 'N/A'}</p>
                   {order.shippingAddress?.addressLine2 && <p>{order.shippingAddress.addressLine2}</p>}
@@ -370,9 +457,52 @@ export const OrderCard = ({
                 )}
               </div>
             )}
+
+            {/* Administrative Management Panel */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-fv-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h4 className="text-xs font-bold text-fv-heading dark:text-white flex items-center gap-1.5">
+                  <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                  Order Management & Purge
+                </h4>
+                <p className="text-[11px] text-fv-muted mt-0.5">
+                  Permanently remove this order record (test transactions or spam). Restores any decremented inventory.
+                </p>
+              </div>
+              {onPromptDeleteOrder && (
+                <button
+                  type="button"
+                  onClick={() => onPromptDeleteOrder(order)}
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-900/60 border border-red-200 dark:border-red-900/40 flex items-center justify-center gap-1.5 transition-colors min-h-[40px] shrink-0"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Order</span>
+                </button>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Printable Tax Invoice Modal */}
+      <AdminInvoiceModal
+        isOpen={showInvoice}
+        onClose={() => setShowInvoice(false)}
+        order={order}
+        settings={settings}
+      />
+
+      {/* Dispatch & Carrier Assignment Modal */}
+      <DispatchModal
+        isOpen={showDispatchModal}
+        onClose={() => setShowDispatchModal(false)}
+        order={order}
+        onConfirm={async ({ courierName, awbNumber, trackingUrl, note }) => {
+          setShowDispatchModal(false);
+          await handleStatusChange('Shipped', note, { courierName, awbNumber, trackingUrl });
+        }}
+        isSubmitting={isUpdating}
+      />
     </motion.div>
   );
 };

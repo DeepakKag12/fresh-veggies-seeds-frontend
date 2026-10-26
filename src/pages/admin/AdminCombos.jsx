@@ -1,13 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Edit, Trash2, Plus, X, Upload, ShoppingBag } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { Edit, Trash2, Plus, X, Upload, ShoppingBag, ArrowLeft } from 'lucide-react';
 import api, { fetchAllPages } from '../../utils/api';
+import AdminConfirmModal from '../../components/admin/AdminConfirmModal';
 
 const AdminCombos = () => {
+  const navigate = useNavigate();
   const [combos, setCombos] = useState([]);
   const [products, setProducts] = useState([]);
   const [open, setOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [currentCombo, setCurrentCombo] = useState(null);
+  const [comboToDelete, setComboToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreview, setImagePreview] = useState([]);
@@ -180,24 +186,55 @@ const AdminCombos = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this combo?')) {
-      try {
-        await api.delete(`/combos/${id}`);
-        fetchCombos();
-        alert('Combo deleted successfully!');
-      } catch (error) {
-        alert('Failed to delete combo');
-      }
+  const handleConfirmDeleteCombo = async () => {
+    if (!comboToDelete) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/combos/${comboToDelete._id}`);
+      fetchCombos();
+      toast.success(`Combo "${comboToDelete.name}" deleted successfully!`);
+      setComboToDelete(null);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete combo');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-fv-page  py-8">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen bg-fv-page py-8">
+      <div className="container mx-auto px-4 space-y-4">
+        {/* Navigation Breadcrumb & Back Action */}
+        <div className="flex items-center gap-2 text-xs font-medium text-fv-muted">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.history.state && window.history.state.idx > 0) {
+                navigate(-1);
+              } else {
+                navigate('/admin/dashboard');
+              }
+            }}
+            className="inline-flex items-center gap-1 hover:text-fv-primary dark:hover:text-emerald-400 transition-colors font-semibold"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back</span>
+          </button>
+          <span>/</span>
+          <button
+            type="button"
+            onClick={() => navigate('/admin/dashboard')}
+            className="hover:text-fv-primary transition-colors"
+          >
+            Dashboard
+          </button>
+          <span>/</span>
+          <span className="text-fv-heading dark:text-white font-semibold">Combos & Kits</span>
+        </div>
+
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-fv-heading ">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-fv-heading">
             Manage Combo Packs
           </h1>
           <button
@@ -262,8 +299,9 @@ const AdminCombos = () => {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(combo._id)}
+                    onClick={() => setComboToDelete(combo)}
                     className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+                    title="Delete combo"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -547,6 +585,26 @@ const AdminCombos = () => {
             </div>
           </div>
         )}
+
+        {/* Enterprise Delete Confirmation Modal */}
+        <AdminConfirmModal
+          isOpen={Boolean(comboToDelete)}
+          title="Delete Combo Package?"
+          message={
+            comboToDelete ? (
+              <p>
+                Are you sure you want to permanently delete combo{' '}
+                <strong className="text-fv-heading dark:text-white">"{comboToDelete.name}"</strong>?
+                This will remove the package offer from the storefront. Individual product inventory will remain intact.
+              </p>
+            ) : null
+          }
+          confirmText="Yes, Delete Combo"
+          confirmVariant="danger"
+          isLoading={isDeleting}
+          onConfirm={handleConfirmDeleteCombo}
+          onClose={() => setComboToDelete(null)}
+        />
       </div>
     </div>
   );

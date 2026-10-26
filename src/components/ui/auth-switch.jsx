@@ -54,43 +54,44 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
 
   // If already authenticated as admin, redirect to admin dashboard
   useEffect(() => {
-    if (user?.role === 'admin') {
+    const isUserAdmin = user?.role === 'admin' || (typeof user?.role === 'string' && user.role.toLowerCase() === 'admin');
+    if (isUserAdmin) {
       const nextParam = new URLSearchParams(location.search).get('next');
       const from = location.state?.from;
-      if (nextParam && nextParam.startsWith('/admin')) {
+      const fromPath = typeof from === 'string' ? from : from?.pathname;
+
+      if (nextParam && nextParam.startsWith('/admin') && nextParam !== '/admin' && nextParam !== '/admin/') {
         navigate(nextParam, { replace: true });
-      } else if (typeof from === 'string' && from.startsWith('/admin')) {
-        navigate(from, { replace: true });
+      } else if (fromPath && fromPath.startsWith('/admin') && fromPath !== '/admin' && fromPath !== '/admin/') {
+        const fullTarget = fromPath + (from?.search || '') + (from?.hash || '');
+        navigate(fullTarget, { replace: true });
       } else {
-        navigate('/admin', { replace: true });
+        navigate('/admin/dashboard', { replace: true });
       }
     }
   }, [user, location, navigate]);
 
-  // Destination redirect helper: redirects admin to /admin dashboard
+  // Destination redirect helper: redirects admin to /admin/dashboard
   const navigateToDestination = (loggedInUser) => {
     const targetUser = loggedInUser || user;
-    const isUserAdmin = targetUser?.role === 'admin';
+    const isUserAdmin = targetUser?.role === 'admin' || (typeof targetUser?.role === 'string' && targetUser.role.toLowerCase() === 'admin');
 
     const nextParam = new URLSearchParams(location.search).get('next');
     const from = location.state?.from;
+    const fromPath = typeof from === 'string' ? from : from?.pathname;
 
-    // If logging in as admin, route directly to the admin dashboard
+    // If logging in as admin, route directly to the admin dashboard or targeted admin screen
     if (isUserAdmin) {
-      if (nextParam && nextParam.startsWith('/admin')) {
+      if (nextParam && nextParam.startsWith('/admin') && nextParam !== '/admin' && nextParam !== '/admin/') {
         navigate(nextParam, { replace: true });
         return;
       }
-      if (typeof from === 'string' && from.startsWith('/admin')) {
-        navigate(from, { replace: true });
-        return;
-      }
-      if (typeof from === 'object' && from.pathname && from.pathname.startsWith('/admin')) {
-        const fullTarget = (from.pathname || '/admin') + (from.search || '') + (from.hash || '');
+      if (fromPath && fromPath.startsWith('/admin') && fromPath !== '/admin' && fromPath !== '/admin/') {
+        const fullTarget = fromPath + (from?.search || '') + (from?.hash || '');
         navigate(fullTarget, { replace: true });
         return;
       }
-      navigate('/admin', { replace: true });
+      navigate('/admin/dashboard', { replace: true });
       return;
     }
 
@@ -236,11 +237,14 @@ export default function AuthSwitch({ initialMode = 'signin' }) {
           type="button"
           onClick={() => {
             const from = location.state?.from;
-            if (from) {
+            const fromPath = typeof from === 'string' ? from : from?.pathname;
+            // If the user was redirected here from a protected admin route, going "back"
+            // must NOT navigate back to that protected admin route (which would cause an immediate bounce loop)
+            if (fromPath && !fromPath.startsWith('/admin')) {
               if (typeof from === 'string') navigate(from);
               else if (from.pathname) navigate((from.pathname || '/') + (from.search || '') + (from.hash || ''));
-              else navigate(-1);
-            } else if (window.history.length > 1) {
+              else navigate('/');
+            } else if (window.history.state && window.history.state.idx > 0) {
               navigate(-1);
             } else {
               navigate('/');

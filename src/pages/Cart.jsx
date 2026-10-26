@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Minus, Trash2, ShoppingBag, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Plus, Minus, Trash2, ShoppingBag, ArrowRight, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
 
@@ -58,9 +58,27 @@ const Cart = () => {
     <div className="min-h-screen bg-fv-page pt-20 pb-28">
         {removedNotice}
       <div className="container mx-auto px-3 sm:px-4">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-fv-heading mb-6">
-          Shopping Cart
-        </h1>
+        <div className="flex items-center justify-between gap-3 mb-6">
+          <div className="flex items-center gap-3">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-fv-border bg-white hover:bg-fv-surface text-xs font-semibold text-fv-heading transition-colors shadow-2xs"
+              title="Return to shop"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-fv-primary" />
+              <span>Back to Shop</span>
+            </Link>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-fv-heading">
+              Shopping Cart
+            </h1>
+          </div>
+          <Link
+            to="/"
+            className="text-xs sm:text-sm font-semibold text-fv-primary hover:underline hidden sm:inline"
+          >
+            Continue Shopping →
+          </Link>
+        </div>
 
         <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
           <div className="lg:col-span-2 space-y-3 sm:space-y-4">

@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Edit2, Trash2, Eye, MousePointer, Calendar, Image, Link as LinkIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, MousePointer, Calendar, Image, Link as LinkIcon, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
+import AdminConfirmModal from '../../components/admin/AdminConfirmModal';
 
 function AdminBanners() {
+  const navigate = useNavigate();
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [editingBanner, setEditingBanner] = useState(null);
+  const [bannerToDelete, setBannerToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -120,18 +125,19 @@ function AdminBanners() {
     }
   };
 
-  const handleDelete = async (bannerId) => {
-    if (!window.confirm('Are you sure you want to delete this banner?')) {
-      return;
-    }
-
+  const handleConfirmDeleteBanner = async () => {
+    if (!bannerToDelete) return;
+    setIsDeleting(true);
     try {
-      await api.delete(`/banners/${bannerId}`);
+      await api.delete(`/banners/${bannerToDelete._id}`);
       toast.success('Banner deleted successfully!');
+      setBannerToDelete(null);
       fetchBanners();
     } catch (error) {
       console.error('Error deleting banner:', error);
-      toast.error('Failed to delete banner');
+      toast.error(error.response?.data?.message || 'Failed to delete banner');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -172,11 +178,39 @@ function AdminBanners() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="container mx-auto px-4 py-8 space-y-4">
+      {/* Navigation Breadcrumb & Back Action */}
+      <div className="flex items-center gap-2 text-xs font-medium text-fv-muted">
+        <button
+          type="button"
+          onClick={() => {
+            if (window.history.state && window.history.state.idx > 0) {
+              navigate(-1);
+            } else {
+              navigate('/admin/dashboard');
+            }
+          }}
+          className="inline-flex items-center gap-1 hover:text-fv-primary dark:hover:text-emerald-400 transition-colors font-semibold"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back</span>
+        </button>
+        <span>/</span>
+        <button
+          type="button"
+          onClick={() => navigate('/admin/dashboard')}
+          className="hover:text-fv-primary transition-colors"
+        >
+          Dashboard
+        </button>
+        <span>/</span>
+        <span className="text-fv-heading dark:text-white font-semibold">Banners</span>
+      </div>
+
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-fv-heading  mb-2">Banner Management</h1>
-          <p className="text-fv-muted ">Manage homepage banners and promotional campaigns</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-fv-heading mb-1">Banner Management</h1>
+          <p className="text-fv-muted">Manage homepage banners and promotional campaigns</p>
         </div>
         <button
           onClick={() => handleOpenDialog()}
@@ -302,7 +336,7 @@ function AdminBanners() {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(banner._id)}
+                    onClick={() => setBannerToDelete(banner)}
                     className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -516,6 +550,26 @@ function AdminBanners() {
           </motion.div>
         </div>
       )}
+
+      {/* Enterprise Delete Confirmation Modal */}
+      <AdminConfirmModal
+        isOpen={Boolean(bannerToDelete)}
+        title="Delete Promotional Banner?"
+        message={
+          bannerToDelete ? (
+            <p>
+              Are you sure you want to permanently delete banner{' '}
+              <strong className="text-fv-heading dark:text-white">"{bannerToDelete.title}"</strong>?
+              This will remove the banner image and promotional link from the storefront.
+            </p>
+          ) : null
+        }
+        confirmText="Yes, Delete Banner"
+        confirmVariant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleConfirmDeleteBanner}
+        onClose={() => setBannerToDelete(null)}
+      />
     </div>
   );
 }

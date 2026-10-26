@@ -88,9 +88,11 @@ export function useAdminOrders() {
   }, [searchParams]);
 
   // In-place reactive status update (zero full page reload)
-  const handleUpdateStatus = async (orderId, newStatus, note) => {
+  const handleUpdateStatus = async (orderId, newStatus, note, shipping) => {
     try {
-      const res = await api.put(`/orders/${orderId}/status`, { orderStatus: newStatus, note });
+      const payload = { orderStatus: newStatus, note };
+      if (shipping) payload.shipping = shipping;
+      const res = await api.put(`/orders/${orderId}/status`, payload);
       const updatedOrder = res.data?.data;
       if (updatedOrder) {
         setOrders(prev => prev.map(o => o._id === orderId ? { ...o, ...updatedOrder } : o));
@@ -138,6 +140,7 @@ export function useAdminOrders() {
   const promptDeleteHistoryItem = (orderId, historyId) => {
     setDeleteModal({
       isOpen: true,
+      type: 'history',
       orderId,
       historyId,
       bulkIds: null,
@@ -149,6 +152,7 @@ export function useAdminOrders() {
   const promptBulkDeleteHistory = (orderId, bulkIds) => {
     setDeleteModal({
       isOpen: true,
+      type: 'bulkHistory',
       orderId,
       historyId: null,
       bulkIds,
@@ -157,15 +161,34 @@ export function useAdminOrders() {
     });
   };
 
+  const promptDeleteOrder = (order) => {
+    const orderNum = order.orderNumber || order._id.slice(-6).toUpperCase();
+    setDeleteModal({
+      isOpen: true,
+      type: 'order',
+      orderId: order._id,
+      historyId: null,
+      bulkIds: null,
+      title: `Delete Order #${orderNum}?`,
+      message: `Are you sure you want to permanently delete order #${orderNum} for ${order.shippingAddress?.name || 'Customer'} (₹${order.totalAmount})? Any decremented inventory will automatically be returned to stock.`
+    });
+  };
+
   const closeDeleteModal = () => {
-    setDeleteModal({ isOpen: false, orderId: null, historyId: null, bulkIds: null, title: '', message: '' });
+    setDeleteModal({ isOpen: false, type: null, orderId: null, historyId: null, bulkIds: null, title: '', message: '' });
   };
 
   const confirmDeleteHistory = async () => {
-    const { orderId, historyId, bulkIds } = deleteModal;
+    const { type, orderId, historyId, bulkIds } = deleteModal;
     setIsDeletingHistory(true);
     try {
-      if (bulkIds && bulkIds.length > 0) {
+      if (type === 'order') {
+        const res = await api.delete(`/orders/${orderId}`);
+        setOrders(prev => prev.filter(o => o._id !== orderId));
+        setTotal(t => Math.max(0, t - 1));
+        toast.success(res.data?.message || 'Order deleted successfully');
+        fetchStats();
+      } else if (bulkIds && bulkIds.length > 0) {
         const res = await api.post(`/orders/${orderId}/history/bulk-delete`, { historyIds: bulkIds });
         const newHistory = res.data?.data || [];
         setOrders(prev => prev.map(o => o._id === orderId ? { ...o, statusHistory: newHistory } : o));
@@ -178,7 +201,7 @@ export function useAdminOrders() {
       }
     } catch (error) {
       console.error('Failed to delete history item:', error);
-      toast.error(error.response?.data?.message || 'Failed to delete history entry');
+      toast.error(error.response?.data?.message || 'Failed to complete deletion');
     } finally {
       setIsDeletingHistory(false);
       closeDeleteModal();
@@ -222,6 +245,7 @@ export function useAdminOrders() {
     handleRejectCancel,
     promptDeleteHistoryItem,
     promptBulkDeleteHistory,
+    promptDeleteOrder,
     closeDeleteModal,
     confirmDeleteHistory,
   };

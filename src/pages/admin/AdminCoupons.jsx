@@ -1,15 +1,20 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Edit, Trash2, Tag, Calendar, Percent } from 'lucide-react';
+import { Plus, Edit, Trash2, Tag, Calendar, Percent, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
+import AdminConfirmModal from '../../components/admin/AdminConfirmModal';
 
 const AdminCoupons = () => {
+  const navigate = useNavigate();
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [currentCoupon, setCurrentCoupon] = useState(null);
+  const [couponToDelete, setCouponToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState({
     code: '',
     description: '',
@@ -86,14 +91,18 @@ const AdminCoupons = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this coupon?')) return;
+  const handleConfirmDeleteCoupon = async () => {
+    if (!couponToDelete) return;
+    setIsDeleting(true);
     try {
-      await api.delete(`/coupons/${id}`);
+      await api.delete(`/coupons/${couponToDelete._id}`);
       fetchCoupons();
-      toast.success('Coupon deleted successfully!');
+      toast.success(`Coupon "${couponToDelete.code}" deleted successfully!`);
+      setCouponToDelete(null);
     } catch (error) {
-      toast.error('Failed to delete coupon');
+      toast.error(error.response?.data?.message || 'Failed to delete coupon');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -104,11 +113,39 @@ const AdminCoupons = () => {
   }
 
   return (
-    <div className="min-h-screen bg-fv-page  p-4 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+    <div className="min-h-screen bg-fv-page p-4 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-4">
+        {/* Navigation Breadcrumb & Back Action */}
+        <div className="flex items-center gap-2 text-xs font-medium text-fv-muted">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.history.state && window.history.state.idx > 0) {
+                navigate(-1);
+              } else {
+                navigate('/admin/dashboard');
+              }
+            }}
+            className="inline-flex items-center gap-1 hover:text-fv-primary dark:hover:text-emerald-400 transition-colors font-semibold"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back</span>
+          </button>
+          <span>/</span>
+          <button
+            type="button"
+            onClick={() => navigate('/admin/dashboard')}
+            className="hover:text-fv-primary transition-colors"
+          >
+            Dashboard
+          </button>
+          <span>/</span>
+          <span className="text-fv-heading dark:text-white font-semibold">Coupons</span>
+        </div>
+
+        <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-fv-heading  mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-fv-heading mb-1">
               Coupon Management
             </h1>
             <p className="text-fv-muted ">
@@ -187,7 +224,7 @@ const AdminCoupons = () => {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(coupon._id)}
+                    onClick={() => setCouponToDelete(coupon)}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300 rounded-lg hover:bg-red-200 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -379,6 +416,26 @@ const AdminCoupons = () => {
             </motion.div>
           </div>
         )}
+
+        {/* Enterprise Delete Confirmation Modal */}
+        <AdminConfirmModal
+          isOpen={Boolean(couponToDelete)}
+          title="Delete Promo Coupon?"
+          message={
+            couponToDelete ? (
+              <p>
+                Are you sure you want to permanently delete coupon code{' '}
+                <strong className="text-fv-heading dark:text-white font-mono">"{couponToDelete.code}"</strong>?
+                Customers will no longer be able to apply this discount at checkout.
+              </p>
+            ) : null
+          }
+          confirmText="Yes, Delete Coupon"
+          confirmVariant="danger"
+          isLoading={isDeleting}
+          onConfirm={handleConfirmDeleteCoupon}
+          onClose={() => setCouponToDelete(null)}
+        />
       </div>
     </div>
   );

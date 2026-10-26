@@ -160,8 +160,8 @@ const OrderDetail = () => {
         <div className="text-center">
           <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <p className="text-xl text-fv-muted ">Order not found</p>
-          <button onClick={() => navigate('/orders')} className="mt-4 text-fv-primary hover:underline">
-            Back to Orders
+          <button onClick={() => navigate(isAdmin || user?.role === 'admin' ? '/admin/orders' : '/orders')} className="mt-4 text-fv-primary hover:underline">
+            Back to {isAdmin || user?.role === 'admin' ? 'Admin Orders' : 'Orders'}
           </button>
         </div>
       </div>
@@ -294,17 +294,20 @@ const OrderDetail = () => {
         {/* Header */}
         <div className="flex items-start gap-3 mb-6">
           <button
+            type="button"
             onClick={() => {
-              if (window.history.length > 2) {
+              const isAdminUser = isAdmin || user?.role === 'admin';
+              if (window.history.state && window.history.state.idx > 0) {
                 navigate(-1);
               } else {
-                navigate('/orders');
+                navigate(isAdminUser ? '/admin/orders' : '/orders');
               }
             }}
-            aria-label="Back to orders"
+            aria-label={isAdmin || user?.role === 'admin' ? "Back to admin orders" : "Back to orders"}
+            title={isAdmin || user?.role === 'admin' ? "Back to admin orders" : "Back to orders"}
             className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex-shrink-0 mt-0.5"
           >
-            <ArrowLeft className="w-5 h-5 text-fv-muted " />
+            <ArrowLeft className="w-5 h-5 text-fv-muted" />
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold text-fv-heading  truncate">

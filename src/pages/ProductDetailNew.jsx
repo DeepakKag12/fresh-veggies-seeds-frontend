@@ -144,7 +144,7 @@ const ProductDetailNew = () => {
             onClick={() => {
               if (location.state?.from) {
                 navigate(location.state.from);
-              } else if (window.history.length > 1) {
+              } else if (window.history.state && window.history.state.idx > 0) {
                 navigate(-1);
               } else {
                 navigate('/');

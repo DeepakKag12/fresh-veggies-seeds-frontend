@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   CreditCard, MapPin, Package, AlertCircle, CheckCircle, Tag,
-  Navigation, Loader2, Plus, Star, Check, Lock, ChevronDown, ChevronUp, ShieldCheck, Phone
+  Navigation, Loader2, Plus, Star, Check, Lock, ChevronDown, ChevronUp, ShieldCheck, Phone, ArrowLeft
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -810,9 +810,35 @@ const Checkout = () => {
 
         {/* ── Page Header & Step Progress Bar ── */}
         <div className="mb-4 sm:mb-6">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold font-serif text-fv-heading dark:text-white mb-3 sm:mb-4">
-            Checkout
-          </h1>
+          <div className="flex items-center justify-between gap-3 mb-3 sm:mb-4">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.history.state && window.history.state.idx > 0) {
+                    navigate(-1);
+                  } else {
+                    navigate('/cart');
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-200 transition-colors shadow-2xs cursor-pointer shrink-0"
+                title="Return to shopping cart"
+                aria-label="Back to Cart"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 text-fv-primary dark:text-emerald-400" />
+                <span>Back to Cart</span>
+              </button>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold font-serif text-fv-heading dark:text-white leading-none">
+                Checkout
+              </h1>
+            </div>
+            <Link
+              to="/"
+              className="text-xs font-semibold text-fv-primary hover:underline hidden sm:inline shrink-0"
+            >
+              Continue Shopping →
+            </Link>
+          </div>
 
           {/* Clean Step Breadcrumbs */}
           <div className="flex items-center justify-between max-w-sm sm:max-w-md bg-white dark:bg-gray-800 rounded-full px-3 py-2 sm:px-4 sm:py-2.5 border border-gray-200/90 dark:border-gray-700/80 shadow-xs">

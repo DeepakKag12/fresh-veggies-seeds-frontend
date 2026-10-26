@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Edit, Trash2, Plus, X, CheckCircle, AlertCircle, Layers, Image as ImageIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Edit, Trash2, Plus, X, CheckCircle, AlertCircle, Layers, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
+import AdminConfirmModal from '../../components/admin/AdminConfirmModal';
 
 const AdminCategories = () => {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [currentCategory, setCurrentCategory] = useState(null);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [formData, setFormData] = useState({
     name: '',
@@ -92,14 +97,18 @@ const AdminCategories = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this category? Products linked to this category may lose their categorization.')) return;
+  const handleConfirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+    setIsDeleting(true);
     try {
-      await api.delete(`/categories/${id}`);
+      await api.delete(`/categories/${categoryToDelete._id}`);
       fetchCategories();
-      toast.success('Category deleted successfully!');
+      toast.success(`Category "${categoryToDelete.name}" deleted successfully!`);
+      setCategoryToDelete(null);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to delete category');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -144,7 +153,35 @@ const AdminCategories = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 pb-28 md:pb-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 pb-28 md:pb-6 space-y-4">
+      {/* Navigation Breadcrumb & Back Action */}
+      <div className="flex items-center gap-2 text-xs font-medium text-fv-muted">
+        <button
+          type="button"
+          onClick={() => {
+            if (window.history.state && window.history.state.idx > 0) {
+              navigate(-1);
+            } else {
+              navigate('/admin/dashboard');
+            }
+          }}
+          className="inline-flex items-center gap-1 hover:text-fv-primary dark:hover:text-emerald-400 transition-colors font-semibold"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back</span>
+        </button>
+        <span>/</span>
+        <button
+          type="button"
+          onClick={() => navigate('/admin/dashboard')}
+          className="hover:text-fv-primary transition-colors"
+        >
+          Dashboard
+        </button>
+        <span>/</span>
+        <span className="text-fv-heading dark:text-white font-semibold">Categories</span>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -261,7 +298,7 @@ const AdminCategories = () => {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(category._id)}
+                    onClick={() => setCategoryToDelete(category)}
                     className="px-3 py-1.5 rounded-lg text-red-600 bg-red-50 dark:bg-red-900/20 text-xs font-semibold flex items-center gap-1 active:scale-95 transition-all min-h-[38px]"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -364,7 +401,7 @@ const AdminCategories = () => {
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(category._id)}
+                          onClick={() => setCategoryToDelete(category)}
                           className="p-2 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                           title="Delete Category"
                         >
@@ -551,6 +588,26 @@ const AdminCategories = () => {
           </div>
         </div>
       )}
+
+      {/* Enterprise Delete Confirmation Modal */}
+      <AdminConfirmModal
+        isOpen={Boolean(categoryToDelete)}
+        title="Delete Category?"
+        message={
+          categoryToDelete ? (
+            <p>
+              Are you sure you want to delete category{' '}
+              <strong className="text-fv-heading dark:text-white">"{categoryToDelete.name}"</strong>?
+              If there are products currently assigned to this category, deletion will safely be prevented until those products are reassigned or removed.
+            </p>
+          ) : null
+        }
+        confirmText="Yes, Delete Category"
+        confirmVariant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleConfirmDeleteCategory}
+        onClose={() => setCategoryToDelete(null)}
+      />
     </div>
   );
 };

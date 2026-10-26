@@ -1,15 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, CheckCircle, XCircle, Trash2, MessageSquare, ShoppingBag } from 'lucide-react';
+import { Star, CheckCircle, XCircle, Trash2, MessageSquare, ShoppingBag, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
+import AdminConfirmModal from '../../components/admin/AdminConfirmModal';
 
 function AdminReviews() {
+  const navigate = useNavigate();
   const [reviews, setReviews] = useState([]);
   const [filteredReviews, setFilteredReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, pending, approved, rejected
   const [selectedReview, setSelectedReview] = useState(null);
+  const [reviewToDelete, setReviewToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [adminResponse, setAdminResponse] = useState('');
   const [showResponseDialog, setShowResponseDialog] = useState(false);
   const [actionType, setActionType] = useState(''); // approve or reject
@@ -84,18 +89,19 @@ function AdminReviews() {
     }
   };
 
-  const handleDeleteReview = async (reviewId) => {
-    if (!window.confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
-      return;
-    }
-
+  const handleConfirmDeleteReview = async () => {
+    if (!reviewToDelete) return;
+    setIsDeleting(true);
     try {
-      await api.delete(`/reviews/${reviewId}`);
+      await api.delete(`/reviews/${reviewToDelete._id}`);
       toast.success('Review deleted successfully!');
+      setReviewToDelete(null);
       fetchReviews();
     } catch (error) {
       console.error('Error deleting review:', error);
-      toast.error('Failed to delete review');
+      toast.error(error.response?.data?.message || 'Failed to delete review');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -129,9 +135,37 @@ function AdminReviews() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-fv-heading mb-2">Review Management</h1>
+    <div className="container mx-auto px-4 py-8 space-y-4">
+      {/* Navigation Breadcrumb & Back Action */}
+      <div className="flex items-center gap-2 text-xs font-medium text-fv-muted">
+        <button
+          type="button"
+          onClick={() => {
+            if (window.history.state && window.history.state.idx > 0) {
+              navigate(-1);
+            } else {
+              navigate('/admin/dashboard');
+            }
+          }}
+          className="inline-flex items-center gap-1 hover:text-fv-primary dark:hover:text-emerald-400 transition-colors font-semibold"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back</span>
+        </button>
+        <span>/</span>
+        <button
+          type="button"
+          onClick={() => navigate('/admin/dashboard')}
+          className="hover:text-fv-primary transition-colors"
+        >
+          Dashboard
+        </button>
+        <span>/</span>
+        <span className="text-fv-heading dark:text-white font-semibold">Reviews</span>
+      </div>
+
+      <div className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-fv-heading mb-1">Review Management</h1>
         <p className="text-fv-muted">Moderate customer reviews and provide responses</p>
       </div>
 
@@ -325,8 +359,9 @@ function AdminReviews() {
                       </button>
                     )}
                     <button
-                      onClick={() => handleDeleteReview(review._id)}
-                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                      onClick={() => setReviewToDelete(review)}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                      title="Delete review"
                     >
                       <Trash2 className="w-4 h-4" />
                       Delete
@@ -399,6 +434,28 @@ function AdminReviews() {
           </motion.div>
         </div>
       )}
+
+      {/* Enterprise Delete Confirmation Modal */}
+      <AdminConfirmModal
+        isOpen={Boolean(reviewToDelete)}
+        title="Delete Customer Review?"
+        message={
+          reviewToDelete ? (
+            <p>
+              Are you sure you want to permanently delete this {reviewToDelete.rating}★ review by{' '}
+              <strong className="text-fv-heading dark:text-white">
+                "{reviewToDelete.userId?.name || 'Customer'}"
+              </strong>?
+              This action cannot be undone and will update the product rating.
+            </p>
+          ) : null
+        }
+        confirmText="Yes, Delete Review"
+        confirmVariant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleConfirmDeleteReview}
+        onClose={() => setReviewToDelete(null)}
+      />
     </div>
   );
 }

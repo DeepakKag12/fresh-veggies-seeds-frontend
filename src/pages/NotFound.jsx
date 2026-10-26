@@ -1,6 +1,7 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Sprout, Search } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Sprout, Search, ArrowLeft, LayoutDashboard } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * 404. Previously an unknown URL rendered the header and footer with an empty
@@ -8,6 +9,9 @@ import { Sprout, Search } from 'lucide-react';
  */
 const NotFound = () => {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || pathname.startsWith('/admin');
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center bg-fv-page px-4 py-20 text-center">
@@ -20,23 +24,38 @@ const NotFound = () => {
         It may have been moved, or the link may be wrong.
       </p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-        <Link
-          to="/"
-          className="inline-flex h-12 items-center gap-2 rounded-[50px] bg-fv-primary px-6 text-[15px] font-semibold
-                     text-white hover:bg-fv-primary-dark focus-visible:outline-none focus-visible:ring-2
-                     focus-visible:ring-fv-primary focus-visible:ring-offset-2"
+        <button
+          type="button"
+          onClick={() => {
+            if (window.history.state && window.history.state.idx > 0) {
+              navigate(-1);
+            } else {
+              navigate(isAdmin ? '/admin/dashboard' : '/');
+            }
+          }}
+          className="inline-flex h-12 items-center gap-2 rounded-[50px] border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-6 text-[15px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
         >
-          <Search className="h-4 w-4" aria-hidden="true" />
-          Browse the shop
-        </Link>
-        <Link
-          to="/contact"
-          className="inline-flex h-12 items-center rounded-[50px] border border-fv-primary px-6 text-[15px]
-                     font-semibold text-fv-primary hover:bg-fv-primary hover:text-white
-                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fv-primary"
-        >
-          Contact us
-        </Link>
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Go Back
+        </button>
+
+        {isAdmin ? (
+          <Link
+            to="/admin/dashboard"
+            className="inline-flex h-12 items-center gap-2 rounded-[50px] bg-fv-primary px-6 text-[15px] font-semibold text-white hover:bg-fv-primary-dark transition-colors shadow-xs"
+          >
+            <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
+            Open Admin Dashboard
+          </Link>
+        ) : (
+          <Link
+            to="/"
+            className="inline-flex h-12 items-center gap-2 rounded-[50px] bg-fv-primary px-6 text-[15px] font-semibold text-white hover:bg-fv-primary-dark transition-colors shadow-xs"
+          >
+            <Search className="h-4 w-4" aria-hidden="true" />
+            Browse the shop
+          </Link>
+        )}
       </div>
     </div>
   );

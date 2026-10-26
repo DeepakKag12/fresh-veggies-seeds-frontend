@@ -1,21 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import Pagination from '../../components/Pagination';
-import { useLocation, useSearchParams } from 'react-router-dom';
-import { Edit, Trash2, Plus, X, Package, Upload, MoreVertical, Search, Boxes } from 'lucide-react';
+import { useLocation, useSearchParams, useNavigate } from 'react-router-dom';
+import { Edit, Trash2, Plus, X, Package, Upload, MoreVertical, Search, Boxes, Filter, AlertTriangle, Download, LayoutGrid, List, Sparkles, ArrowLeft } from 'lucide-react';
 import api from '../../utils/api';
+import AdminConfirmModal from '../../components/admin/AdminConfirmModal';
+import { exportProductsToCsv } from '../../utils/adminCsvExport';
 
 const AdminProducts = () => {
+  const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [stockModalProduct, setStockModalProduct] = useState(null);
   const [quickStockValue, setQuickStockValue] = useState('');
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [stockFilter, setStockFilter] = useState(''); // '' | 'low' | 'out'
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
   const [products, setProducts] = useState([]);
-  // Real pagination. This screen used to request `?limit=100`, but the API caps
-  // page size at 50 — so an admin with more than 50 products simply could not
-  // see or edit the rest, with nothing on screen indicating they existed.
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
@@ -46,30 +51,46 @@ const AdminProducts = () => {
   });
 
 
-  // Refetch whenever the page, search, or URL filter changes
+  // Synchronize stockFilter if URL params change
+  useEffect(() => {
+    if (searchParams.get('lowstock') === 'true') {
+      setStockFilter('low');
+    } else if (searchParams.get('outofstock') === 'true') {
+      setStockFilter('out');
+    }
+  }, [searchParams]);
+
+  // Refetch whenever the page, search, stockFilter, or category changes
   useEffect(() => {
     fetchProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, searchQuery, searchParams]);
+  }, [page, searchQuery, stockFilter, selectedCategory, searchParams]);
 
   useEffect(() => {
     fetchCategories();
   }, []);
 
   useEffect(() => {
-    // Check if redirected from product card edit
+    // Check if redirected from product card edit or new
     if (location.state?.editProduct) {
       handleOpen(location.state.editProduct);
+    } else if (searchParams.get('new') === 'true') {
+      handleOpen();
+      // clean param from URL so refresh doesn't reopen modal
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('new');
+      setSearchParams(newParams, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location]);
+  }, [location, searchParams]);
 
   const fetchProducts = async () => {
     try {
       const params = { page, limit: 24 };
       if (searchQuery.trim()) params.search = searchQuery.trim();
-      if (searchParams.get('lowstock') === 'true') params.lowstock = 'true';
-      if (searchParams.get('outofstock') === 'true') params.outofstock = 'true';
+      if (stockFilter === 'low' || searchParams.get('lowstock') === 'true') params.lowstock = 'true';
+      if (stockFilter === 'out' || searchParams.get('outofstock') === 'true') params.outofstock = 'true';
+      if (selectedCategory) params.category = selectedCategory;
 
       const response = await api.get('/products', { params });
       setProducts(response.data.data || []);
@@ -96,6 +117,15 @@ const AdminProducts = () => {
       fetchProducts();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to update stock');
+    }
+  };
+
+  const handleExportCsv = () => {
+    try {
+      exportProductsToCsv(products, 'inventory_catalog');
+      toast.success(`Exported ${products.length} products to CSV!`);
+    } catch (err) {
+      toast.error(err.message || 'Export failed');
     }
   };
 
@@ -285,21 +315,52 @@ const AdminProducts = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        await api.delete(`/products/${id}`);
-        fetchProducts();
-        alert('Product deleted successfully!');
-      } catch (error) {
-        alert('Failed to delete product');
-      }
+  const handleConfirmDeleteProduct = async () => {
+    if (!productToDelete) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/products/${productToDelete._id}`);
+      fetchProducts();
+      toast.success(`"${productToDelete.name}" deleted successfully!`);
+      setProductToDelete(null);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete product');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-fv-page py-6 md:py-8 pb-28 md:pb-8">
       <div className="container mx-auto px-3 sm:px-4">
+        {/* Navigation Breadcrumb & Back Action */}
+        <div className="flex items-center gap-2 mb-4 text-xs font-medium text-fv-muted">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.history.state && window.history.state.idx > 0) {
+                navigate(-1);
+              } else {
+                navigate('/admin/dashboard');
+              }
+            }}
+            className="inline-flex items-center gap-1 hover:text-fv-primary dark:hover:text-emerald-400 transition-colors font-semibold"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back</span>
+          </button>
+          <span>/</span>
+          <button
+            type="button"
+            onClick={() => navigate('/admin/dashboard')}
+            className="hover:text-fv-primary transition-colors"
+          >
+            Dashboard
+          </button>
+          <span>/</span>
+          <span className="text-fv-heading dark:text-white font-semibold">Products</span>
+        </div>
+
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
@@ -314,20 +375,61 @@ const AdminProducts = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="relative flex-1 md:w-64">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
+            <div className="relative flex-1 md:w-60 min-w-[180px]">
               <Search className="w-4 h-4 text-fv-muted absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search products..."
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                className="w-full pl-9 pr-3 py-2 text-xs md:text-sm bg-white dark:bg-gray-800 border border-fv-border rounded-xl focus:ring-2 focus:ring-fv-primary text-fv-heading"
+                className="w-full pl-9 pr-3 py-2 text-xs md:text-sm bg-white dark:bg-gray-800 border border-fv-border rounded-xl focus:ring-2 focus:ring-fv-primary text-fv-heading min-h-[42px]"
               />
             </div>
+
+            {/* Export CSV */}
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={!products || products.length === 0}
+              className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-800 hover:bg-fv-surface dark:hover:bg-gray-700 text-fv-heading border border-fv-border rounded-xl text-xs font-semibold disabled:opacity-40 min-h-[42px] transition-colors shrink-0 shadow-2xs"
+              title="Export inventory to CSV"
+            >
+              <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span className="hidden sm:inline">Export CSV</span>
+            </button>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center p-1 bg-white dark:bg-gray-800 rounded-xl border border-fv-border shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  viewMode === 'grid'
+                    ? 'bg-fv-surface dark:bg-gray-700 text-fv-primary shadow-xs font-bold'
+                    : 'text-fv-muted hover:text-fv-heading'
+                }`}
+                title="Grid View (Cards)"
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  viewMode === 'table'
+                    ? 'bg-fv-surface dark:bg-gray-700 text-fv-primary shadow-xs font-bold'
+                    : 'text-fv-muted hover:text-fv-heading'
+                }`}
+                title="Table View (Amazon Spreadsheet)"
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+
             <button
               onClick={() => handleOpen()}
-              className="flex items-center gap-1.5 bg-fv-primary hover:bg-fv-primary-dark text-white px-4 py-2 rounded-xl text-xs md:text-sm font-semibold shadow-xs transition-all whitespace-nowrap"
+              className="flex items-center gap-1.5 bg-fv-primary hover:bg-fv-primary-dark text-white px-4 py-2 rounded-xl text-xs md:text-sm font-semibold shadow-xs transition-all whitespace-nowrap min-h-[42px]"
             >
               <Plus className="w-4 h-4" />
               <span>Add Product</span>
@@ -335,8 +437,203 @@ const AdminProducts = () => {
           </div>
         </div>
 
-        {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
+        {/* Filter & Organization Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 p-3 bg-white dark:bg-gray-800 rounded-2xl border border-fv-border shadow-2xs">
+          {/* Segmented Stock Status Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+            <button
+              type="button"
+              onClick={() => { setStockFilter(''); setPage(1); }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                stockFilter === ''
+                  ? 'bg-fv-primary text-white shadow-2xs'
+                  : 'bg-fv-surface text-fv-muted hover:text-fv-heading'
+              }`}
+            >
+              All Products
+            </button>
+            <button
+              type="button"
+              onClick={() => { setStockFilter('low'); setPage(1); }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                stockFilter === 'low'
+                  ? 'bg-amber-600 text-white shadow-2xs'
+                  : 'bg-fv-surface text-amber-700 dark:text-amber-400 hover:bg-amber-50'
+              }`}
+            >
+              <AlertTriangle className="w-3.5 h-3.5" />
+              Low Stock (≤10)
+            </button>
+            <button
+              type="button"
+              onClick={() => { setStockFilter('out'); setPage(1); }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                stockFilter === 'out'
+                  ? 'bg-red-600 text-white shadow-2xs'
+                  : 'bg-fv-surface text-red-600 dark:text-red-400 hover:bg-red-50'
+              }`}
+            >
+              Out of Stock
+            </button>
+          </div>
+
+          {/* Category Dropdown Filter */}
+          <div className="flex items-center gap-2">
+            <Filter className="w-3.5 h-3.5 text-fv-muted hidden sm:inline" />
+            <select
+              value={selectedCategory}
+              onChange={(e) => { setSelectedCategory(e.target.value); setPage(1); }}
+              className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-fv-border bg-fv-surface text-fv-heading focus:ring-1 focus:ring-fv-primary cursor-pointer min-h-[36px]"
+            >
+              <option value="">All Categories ({categories.length})</option>
+              {categories.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            {(stockFilter || selectedCategory || searchQuery) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStockFilter('');
+                  setSelectedCategory('');
+                  setSearchQuery('');
+                  setPage(1);
+                  setSearchParams({}, { replace: true });
+                }}
+                className="text-xs text-fv-muted hover:text-fv-heading px-2 py-1 rounded-lg transition-colors"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Products Display (Table View vs Grid View) */}
+        {viewMode === 'table' ? (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-fv-border overflow-hidden shadow-xs mb-6">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-fv-surface/60 dark:bg-gray-700/50 border-b border-fv-border text-[11px] font-bold text-fv-muted uppercase tracking-wider">
+                    <th className="py-3 px-4">Item & Catalog Info</th>
+                    <th className="py-3 px-4">Category</th>
+                    <th className="py-3 px-4 text-right">Price</th>
+                    <th className="py-3 px-4 text-center">Stock Level</th>
+                    <th className="py-3 px-4">Tags & Packages</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-fv-border">
+                  {products.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="py-12 text-center text-xs text-fv-muted">
+                        No products match your current filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    products.map((product) => {
+                      const stockCount = product.packages && product.packages.length > 0
+                        ? product.packages.reduce((sum, p) => sum + (Number(p.stock) || 0), 0)
+                        : product.stock;
+                      const isOutOfStock = stockCount <= 0;
+                      const isLowStock = !isOutOfStock && stockCount <= 10;
+
+                      return (
+                        <tr key={product._id} className="hover:bg-fv-surface/40 transition-colors text-xs">
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={product.images?.[0] || 'https://via.placeholder.com/80'}
+                                alt={product.name}
+                                className="w-10 h-10 object-cover rounded-xl border border-fv-border shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <p className="font-bold text-fv-heading dark:text-white line-clamp-1">{product.name}</p>
+                                <p className="text-[10px] text-fv-muted font-mono">{product.season || 'All Season'}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-fv-muted">
+                            <span className="px-2 py-0.5 rounded-md bg-fv-surface text-[11px] font-semibold text-fv-heading">
+                              {product.categoryId?.name || 'Produce'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <span className="font-bold text-fv-primary text-sm">₹{product.price}</span>
+                            {product.originalPrice > product.price && (
+                              <span className="text-[10px] text-fv-muted line-through block">₹{product.originalPrice}</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setStockModalProduct(product);
+                                setQuickStockValue(product.stock);
+                              }}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border transition-transform hover:scale-105 ${
+                                isOutOfStock
+                                  ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300'
+                                  : isLowStock
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300'
+                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300'
+                              }`}
+                              title="Click to quickly adjust stock"
+                            >
+                              <span>{isOutOfStock ? 'Out of Stock' : `${stockCount} in stock`}</span>
+                              <Boxes className="w-3 h-3 opacity-70" />
+                            </button>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex flex-wrap items-center gap-1">
+                              {product.featured && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                  <Sparkles className="w-2.5 h-2.5" /> Featured
+                                </span>
+                              )}
+                              {product.packages?.length > 0 && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                  {product.packages.length} Packs
+                                </span>
+                              )}
+                              {product.weight && !product.packages?.length && (
+                                <span className="text-[10px] text-fv-muted font-medium">
+                                  {product.weight}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="inline-flex items-center gap-1.5">
+                              <button
+                                onClick={() => handleOpen(product)}
+                                className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors font-semibold"
+                                title="Edit Product"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setProductToDelete(product)}
+                                className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                                title="Delete Product"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          /* Products Grid */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
           {products.map((product) => {
             const stockCount = product.packages && product.packages.length > 0
               ? product.packages.reduce((sum, p) => sum + (Number(p.stock) || 0), 0)
@@ -446,7 +743,7 @@ const AdminProducts = () => {
                         <button
                           onClick={() => {
                             setActiveMenuId(null);
-                            handleDelete(product._id);
+                            setProductToDelete(product);
                           }}
                           className="w-full text-left px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg flex items-center gap-2 transition-colors"
                         >
@@ -461,6 +758,7 @@ const AdminProducts = () => {
             );
           })}
         </div>
+      )}
 
         {/* Quick Stock Modal */}
         {stockModalProduct && (
@@ -893,6 +1191,30 @@ const AdminProducts = () => {
             </div>
           </div>
         )}
+
+        {/* Enterprise Delete Confirmation Modal */}
+        <AdminConfirmModal
+          isOpen={Boolean(productToDelete)}
+          title="Delete Product from Catalog?"
+          message={
+            productToDelete ? (
+              <div className="space-y-2">
+                <p>
+                  Are you sure you want to permanently delete{' '}
+                  <strong className="text-fv-heading dark:text-white">"{productToDelete.name}"</strong>?
+                </p>
+                <p className="text-xs text-fv-muted">
+                  ⚠️ This removes the product and associated customer reviews from the catalog. If this product is part of any active combos, deletion will safely be prevented until removed from those combo kits.
+                </p>
+              </div>
+            ) : null
+          }
+          confirmText="Yes, Delete Product"
+          confirmVariant="danger"
+          isLoading={isDeleting}
+          onConfirm={handleConfirmDeleteProduct}
+          onClose={() => setProductToDelete(null)}
+        />
       </div>
     </div>
   );

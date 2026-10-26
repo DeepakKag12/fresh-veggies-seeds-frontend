@@ -72,7 +72,7 @@ const MobileLogin = () => {
         // Scroll to top before navigating
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
         if (userData?.role === 'admin') {
-          navigate('/admin', { replace: true });
+          navigate('/admin/dashboard', { replace: true });
         } else {
           navigate('/', { replace: true });
         }

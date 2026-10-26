@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, Loader2, ShieldAlert } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AlertTriangle, Loader2, ShieldAlert, ArrowLeft } from 'lucide-react';
 import api from '../../utils/api';
 import PageLoader from '../../components/PageLoader';
+import AdminConfirmModal from '../../components/admin/AdminConfirmModal';
 
 const PHRASE = 'DELETE ALL DATA';
 
@@ -13,6 +15,7 @@ const PHRASE = 'DELETE ALL DATA';
  * is made on real numbers rather than a guess.
  */
 const AdminDangerZone = () => {
+  const navigate = useNavigate();
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState(false);
@@ -20,6 +23,7 @@ const AdminDangerZone = () => {
   const [phrase, setPhrase] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(null);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -36,11 +40,13 @@ const AdminDangerZone = () => {
 
   useEffect(() => { load(); }, []);
 
-  const submit = async (e) => {
+  const submit = (e) => {
     e.preventDefault();
-    // Final confirmation, on top of the password and the typed phrase.
-    if (!window.confirm('This permanently removes all products, orders, reviews and customers. Continue?')) return;
+    setShowConfirm(true);
+  };
 
+  const executePurge = async () => {
+    setShowConfirm(false);
     setBusy(true);
     setMessage(null);
     try {
@@ -75,11 +81,41 @@ const AdminDangerZone = () => {
   const ready = phrase === PHRASE && password.length > 0 && !busy;
 
   return (
-    <div className="mx-auto max-w-[720px] px-4 py-10 sm:px-6">
-      <h1 className="font-serif text-[28px] font-semibold text-fv-heading">Production preparation</h1>
-      <p className="mt-1 text-[15px] text-fv-muted">
-        Remove seeded and test content before opening the store to customers.
-      </p>
+    <div className="mx-auto max-w-[720px] px-4 py-8 sm:px-6 space-y-4">
+      {/* Navigation Breadcrumb & Back Action */}
+      <div className="flex items-center gap-2 text-xs font-medium text-fv-muted">
+        <button
+          type="button"
+          onClick={() => {
+            if (window.history.state && window.history.state.idx > 0) {
+              navigate(-1);
+            } else {
+              navigate('/admin/dashboard');
+            }
+          }}
+          className="inline-flex items-center gap-1 hover:text-fv-primary dark:hover:text-emerald-400 transition-colors font-semibold"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back</span>
+        </button>
+        <span>/</span>
+        <button
+          type="button"
+          onClick={() => navigate('/admin/dashboard')}
+          className="hover:text-fv-primary transition-colors"
+        >
+          Dashboard
+        </button>
+        <span>/</span>
+        <span className="text-amber-700 dark:text-amber-400 font-semibold">Danger Zone</span>
+      </div>
+
+      <div>
+        <h1 className="font-serif text-[28px] font-semibold text-fv-heading">Production preparation</h1>
+        <p className="mt-1 text-[15px] text-fv-muted">
+          Remove seeded and test content before opening the store to customers.
+        </p>
+      </div>
 
       <div className="mt-6 rounded-[18px] border border-fv-danger/30 bg-white p-6">
         <p className="flex items-start gap-2 text-[14px] text-fv-danger">
@@ -162,6 +198,18 @@ const AdminDangerZone = () => {
           </button>
         </form>
       </div>
+
+      <AdminConfirmModal
+        isOpen={showConfirm}
+        title="Permanently Purge All Data?"
+        message="This will immediately and permanently delete all products, orders, reviews, and customers. This action cannot be reversed."
+        confirmLabel="Purge Everything"
+        cancelLabel="Abort"
+        isDanger={true}
+        isLoading={busy}
+        onConfirm={executePurge}
+        onClose={() => setShowConfirm(false)}
+      />
     </div>
   );
 };
