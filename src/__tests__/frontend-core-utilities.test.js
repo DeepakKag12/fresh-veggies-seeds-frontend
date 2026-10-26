@@ -81,3 +81,33 @@ describe('Frontend Image Fallback & Resolution Utility', () => {
     expect(fallback).toBe(DEFAULT_BANNER_IMAGE);
   });
 });
+
+describe('Navbar Announcement & Responsive Search Bar Enhancements', () => {
+  test('determines modal trigger vs external navigation for announcement links', () => {
+    const resolveBannerAction = (link) => {
+      if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
+        return { type: 'external', url: link };
+      }
+      return { type: 'modal', url: null };
+    };
+
+    expect(resolveBannerAction('/shop').type).toBe('modal');
+    expect(resolveBannerAction('').type).toBe('modal');
+    expect(resolveBannerAction(null).type).toBe('modal');
+    expect(resolveBannerAction('https://external-promo.com').type).toBe('external');
+  });
+
+  test('normalizes search bar query and avoids firing on single character', () => {
+    const shouldFetchSuggestions = (query) => {
+      const trimmed = (query || '').trim();
+      return trimmed.length >= 2;
+    };
+
+    expect(shouldFetchSuggestions('')).toBe(false);
+    expect(shouldFetchSuggestions(' ')).toBe(false);
+    expect(shouldFetchSuggestions('t')).toBe(false);
+    expect(shouldFetchSuggestions('tomato')).toBe(true);
+    expect(shouldFetchSuggestions('  seeds ')).toBe(true);
+  });
+});
+

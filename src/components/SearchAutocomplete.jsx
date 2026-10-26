@@ -24,7 +24,7 @@ const highlightMatch = (text = '', query = '') => {
 };
 
 const SearchAutocomplete = ({
-  placeholder = 'Search plants, seeds, planters, soil…',
+  placeholder = 'Search fresh seeds, vegetable plants, organic fertilizers, planters…',
   className = '',
   inputClassName = '',
   onClose,
@@ -117,7 +117,7 @@ const SearchAutocomplete = ({
   return (
     <div ref={containerRef} className={`relative w-full ${className}`}>
       <form onSubmit={handleSubmit} role="search" className="relative flex items-center">
-        <Search className="pointer-events-none absolute left-4 h-4 w-4 text-fv-primary/60" aria-hidden="true" />
+        <Search className="pointer-events-none absolute left-4 h-4.5 w-4.5 sm:h-5 sm:w-5 text-[#0A4C36]/70" aria-hidden="true" />
         <input
           ref={inputRef}
           type="search"
@@ -129,7 +129,7 @@ const SearchAutocomplete = ({
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder}
           autoComplete="off"
-          className={`h-11 w-full rounded-[50px] bg-[#F4E6C6]/60 border border-[#E8D7B8] pl-11 pr-10 text-[14px] text-[#0A4C36] shadow-2xs
+          className={`h-11 sm:h-12 w-full rounded-[50px] bg-[#F4E6C6]/60 border border-[#E8D7B8] pl-12 pr-11 text-[14px] sm:text-[15px] text-[#0A4C36] shadow-2xs
                      placeholder:text-[#0A4C36]/60 focus:bg-white focus:border-[#0A4C36] focus:outline-none focus:ring-2 focus:ring-[#0A4C36]/20 transition-all ${inputClassName}`}
         />
         {query && (
@@ -140,7 +140,7 @@ const SearchAutocomplete = ({
               setSuggestions({ products: [], terms: [] });
               inputRef.current?.focus();
             }}
-            className="absolute right-3.5 flex h-6 w-6 items-center justify-center rounded-full text-fv-primary/60 hover:text-fv-primary focus:outline-none"
+            className="absolute right-3.5 flex h-7 w-7 items-center justify-center rounded-full text-fv-primary/60 hover:text-fv-primary hover:bg-[#E8D7B8]/40 focus:outline-none transition-colors"
             aria-label="Clear search"
           >
             <X className="h-4 w-4" />

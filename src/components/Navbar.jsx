@@ -24,6 +24,7 @@ import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
 import { Button } from './ui/Button';
 import SearchAutocomplete from './SearchAutocomplete';
+import SaleOffersModal from './common/SaleOffersModal';
 
 const Navbar = () => {
   const { settings } = useSettings();
@@ -45,6 +46,7 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [showSaleModal, setShowSaleModal] = useState(false);
   const { user, logout } = useAuth();
   const { cartItems, openCart } = useCart();
   const { wishlistCount, openWishlist } = useWishlist();
@@ -117,14 +119,20 @@ const Navbar = () => {
             : 'bg-indigo-600 text-white'
         }`}>
           <span>{announcement?.message}</span>
-          {announcement?.link && (
-            <Link
-              to={announcement.link}
-              className="underline font-bold hover:opacity-90 ml-1 inline-flex items-center gap-0.5"
-            >
-              Learn More →
-            </Link>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              if (announcement?.link && (announcement.link.startsWith('http://') || announcement.link.startsWith('https://'))) {
+                window.open(announcement.link, '_blank', 'noopener,noreferrer');
+              } else {
+                setShowSaleModal(true);
+              }
+            }}
+            className="underline font-bold hover:opacity-90 ml-1 inline-flex items-center gap-0.5 cursor-pointer focus:outline-none hover:text-amber-200 transition-colors"
+            aria-label="View sale details and seasonal offers"
+          >
+            Learn More →
+          </button>
         </div>
       )}
 
@@ -145,8 +153,8 @@ const Navbar = () => {
       )}
       {/* The bar is decorative motion; the same facts are stated in the footer. */}
       <p className="sr-only">Free delivery on orders over ₹{freeDeliveryThreshold}. Cash on delivery available.</p>
-      <div className="mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-10">
-        <div className="flex items-center justify-between h-16 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-6">
+      <div className="mx-auto max-w-[1700px] px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 sm:h-20 gap-3 sm:gap-6 lg:gap-8 w-full">
           {/* Logo */}
           <div className="flex items-center justify-start shrink-0">
             <Link to="/" className="flex items-center gap-2 group">
@@ -155,19 +163,19 @@ const Navbar = () => {
                 alt={storeName} 
                 className="h-11 sm:h-12 w-auto object-contain group-hover:scale-105 transition-transform"
               />
-              <span className="hidden font-serif text-[22px] font-bold text-fv-primary lg:block">
+              <span className="hidden font-serif text-[22px] font-bold text-fv-primary lg:block whitespace-nowrap">
                 {storeName}
               </span>
             </Link>
           </div>
 
-          {/* Amazon / Sephora 300ms Debounced Autocomplete Search */}
-          <div className="hidden lg:flex items-center justify-center w-full min-w-[340px] max-w-xl xl:max-w-2xl mx-auto px-4">
-            <SearchAutocomplete />
+          {/* Amazon / Sephora 300ms Debounced Autocomplete Search - Dynamically expands to fill available width */}
+          <div className="hidden lg:flex items-center flex-1 max-w-2xl xl:max-w-4xl 2xl:max-w-5xl mx-2 sm:mx-4 lg:mx-6 min-w-0">
+            <SearchAutocomplete className="w-full" />
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center justify-end gap-1.5 sm:gap-2.5 shrink-0 ml-auto lg:ml-0">
+          <div className="flex items-center justify-end gap-1.5 sm:gap-2.5 shrink-0 ml-auto">
             {/* Mobile Search Trigger */}
             <button
               type="button"
@@ -571,6 +579,13 @@ const Navbar = () => {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Sale & Shipping Perks Modal */}
+      <SaleOffersModal
+        isOpen={showSaleModal}
+        onClose={() => setShowSaleModal(false)}
+        storeSettings={settings}
+      />
     </nav>
   );
 };
