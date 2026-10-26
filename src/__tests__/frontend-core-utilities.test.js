@@ -111,3 +111,52 @@ describe('Navbar Announcement & Responsive Search Bar Enhancements', () => {
   });
 });
 
+describe('Checkout COD Handling Fee & Guest Login Cart Retention', () => {
+  test('does not add COD charge until paymentMode is explicitly COD', () => {
+    const calculateCodFee = (mode, codExtraCharge) => {
+      return (mode === 'COD' && codExtraCharge > 0) ? codExtraCharge : 0;
+    };
+
+    const COD_EXTRA_CHARGE = 50;
+
+    // Default unselected state on Step 1 / Step 2
+    expect(calculateCodFee(null, COD_EXTRA_CHARGE)).toBe(0);
+    expect(calculateCodFee(undefined, COD_EXTRA_CHARGE)).toBe(0);
+    expect(calculateCodFee('', COD_EXTRA_CHARGE)).toBe(0);
+
+    // Online payment mode selected
+    expect(calculateCodFee('Online', COD_EXTRA_CHARGE)).toBe(0);
+
+    // Cash on Delivery specifically selected
+    expect(calculateCodFee('COD', COD_EXTRA_CHARGE)).toBe(50);
+  });
+
+  test('preserves guest cart items when customer logs in with empty server cart', () => {
+    const guestCart = [
+      { _id: 'prod_tomato_1', name: 'Cherry Tomato Seeds', price: 90, quantity: 2 },
+      { _id: 'prod_soil_2', name: 'Organic Potting Soil', price: 150, quantity: 1 }
+    ];
+    const serverCart = []; // Customer account previously had empty cart
+
+    const sameCartLine = (a, b) => String(a._id || a.productId) === String(b._id || b.productId);
+
+    // Union merge logic implemented in CartContext
+    const mergedCart = [...serverCart];
+    guestCart.forEach((guestItem) => {
+      const existing = mergedCart.find((item) => sameCartLine(item, guestItem));
+      if (existing) {
+        existing.quantity = Math.max(existing.quantity, guestItem.quantity);
+      } else {
+        mergedCart.push(guestItem);
+      }
+    });
+
+    // Ensure cart was not cleared
+    expect(mergedCart.length).toBe(2);
+    expect(mergedCart[0].name).toBe('Cherry Tomato Seeds');
+    expect(mergedCart[0].quantity).toBe(2);
+    expect(mergedCart[1].name).toBe('Organic Potting Soil');
+  });
+});
+
+

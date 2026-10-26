@@ -357,8 +357,8 @@ const Checkout = () => {
   const [deliverySlot, setDeliverySlot] = useState('morning');
   const [deliveryNotes, setDeliveryNotes] = useState('');
 
-  // Payment state
-  const [paymentMode, setPaymentMode] = useState('COD');
+  // Payment state: null by default so COD handling charge is NOT added until payment method is selected
+  const [paymentMode, setPaymentMode] = useState(null);
 
   // Coupon state (Domino's / Zomato Benchmark)
   const [couponCode, setCouponCode] = useState('');
@@ -855,6 +855,11 @@ const Checkout = () => {
     // Verify cart integrity once more right before submission
     const clean = await verifyCartIntegrity();
     if (!clean) return;
+
+    if (!paymentMode) {
+      setError('Please select a payment method (Cash on Delivery or Online Payment) to place your order.');
+      return;
+    }
 
     if (paymentMode === 'COD') {
       if (!COD_AVAILABLE) {
@@ -1820,10 +1825,15 @@ const Checkout = () => {
                           <CheckCircle className="w-5 h-5" />
                           <span>Place Order (Cash on Delivery) • ₹{totalAmount.toLocaleString('en-IN')}</span>
                         </>
-                      ) : (
+                      ) : paymentMode === 'Online' ? (
                         <>
                           <CheckCircle className="w-5 h-5" />
                           <span>Proceed to Pay ₹{totalAmount.toLocaleString('en-IN')} via Razorpay</span>
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="w-5 h-5" />
+                          <span>Select Payment Method • ₹{totalAmount.toLocaleString('en-IN')}</span>
                         </>
                       )}
                     </button>

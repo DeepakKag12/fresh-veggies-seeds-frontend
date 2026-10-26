@@ -14,20 +14,24 @@ export const useCart = () => {
 };
 
 /**
- * Drop cart lines whose product or combo no longer exists.
+ * Drop cart lines whose product or combo no longer exists (genuine 404 only).
  */
 const pruneUnavailable = async (items) => {
   if (!Array.isArray(items) || items.length === 0) return { kept: [], removed: [] };
 
   const checks = await Promise.all(
     items.map(async (item) => {
-      const path = item.isCombo ? `/combos/${item._id}` : `/products/${item._id}`;
+      const id = item._id || item.productId || item.product || item.id;
+      if (!id) return { item, ok: false };
+      const path = item.isCombo ? `/combos/${id}` : `/products/${id}`;
       try {
         const res = await api.get(path);
-        return { item, ok: Boolean(res?.data?.data) };
+        return { item: { ...item, _id: id }, ok: Boolean(res?.data?.data) };
       } catch (err) {
         const status = err?.response?.status;
-        return { item, ok: !(status === 404 || status === 400) };
+        // ONLY drop if the backend explicitly reports 404 (product deleted)
+        // If 400, 429, 500, or network offline, preserve the customer's item!
+        return { item: { ...item, _id: id }, ok: status !== 404 };
       }
     })
   );
@@ -41,6 +45,11 @@ const pruneUnavailable = async (items) => {
 export const CartProvider = ({ children }) => {
   const { user, loading: authLoading } = useAuth();
   const [cartItems, setCartItems] = useState([]);
+  const cartItemsRef = useRef(cartItems);
+  useEffect(() => {
+    cartItemsRef.current = cartItems;
+  }, [cartItems]);
+
   const [cartPopup, setCartPopup] = useState({ show: false, product: null });
   const [cartOpen, setCartOpen] = useState(false);
   const [cartReady, setCartReady] = useState(false);
@@ -50,8 +59,8 @@ export const CartProvider = ({ children }) => {
   const syncTimeoutRef = useRef(null);
 
   const sameCartLine = useCallback((a, b) => {
-    const idA = String(a._id || a.productId || a.product || '');
-    const idB = String(b._id || b.productId || b.product || '');
+    const idA = String(a._id || a.productId || a.product || a.id || '');
+    const idB = String(b._id || b.productId || b.product || b.id || '');
     const comboA = Boolean(a.isCombo);
     const comboB = Boolean(b.isCombo);
     const packA = String(a.packageId || a.selectedPackage?._id || a.selectedPackage?.size || '');
@@ -70,19 +79,29 @@ export const CartProvider = ({ children }) => {
       let cachedAccountCart = [];
       try {
         guestCart = JSON.parse(localStorage.getItem('cart') || '[]');
+      } catch {}
+      try {
         cachedAccountCart = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      } catch {
-        localStorage.removeItem('cart');
-        localStorage.removeItem(storageKey);
-      }
+      } catch {}
+
+      // Keep active in-memory cart lines if already loaded in the React tree
+      const inMemoryLines = Array.isArray(cartItemsRef.current) && cartItemsRef.current.length > 0
+        ? cartItemsRef.current
+        : [];
+
+      const effectiveGuestCart = Array.isArray(guestCart) && guestCart.length > 0
+        ? guestCart
+        : inMemoryLines;
 
       // Guest user: restore local cart
       if (!cartOwnerId) {
-        const { kept, removed } = await pruneUnavailable(Array.isArray(guestCart) ? guestCart : []);
+        const { kept, removed } = await pruneUnavailable(effectiveGuestCart);
         if (!cancelled) {
-          setCartItems(kept);
-          if (removed.length) setRemovedItems(removed);
+          const finalKept = kept.length > 0 ? kept : effectiveGuestCart;
+          setCartItems(finalKept);
+          if (removed.length && kept.length > 0) setRemovedItems(removed);
           setCartReady(true);
+          localStorage.setItem('cart', JSON.stringify(finalKept));
         }
         return;
       }
@@ -90,17 +109,31 @@ export const CartProvider = ({ children }) => {
       // Authenticated user: Bidirectional Union Merge via server /api/auth/cart/sync
       try {
         let accountCart = [];
-        if (Array.isArray(guestCart) && guestCart.length > 0) {
-          const syncRes = await api.put('/auth/cart/sync', { guestCart });
-          accountCart = Array.isArray(syncRes?.data?.data) ? syncRes.data.data : [];
+        if (effectiveGuestCart.length > 0) {
+          try {
+            const syncRes = await api.put('/auth/cart/sync', { guestCart: effectiveGuestCart });
+            accountCart = Array.isArray(syncRes?.data?.data) ? syncRes.data.data : [];
+          } catch {
+            accountCart = [];
+          }
         } else {
-          const response = await api.get('/auth/cart');
-          accountCart = Array.isArray(response?.data?.data) ? response.data.data : [];
+          try {
+            const response = await api.get('/auth/cart');
+            accountCart = Array.isArray(response?.data?.data) ? response.data.data : [];
+          } catch {
+            accountCart = [];
+          }
         }
 
-        // Client-side safety fallback union merge
+        // Client-side safety fallback union merge: combine server cart, cached user cart, and effective guest cart
         const mergedCart = [...accountCart];
-        (Array.isArray(guestCart) ? guestCart : []).forEach((savedItem) => {
+        const localSources = [
+          ...(Array.isArray(cachedAccountCart) ? cachedAccountCart : []),
+          ...(Array.isArray(effectiveGuestCart) ? effectiveGuestCart : []),
+          ...inMemoryLines
+        ];
+
+        localSources.forEach((savedItem) => {
           const existingItem = mergedCart.find((item) => sameCartLine(item, savedItem));
           if (existingItem) {
             existingItem.quantity = Math.max(Number(existingItem.quantity) || 1, Number(savedItem.quantity) || 1);
@@ -109,22 +142,32 @@ export const CartProvider = ({ children }) => {
           }
         });
 
-        const { kept, removed } = await pruneUnavailable(mergedCart);
+        // Ensure we never drop cart items if server returned empty
+        const candidateCart = mergedCart.length > 0
+          ? mergedCart
+          : (effectiveGuestCart.length > 0 ? effectiveGuestCart : cachedAccountCart);
+
+        const { kept, removed } = await pruneUnavailable(candidateCart);
+        const finalItems = kept.length > 0 ? kept : candidateCart;
+
         if (!cancelled) {
-          setCartItems(kept);
-          if (removed.length) setRemovedItems(removed);
+          setCartItems(finalItems);
+          if (removed.length && kept.length > 0) setRemovedItems(removed);
           setCartReady(true);
-          // Clean guest cart and update account storage
-          localStorage.removeItem('cart');
-          localStorage.setItem(storageKey, JSON.stringify(kept));
-          if (guestCart.length > 0 || removed.length) {
-            await api.put('/auth/cart', { cart: kept }).catch(() => {});
-          }
+          // Persist to user account key AND keep 'cart' key backed up
+          localStorage.setItem(storageKey, JSON.stringify(finalItems));
+          localStorage.setItem('cart', JSON.stringify(finalItems));
+          api.put('/auth/cart', { cart: finalItems }).catch(() => {});
         }
       } catch {
         if (!cancelled) {
-          setCartItems(Array.isArray(cachedAccountCart) ? cachedAccountCart : []);
+          const fallback = effectiveGuestCart.length > 0
+            ? effectiveGuestCart
+            : (Array.isArray(cachedAccountCart) ? cachedAccountCart : []);
+          setCartItems(fallback);
           setCartReady(true);
+          localStorage.setItem(storageKey, JSON.stringify(fallback));
+          localStorage.setItem('cart', JSON.stringify(fallback));
         }
       }
     };
@@ -139,6 +182,7 @@ export const CartProvider = ({ children }) => {
     if (!cartReady) return;
     const storageKey = cartOwnerId ? `cart:${cartOwnerId}` : 'cart';
     localStorage.setItem(storageKey, JSON.stringify(cartItems));
+    localStorage.setItem('cart', JSON.stringify(cartItems));
 
     if (cartOwnerId) {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
