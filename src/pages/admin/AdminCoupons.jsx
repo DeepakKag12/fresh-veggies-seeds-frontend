@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Plus, Edit, Trash2, Tag, Calendar, Percent, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -8,6 +8,7 @@ import AdminConfirmModal from '../../components/admin/AdminConfirmModal';
 
 const AdminCoupons = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
@@ -29,7 +30,10 @@ const AdminCoupons = () => {
 
   useEffect(() => {
     fetchCoupons();
-  }, []);
+    if (searchParams.get('action') === 'new') {
+      handleOpen();
+    }
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchCoupons = async () => {
     try {

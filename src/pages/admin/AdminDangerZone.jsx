@@ -5,7 +5,8 @@ import api from '../../utils/api';
 import PageLoader from '../../components/PageLoader';
 import AdminConfirmModal from '../../components/admin/AdminConfirmModal';
 
-const PHRASE = 'DELETE ALL DATA';
+const PHRASE = 'CONFIRM PURGE';
+const ALT_PHRASE = 'DELETE ALL DATA';
 
 /**
  * Production preparation: clear seeded/test content before going live.
@@ -78,7 +79,7 @@ const AdminDangerZone = () => {
 
   const counts = preview?.counts || {};
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  const ready = phrase === PHRASE && password.length > 0 && !busy;
+  const ready = (phrase === PHRASE || phrase === ALT_PHRASE) && password.length > 0 && !busy;
 
   return (
     <div className="mx-auto max-w-[720px] px-4 py-8 sm:px-6 space-y-4">

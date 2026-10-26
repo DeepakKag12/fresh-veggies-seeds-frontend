@@ -177,6 +177,10 @@ const GardeningGuides = () => {
               <img
                 src={selectedGuide.image}
                 alt={selectedGuide.title}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '/sandbox-assets/guides/guide_1.jpg';
+                }}
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />

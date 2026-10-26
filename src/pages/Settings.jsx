@@ -3,7 +3,8 @@ import { Link, useSearchParams, useNavigate, useLocation } from 'react-router-do
 import {
   User, MapPin, Package, Lock, Mail, LogOut, Save, Loader2,
   CheckCircle2, AlertCircle, Clock, Plus, Edit2, Trash2, Star,
-  Navigation, Check, X, Phone, ChevronRight, ArrowLeft
+  Navigation, Check, X, Phone, ChevronRight, ArrowLeft,
+  Home, Briefcase, Sprout, Compass, MessageSquare
 } from 'lucide-react';
 import { validatePassword, PASSWORD_RULE_TEXT } from '../utils/passwordPolicy';
 import { useAuth } from '../context/AuthContext';
@@ -68,13 +69,61 @@ const getRealName = (name) => {
   return name.trim();
 };
 
-/* ─── Small address form ──────────────────────────────────────────────── */
-const EMPTY_ADDR = { name: '', phone: '', street: '', city: '', state: '', pincode: '', country: 'India' };
+/* ─── Swiggy / Zomato Precision Address Management ─────────────────── */
+const ADDRESS_TAGS = [
+  { id: 'Home', label: 'Home', Icon: Home, color: 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800' },
+  { id: 'Work', label: 'Work', Icon: Briefcase, color: 'text-blue-700 bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800' },
+  { id: 'Farm', label: 'Farm / Nursery', Icon: Sprout, color: 'text-lime-800 bg-lime-50 dark:bg-lime-950/40 border-lime-200 dark:border-lime-800' },
+  { id: 'Other', label: 'Other', Icon: MapPin, color: 'text-slate-700 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700' },
+];
+
+const EMPTY_ADDR = {
+  name: '',
+  phone: '',
+  tag: 'Home',
+  street: '',
+  landmark: '',
+  instructions: '',
+  city: '',
+  state: '',
+  pincode: '',
+  country: 'India',
+  isDefault: false
+};
+
+const AddressModal = ({ isOpen, onClose, title, children }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+      <div
+        className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-100 dark:border-gray-700 p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between pb-4 mb-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 className="text-lg font-bold text-fv-heading dark:text-white">{title}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+};
 
 const AddressForm = ({ initial, onSave, onCancel, busy, title = 'Add New Address' }) => {
   const [form, setForm] = useState(() => ({
-    ...(initial || EMPTY_ADDR),
+    ...EMPTY_ADDR,
+    ...(initial || {}),
     name: getRealName(initial?.name) || '',
+    tag: initial?.tag || 'Home',
+    landmark: initial?.landmark || '',
+    instructions: initial?.instructions || '',
+    isDefault: initial?.isDefault || false,
   }));
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState('');
@@ -161,65 +210,127 @@ const AddressForm = ({ initial, onSave, onCancel, busy, title = 'Add New Address
     onSave(form);
   };
 
-  const inputCls = 'w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg ' +
-    'bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-[14px] ' +
-    'focus:ring-2 focus:ring-fv-primary focus:border-transparent';
-  const labelCls = 'block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1';
+  const inputCls = 'w-full px-3.5 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl ' +
+    'bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm ' +
+    'focus:ring-2 focus:ring-fv-primary focus:border-transparent transition-all';
+  const labelCls = 'block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1';
 
   return (
-    <form onSubmit={handleSubmit} className="bg-fv-cream dark:bg-gray-800 rounded-[14px] border border-fv-border p-5 space-y-4">
-      <p className="font-semibold text-fv-heading text-[15px]">{title}</p>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Swiggy Address Tag Selector */}
+      <div>
+        <label className={labelCls}>Save Address As *</label>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {ADDRESS_TAGS.map(({ id, label, Icon }) => {
+            const isSelected = (form.tag || 'Home') === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => set('tag', id)}
+                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
+                  isSelected
+                    ? 'bg-fv-primary text-white border-fv-primary shadow-xs ring-2 ring-fv-primary/25'
+                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:border-fv-primary/60'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5 shrink-0" />
+                <span>{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* GPS Button */}
       <button
         type="button"
         onClick={handleGPS}
         disabled={gpsLoading}
-        className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg
-                   border-2 border-dashed border-fv-primary/50 hover:border-fv-primary
-                   text-fv-primary text-[13px] font-semibold hover:bg-white
+        className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl
+                   border-2 border-dashed border-fv-primary/40 hover:border-fv-primary
+                   text-fv-primary text-xs font-bold hover:bg-fv-cream dark:hover:bg-gray-700/50
                    transition-all disabled:opacity-60 cursor-pointer"
       >
         {gpsLoading
-          ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Detecting location…</>
-          : <><Navigation className="w-3.5 h-3.5" /> Use Current Location</>}
+          ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Detecting GPS location…</>
+          : <><Navigation className="w-3.5 h-3.5" /> Use Current GPS Location</>}
       </button>
 
       {gpsError && (
-        <p className="text-xs text-amber-700 bg-amber-50 rounded-lg p-2.5 flex items-start gap-1.5">
-          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />{gpsError}
+        <p className="text-xs text-amber-800 bg-amber-50 dark:bg-amber-950/40 rounded-xl p-2.5 flex items-start gap-1.5">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-amber-600" />{gpsError}
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className={labelCls}>Full Name (Receiver's Name) *</label>
+          <label className={labelCls}>Receiver Full Name *</label>
           <input
             type="text"
             required
             value={getRealName(form.name)}
             onChange={e => set('name', e.target.value)}
             className={inputCls}
-            placeholder="Receiver's actual name"
+            placeholder="e.g. Rahul Sharma"
           />
         </div>
         <div>
-          <label className={labelCls}>Phone</label>
-          <input type="tel" value={form.phone || ''} onChange={e => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} className={inputCls} placeholder="10-digit Phone" maxLength={10} />
+          <label className={labelCls}>Contact Phone *</label>
+          <input
+            type="tel"
+            required
+            value={form.phone || ''}
+            onChange={e => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+            className={inputCls}
+            placeholder="10-digit mobile"
+            maxLength={10}
+          />
         </div>
-        <div className="col-span-2">
-          <label className={labelCls}>Street / Area *</label>
-          <input type="text" required value={form.street || ''} onChange={e => set('street', e.target.value)}
-            className={inputCls} placeholder="House no., Building, Street, Area" />
+      </div>
+
+      <div>
+        <label className={labelCls}>House No., Flat, Street, Area *</label>
+        <input
+          type="text"
+          required
+          value={form.street || ''}
+          onChange={e => set('street', e.target.value)}
+          className={inputCls}
+          placeholder="e.g. Flat 402, Green Valley Apartments, MG Road"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className={labelCls}>Nearby Landmark</label>
+          <div className="relative">
+            <Compass className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-3" />
+            <input
+              type="text"
+              value={form.landmark || ''}
+              onChange={e => set('landmark', e.target.value)}
+              className={`${inputCls} pl-8`}
+              placeholder="e.g. Opp. City Mall or Near Water Tank"
+            />
+          </div>
         </div>
         <div>
-          <label className={labelCls}>City / District *</label>
-          <input type="text" required value={form.city || ''} onChange={e => set('city', e.target.value)} className={inputCls} />
+          <label className={labelCls}>Delivery Instructions / Gate Code</label>
+          <div className="relative">
+            <MessageSquare className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-3" />
+            <input
+              type="text"
+              value={form.instructions || ''}
+              onChange={e => set('instructions', e.target.value)}
+              className={`${inputCls} pl-8`}
+              placeholder="e.g. Leave with guard / Ring bell twice"
+            />
+          </div>
         </div>
-        <div>
-          <label className={labelCls}>State *</label>
-          <input type="text" required value={form.state || ''} onChange={e => set('state', e.target.value)} className={inputCls} />
-        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
           <label className={labelCls}>PIN Code *</label>
           <input
@@ -239,23 +350,48 @@ const AddressForm = ({ initial, onSave, onCancel, busy, title = 'Add New Address
             </p>
           )}
         </div>
+        <div>
+          <label className={labelCls}>City / District *</label>
+          <input type="text" required value={form.city || ''} onChange={e => set('city', e.target.value)} className={inputCls} />
+        </div>
+        <div>
+          <label className={labelCls}>State *</label>
+          <input type="text" required value={form.state || ''} onChange={e => set('state', e.target.value)} className={inputCls} />
+        </div>
       </div>
 
-      <div className="flex gap-2 pt-1">
+      {/* Set as Default toggle */}
+      <label className="flex items-center gap-2 cursor-pointer pt-1 select-none">
+        <input
+          type="checkbox"
+          checked={!!form.isDefault}
+          onChange={e => set('isDefault', e.target.checked)}
+          className="w-4 h-4 rounded text-fv-primary focus:ring-fv-primary border-gray-300 dark:border-gray-600"
+        />
+        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1">
+          <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+          Make this my primary / default delivery address
+        </span>
+      </label>
+
+      <div className="flex gap-2.5 pt-2">
         <button
           type="submit"
           disabled={busy}
-          className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-fv-primary text-white rounded-lg
-                     text-[13px] font-semibold hover:bg-fv-primary-dark disabled:opacity-60"
+          className="flex-1 inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-fv-primary text-white rounded-xl
+                     text-xs sm:text-sm font-bold hover:bg-fv-primary-dark disabled:opacity-60 transition-colors shadow-xs"
         >
-          {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-          Save address
+          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+          Save Address
         </button>
         {onCancel && (
-          <button type="button" onClick={onCancel}
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 border border-gray-300 rounded-lg
-                       text-[13px] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-            <X className="w-3.5 h-3.5" /> Cancel
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl
+                       text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            Cancel
           </button>
         )}
       </div>
@@ -263,11 +399,11 @@ const AddressForm = ({ initial, onSave, onCancel, busy, title = 'Add New Address
   );
 };
 
-/* ─── Delivery Address Panel ─────────────────────────────────────────── */
+/* ─── Delivery Address Panel (Swiggy / Zomato Benchmark) ────────────────── */
 const AddressPanel = () => {
   const { user, addAddress, updateAddress, deleteAddress, setDefaultAddress } = useAuth();
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState({ type: '', text: '' });
 
@@ -281,168 +417,218 @@ const AddressPanel = () => {
   const handleAdd = async (form) => {
     setBusy(true);
     const res = await addAddress(form);
-    if (res.success) { setShowForm(false); flash('success', 'Address saved!'); }
-    else flash('error', res.message);
+    if (res.success) {
+      setModalOpen(false);
+      flash('success', 'New delivery address saved successfully!');
+    } else {
+      flash('error', res.message);
+    }
     setBusy(false);
   };
 
   const handleEdit = async (form) => {
+    if (!editingAddress?._id) return;
     setBusy(true);
-    const res = await updateAddress(editingId, form);
-    if (res.success) { setEditingId(null); flash('success', 'Address updated!'); }
-    else flash('error', res.message);
+    const res = await updateAddress(editingAddress._id, form);
+    if (res.success) {
+      setEditingAddress(null);
+      flash('success', 'Address updated successfully!');
+    } else {
+      flash('error', res.message);
+    }
     setBusy(false);
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Remove this address?')) return;
+    if (!window.confirm('Are you sure you want to remove this delivery address?')) return;
     setBusy(true);
     const res = await deleteAddress(id);
-    if (!res.success) flash('error', res.message);
+    if (res.success) {
+      flash('success', 'Address removed.');
+    } else {
+      flash('error', res.message);
+    }
     setBusy(false);
   };
 
   const handleSetDefault = async (id) => {
     setBusy(true);
     const res = await setDefaultAddress(id);
-    if (!res.success) flash('error', res.message);
+    if (res.success) {
+      flash('success', 'Default address updated.');
+    } else {
+      flash('error', res.message);
+    }
     setBusy(false);
   };
 
   return (
-    <div className="rounded-[18px] border border-fv-border bg-white p-6">
-      <div className="flex items-center justify-between mb-5">
+    <div className="rounded-[18px] border border-fv-border bg-white dark:bg-gray-800 p-6 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h2 className="font-serif text-[22px] font-semibold text-fv-heading">Delivery Addresses</h2>
-          <p className="mt-1 text-[14px] text-fv-muted">Manage where your orders are sent.</p>
+          <h2 className="font-serif text-[22px] font-semibold text-fv-heading dark:text-white">
+            Saved Delivery Addresses
+          </h2>
+          <p className="mt-1 text-[13px] text-fv-muted">
+            Manage your Home, Work, and Farm delivery locations with delivery instructions.
+          </p>
         </div>
-        {!showForm && !editingId && (
-          <button
-            type="button"
-            onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-fv-primary text-white
-                       rounded-lg text-[13px] font-semibold hover:bg-fv-primary-dark"
-          >
-            <Plus className="w-3.5 h-3.5" /> Add new
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => { setEditingAddress(null); setModalOpen(true); }}
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-fv-primary text-white
+                     rounded-xl text-xs sm:text-sm font-bold hover:bg-fv-primary-dark transition-colors shadow-xs shrink-0"
+        >
+          <Plus className="w-4 h-4" /> Add New Address
+        </button>
       </div>
 
       {msg.text && (
-        <p className={`flex items-center gap-2 rounded-[10px] px-4 py-3 text-[13px] mb-4
-          ${msg.type === 'success' ? 'bg-fv-cream text-fv-success' : 'bg-red-50 text-fv-danger'}`}>
+        <div className={`flex items-center gap-2 rounded-xl px-4 py-3 text-xs sm:text-sm mb-5 ${
+          msg.type === 'success'
+            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+            : 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
+        }`}>
           {msg.type === 'success'
-            ? <CheckCircle2 className="h-4 w-4 shrink-0" />
-            : <AlertCircle className="h-4 w-4 shrink-0" />}
-          {msg.text}
-        </p>
-      )}
-
-      {/* Add form */}
-      {showForm && (
-        <div className="mb-5">
-          <AddressForm
-            initial={{ name: getRealName(user?.name), phone: user?.phone || '', street: '', city: '', state: '', pincode: '', country: 'India' }}
-            onSave={handleAdd}
-            onCancel={() => setShowForm(false)}
-            busy={busy}
-          />
+            ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+            : <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />}
+          <span>{msg.text}</span>
         </div>
       )}
 
-      {/* Address list */}
-      {addresses.length === 0 && !showForm && (
-        <div className="text-center py-10 text-fv-muted">
-          <MapPin className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="text-[14px]">No saved addresses yet.</p>
+      {/* Address Card Grid */}
+      {addresses.length === 0 ? (
+        <div className="text-center py-12 px-4 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700">
+          <MapPin className="w-12 h-12 mx-auto mb-3 text-fv-primary/40" />
+          <h3 className="text-base font-bold text-gray-800 dark:text-gray-200">No saved addresses yet</h3>
+          <p className="text-xs text-fv-muted mt-1 max-w-sm mx-auto">
+            Save your home, office, or farm addresses for swift 1-click checkout and specialized delivery notes.
+          </p>
           <button
             type="button"
-            onClick={() => setShowForm(true)}
-            className="mt-3 text-fv-primary text-[13px] font-semibold hover:underline"
+            onClick={() => { setEditingAddress(null); setModalOpen(true); }}
+            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-fv-primary text-white rounded-xl text-xs font-bold hover:bg-fv-primary-dark"
           >
-            Add your first address →
+            <Plus className="w-3.5 h-3.5" /> Add First Address
           </button>
         </div>
-      )}
-
-      <div className="space-y-3">
-        {addresses.map(addr => (
-          <div key={addr._id}>
-            {editingId === addr._id ? (
-              <AddressForm
-                title="Edit Address"
-                initial={addr}
-                onSave={handleEdit}
-                onCancel={() => setEditingId(null)}
-                busy={busy}
-              />
-            ) : (
-              <div className={`border-2 rounded-xl p-4 transition-all
-                ${addr.isDefault ? 'border-fv-primary bg-fv-cream dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-700'}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="font-semibold text-[14px] text-gray-900 dark:text-white">
-                        {addr.name || user?.name}
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {addresses.map(addr => {
+            const TagInfo = ADDRESS_TAGS.find(t => t.id === addr.tag) || ADDRESS_TAGS[0];
+            const TagIcon = TagInfo.Icon;
+            return (
+              <div
+                key={addr._id}
+                className={`relative rounded-2xl border-2 p-5 transition-all flex flex-col justify-between ${
+                  addr.isDefault
+                    ? 'border-fv-primary bg-emerald-50/25 dark:bg-emerald-950/20 shadow-xs ring-1 ring-fv-primary/20'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800'
+                }`}
+              >
+                <div>
+                  {/* Top Bar: Tag pill + Default Badge + Actions */}
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border ${TagInfo.color}`}>
+                        <TagIcon className="w-3.5 h-3.5" />
+                        {addr.tag || 'Home'}
                       </span>
                       {addr.isDefault && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold
-                                         bg-fv-primary/15 text-fv-primary rounded-full">
-                          <Star className="w-2.5 h-2.5" fill="currentColor" /> Default
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 rounded-lg">
+                          <Star className="w-3 h-3 fill-amber-500 text-amber-500" /> Default
                         </span>
                       )}
                     </div>
-                    <p className="text-[13px] text-gray-600 dark:text-gray-400 leading-relaxed">
-                      {addr.street}, {addr.city}, {addr.state} — {addr.pincode}
-                    </p>
-                    {addr.phone && (
-                      <p className="text-[12px] text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
-                        <Phone className="w-3 h-3 shrink-0" />
-                        <span>{addr.phone}</span>
-                      </p>
-                    )}
-                  </div>
 
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {!addr.isDefault && (
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         disabled={busy}
-                        onClick={() => handleSetDefault(addr._id)}
-                        title="Set as default"
-                        className="px-2 py-1.5 text-[11px] border border-fv-primary text-fv-primary
-                                   rounded-lg hover:bg-fv-cream font-semibold disabled:opacity-50"
+                        onClick={() => setEditingAddress(addr)}
+                        className="p-1.5 rounded-lg text-gray-500 hover:text-fv-primary hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        title="Edit Address"
                       >
-                        Set default
+                        <Edit2 className="w-4 h-4" />
                       </button>
-                    )}
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => handleDelete(addr._id)}
+                        className="p-1.5 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        title="Delete Address"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Recipient Details */}
+                  <h4 className="font-bold text-gray-900 dark:text-white text-sm">
+                    {addr.name || user?.name}
+                  </h4>
+                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">
+                    {addr.street}, {addr.city}, {addr.state} — <span className="font-bold text-gray-900 dark:text-white">{addr.pincode}</span>
+                  </p>
+
+                  {/* Landmark note if available */}
+                  {addr.landmark && (
+                    <div className="mt-2.5 text-xs text-gray-600 dark:text-gray-300 flex items-start gap-1.5 bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg border border-gray-100 dark:border-gray-700">
+                      <Compass className="w-3.5 h-3.5 text-fv-primary shrink-0 mt-0.5" />
+                      <span><strong className="text-gray-900 dark:text-white">Landmark:</strong> {addr.landmark}</span>
+                    </div>
+                  )}
+
+                  {/* Delivery instructions note if available */}
+                  {addr.instructions && (
+                    <div className="mt-2 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-1.5 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 p-2 rounded-lg">
+                      <MessageSquare className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                      <span><strong className="text-amber-900 dark:text-amber-200">Delivery Notes:</strong> {addr.instructions}</span>
+                    </div>
+                  )}
+
+                  {/* Phone */}
+                  {addr.phone && (
+                    <p className="mt-2.5 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                      <Phone className="w-3 h-3 text-gray-400" />
+                      <span>+91 {addr.phone}</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* 1-Click Set as Default action */}
+                {!addr.isDefault && (
+                  <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-end">
                     <button
                       type="button"
                       disabled={busy}
-                      onClick={() => setEditingId(addr._id)}
-                      className="p-1.5 rounded-lg text-gray-500 hover:text-fv-primary hover:bg-gray-100
-                                 dark:hover:bg-gray-700 disabled:opacity-50"
-                      title="Edit"
+                      onClick={() => handleSetDefault(addr._id)}
+                      className="text-xs font-semibold text-fv-primary hover:text-fv-primary-dark hover:underline flex items-center gap-1"
                     >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => handleDelete(addr._id)}
-                      className="p-1.5 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50
-                                 dark:hover:bg-red-900/20 disabled:opacity-50"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
+                      Set as primary default →
                     </button>
                   </div>
-                </div>
+                )}
               </div>
-            )}
-          </div>
-        ))}
-      </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add / Edit Address Modal Drawer */}
+      <AddressModal
+        isOpen={modalOpen || !!editingAddress}
+        onClose={() => { setModalOpen(false); setEditingAddress(null); }}
+        title={editingAddress ? 'Edit Delivery Address' : 'Add New Delivery Address'}
+      >
+        <AddressForm
+          initial={editingAddress || { name: getRealName(user?.name), phone: user?.phone || '', tag: 'Home' }}
+          onSave={editingAddress ? handleEdit : handleAdd}
+          onCancel={() => { setModalOpen(false); setEditingAddress(null); }}
+          busy={busy}
+          title=""
+        />
+      </AddressModal>
     </div>
   );
 };

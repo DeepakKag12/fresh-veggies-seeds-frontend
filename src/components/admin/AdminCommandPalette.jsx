@@ -16,7 +16,8 @@ import {
   ArrowRight,
   PlusCircle,
   X,
-  ArchiveRestore
+  ArchiveRestore,
+  MessageSquare
 } from 'lucide-react';
 import api from '../../utils/api';
 
@@ -72,6 +73,7 @@ export const AdminCommandPalette = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const defaultNavItems = [
+    { title: 'Live Chat & Support Desk', subtitle: 'Real-time customer messaging and order resolution', path: '/admin/communication', icon: MessageSquare, section: 'Core Ops' },
     { title: 'Orders Workspace', subtitle: 'Manage fulfillments, print invoices & cancellations', path: '/admin/orders', icon: ClipboardList, section: 'Core Ops' },
     { title: 'Products Catalog', subtitle: 'Stock control, prices, and inventory management', path: '/admin/products', icon: Package, section: 'Core Ops' },
     { title: 'Dashboard Overview', subtitle: 'Operational KPIs, sales charts and urgency funnel', path: '/admin/dashboard', icon: LayoutDashboard, section: 'Core Ops' },

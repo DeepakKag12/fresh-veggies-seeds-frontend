@@ -5,6 +5,7 @@ import { Star, CheckCircle, XCircle, Trash2, MessageSquare, ShoppingBag, ArrowLe
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 import AdminConfirmModal from '../../components/admin/AdminConfirmModal';
+import { getProductImageUrl, handleImageError, DEFAULT_PRODUCT_IMAGE } from '../../utils/imageFallback';
 
 function AdminReviews() {
   const navigate = useNavigate();
@@ -242,8 +243,9 @@ function AdminReviews() {
                 {/* Product Image */}
                 <div className="flex-shrink-0">
                   <img
-                    src={review.productId?.images?.[0] || '/placeholder.jpg'}
-                    alt={review.productId?.name}
+                    src={getProductImageUrl(review.productId)}
+                    alt={review.productId?.name || 'Product'}
+                    onError={(e) => handleImageError(e, DEFAULT_PRODUCT_IMAGE)}
                     className="w-24 h-24 object-cover rounded-lg"
                   />
                 </div>
@@ -290,6 +292,10 @@ function AdminReviews() {
                           <img
                             src={imgUrl}
                             alt={`Review upload ${imgIdx + 1}`}
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = '/sandbox-assets/community/comm_1.webp';
+                            }}
                             className="h-full w-full object-cover transition-transform group-hover:scale-105"
                           />
                         </a>

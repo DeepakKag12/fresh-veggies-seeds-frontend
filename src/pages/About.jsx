@@ -24,7 +24,6 @@ const About = () => {
   const { settings } = useSettings();
   const storeName = settings?.store?.name || 'Fresh Veggies';
   const deliveryTime = settings?.delivery?.deliveryTime || '3–5 Days';
-  const whatsappNumber = settings?.store?.whatsappNumber || '9876543210';
 
   const stats = [
     { value: '50,000+', label: 'Thriving Home Gardens' },
@@ -55,7 +54,7 @@ const About = () => {
     {
       icon: Headphones,
       title: 'Expert Horticulturist Support',
-      desc: 'Free WhatsApp and phone guidance on soil mix composition, seed depth, sunlight hours, and seasonal pest prevention from real gardeners.',
+      desc: 'Free in-app live chat and phone guidance on soil mix composition, seed depth, sunlight hours, and seasonal pest prevention from real gardeners.',
       badge: 'Lifelong Guidance'
     },
   ];
@@ -332,15 +331,18 @@ const About = () => {
               <span>Explore Seeds Catalogue</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
-            <a
-              href={`https://wa.me/91${whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent('Hi! I would like to get advice on gardening seeds.')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-semibold text-sm px-7 py-3 rounded-full border border-white/30 backdrop-blur-xs transition-all"
+            <button
+              type="button"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-in-app-chat', {
+                  detail: { prompt: 'Hi! I would like to get advice on gardening seeds.' }
+                }));
+              }}
+              className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-semibold text-sm px-7 py-3 rounded-full border border-white/30 backdrop-blur-xs transition-all cursor-pointer"
             >
               <Headphones className="w-4 h-4 text-fv-yellow" />
-              <span>Talk to our Gardener (+91 {whatsappNumber})</span>
-            </a>
+              <span>Talk to our Gardener (Live Chat)</span>
+            </button>
           </div>
         </div>
 

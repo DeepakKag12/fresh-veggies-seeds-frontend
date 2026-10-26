@@ -10,14 +10,26 @@ import {
   Settings,
   Star,
   ArchiveRestore,
+  MessageSquare
 } from 'lucide-react';
+import { useChat } from '../../../context/ChatContext';
 
 export const DashboardQuickActions = ({ stats = {} }) => {
+  const { adminUnreadCount } = useChat();
   const pendingOrders = (stats?.pendingOrders || 0) + (stats?.cancellationRequests || 0);
   const lowStock = stats?.lowStockProducts || 0;
   const pendingReviews = stats?.pendingReviews || 0;
 
   const quickActions = [
+    {
+      title: 'Live Chat',
+      subtitle: adminUnreadCount > 0 ? `${adminUnreadCount} waiting` : 'Customer Desk',
+      to: '/admin/communication',
+      icon: MessageSquare,
+      color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/40',
+      badge: adminUnreadCount > 0 ? adminUnreadCount : null,
+      badgeColor: 'bg-emerald-600 text-white font-bold animate-pulse',
+    },
     {
       title: 'New Product',
       subtitle: lowStock > 0 ? `${lowStock} low in stock` : 'Add to catalog',

@@ -2,10 +2,18 @@ import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import Pagination from '../../components/Pagination';
 import { useLocation, useSearchParams, useNavigate } from 'react-router-dom';
-import { Edit, Trash2, Plus, X, Package, Upload, MoreVertical, Search, Boxes, Filter, AlertTriangle, Download, LayoutGrid, List, Sparkles, ArrowLeft } from 'lucide-react';
+import { Edit, Trash2, Plus, X, Package, MoreVertical, Search, Boxes, Filter, AlertTriangle, Download, LayoutGrid, List, Sparkles, ArrowLeft, FileSpreadsheet } from 'lucide-react';
 import api from '../../utils/api';
 import AdminConfirmModal from '../../components/admin/AdminConfirmModal';
 import { exportProductsToCsv } from '../../utils/adminCsvExport';
+import { ProductCsvModal } from '../../components/admin/ProductCsvModal';
+import {
+  calculateProportionalTier,
+  generateStandardTiers,
+  extractQuantityCount,
+} from '../../utils/pricing-engine';
+import DualMediaPicker from '../../components/admin/DualMediaPicker';
+import { getProductImageUrl, handleImageError } from '../../utils/imageFallback';
 
 const AdminProducts = () => {
   const navigate = useNavigate();
@@ -20,6 +28,9 @@ const AdminProducts = () => {
   const [stockFilter, setStockFilter] = useState(''); // '' | 'low' | 'out'
   const [selectedCategory, setSelectedCategory] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
+  const [selectedProductIds, setSelectedProductIds] = useState([]);
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
+  const [isBatchProcessing, setIsBatchProcessing] = useState(false);
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -30,9 +41,8 @@ const AdminProducts = () => {
   const [currentProduct, setCurrentProduct] = useState(null);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [imageFiles, setImageFiles] = useState([]);
-  const [imagePreview, setImagePreview] = useState([]);
   const [packages, setPackages] = useState([
-    { quantity: '50 Seeds', price: '', stock: '' }
+    { quantity: '50 Seeds', price: '', originalPrice: '', stock: '50', isCustomPrice: false }
   ]);
   
   const [formData, setFormData] = useState({
@@ -47,7 +57,11 @@ const AdminProducts = () => {
     images: '',
     featured: false,
     trending: false,
-    hasPackages: false   // toggle: sell by package variants (quantity-based)
+    hasPackages: false,   // toggle: sell by package variants (quantity-based)
+    isAutoPricing: false, // toggle: automatic count-based MRP calculation
+    baseQuantity: '50',   // base quantity e.g. 50 seeds
+    baseMrp: '',          // base MRP e.g. ₹100
+    baseUnit: 'Seeds'     // base unit label
   });
 
 
@@ -74,11 +88,12 @@ const AdminProducts = () => {
     // Check if redirected from product card edit or new
     if (location.state?.editProduct) {
       handleOpen(location.state.editProduct);
-    } else if (searchParams.get('new') === 'true') {
+    } else if (searchParams.get('new') === 'true' || searchParams.get('action') === 'new') {
       handleOpen();
       // clean param from URL so refresh doesn't reopen modal
       const newParams = new URLSearchParams(searchParams);
       newParams.delete('new');
+      newParams.delete('action');
       setSearchParams(newParams, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -129,6 +144,61 @@ const AdminProducts = () => {
     }
   };
 
+  const toggleSelectProduct = (id) => {
+    setSelectedProductIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedProductIds.length === products.length) {
+      setSelectedProductIds([]);
+    } else {
+      setSelectedProductIds(products.map((p) => p._id));
+    }
+  };
+
+  const handleBatchStatus = async (isActive) => {
+    if (selectedProductIds.length === 0) return;
+    setIsBatchProcessing(true);
+    try {
+      await Promise.all(
+        selectedProductIds.map((id) => api.put(`/products/${id}`, { isActive }))
+      );
+      toast.success(`${selectedProductIds.length} product(s) marked as ${isActive ? 'Active' : 'Inactive'}!`);
+      setSelectedProductIds([]);
+      fetchProducts();
+    } catch {
+      toast.error('Failed to update status for selected products');
+    } finally {
+      setIsBatchProcessing(false);
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedProductIds.length === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ${selectedProductIds.length} product(s)? They will be moved to Delete History.`)) return;
+    setIsBatchProcessing(true);
+    try {
+      await Promise.all(
+        selectedProductIds.map((id) => api.delete(`/products/${id}?reason=Batch administrative deletion`))
+      );
+      toast.success(`${selectedProductIds.length} product(s) moved to Delete History!`);
+      setSelectedProductIds([]);
+      fetchProducts();
+    } catch {
+      toast.error('Failed to delete selected products');
+    } finally {
+      setIsBatchProcessing(false);
+    }
+  };
+
+  const handleBatchExport = () => {
+    const selectedList = products.filter((p) => selectedProductIds.includes(p._id));
+    exportProductsToCsv(selectedList, 'selected_products');
+    toast.success(`Exported ${selectedList.length} selected product(s) to CSV!`);
+  };
+
   const fetchCategories = async () => {
     try {
       const response = await api.get('/categories');
@@ -138,36 +208,125 @@ const AdminProducts = () => {
     }
   };
 
+  const extractCount = extractQuantityCount;
+
+  const computeAutoPrices = (currentPackages, autoActive, bQty, bMrp, currentPrice) => {
+    if (!autoActive) return currentPackages;
+    const baseQ = parseFloat(bQty);
+    const baseM = parseFloat(bMrp);
+    if (!baseQ || baseQ <= 0 || !baseM || baseM <= 0) return currentPackages;
+
+    const baseSelling = parseFloat(currentPrice) || Math.round(baseM * 0.75);
+
+    return currentPackages.map((pkg) => {
+      if (pkg.isCustomPrice) return pkg;
+      const count = extractQuantityCount(pkg.quantity);
+      if (count <= 0) return pkg;
+
+      // Use Centralized Pricing Engine with progressive volume discount curve (FEAT-006)
+      const tier = calculateProportionalTier({
+        count,
+        baseQuantity: baseQ,
+        baseMrp: baseM,
+        basePrice: baseSelling,
+        applyVolumeDiscount: true,
+      });
+
+      return {
+        ...pkg,
+        originalPrice: tier.originalPrice.toString(),
+        price: pkg.isCustomPrice && pkg.price ? pkg.price : tier.price.toString(),
+        volumeDiscountPct: tier.volumeDiscountPct,
+      };
+    });
+  };
+
+  const handleGenerateStandardTiers = (type = 'weight') => {
+    const bMrp = parseFloat(formData.baseMrp || formData.originalPrice || formData.price || '100');
+    const bQty = parseFloat(formData.baseQuantity || (type === 'weight' ? '100' : '50'));
+    const bPrice = parseFloat(formData.price || Math.round(bMrp * 0.75));
+
+    const tiers = generateStandardTiers({
+      baseQuantity: bQty,
+      baseMrp: bMrp,
+      basePrice: bPrice,
+      type,
+    });
+
+    setPackages(tiers);
+    setFormData((prev) => ({
+      ...prev,
+      hasPackages: true,
+      isAutoPricing: true,
+      baseQuantity: bQty.toString(),
+      baseMrp: bMrp.toString(),
+      baseUnit: type === 'weight' ? 'Grams' : 'Seeds',
+    }));
+    toast.success(`Generated ${tiers.length} ${type} volume tiers with volume discount curves!`);
+  };
+
+  const handleToggleAutoPricing = (enabled) => {
+    const bMrp = formData.baseMrp || formData.originalPrice || formData.price || '100';
+    const bQty = formData.baseQuantity || '50';
+    const updatedForm = {
+      ...formData,
+      isAutoPricing: enabled,
+      baseMrp: bMrp,
+      baseQuantity: bQty
+    };
+    setFormData(updatedForm);
+    if (enabled) {
+      setPackages(computeAutoPrices(packages, true, bQty, bMrp, formData.price));
+    }
+  };
+
+  const handleBasePricingChange = (field, value) => {
+    const updatedForm = { ...formData, [field]: value };
+    setFormData(updatedForm);
+    if (updatedForm.isAutoPricing) {
+      setPackages(computeAutoPrices(packages, true, updatedForm.baseQuantity, updatedForm.baseMrp, updatedForm.price));
+    }
+  };
+
   const handleOpen = (product = null) => {
     if (product) {
       setEditMode(true);
       setCurrentProduct(product);
-      const hasPkgs = product.packages && product.packages.length > 0;
+      const hasPkgs = Array.isArray(product.packages) && product.packages.length > 0;
+      const isAuto = Boolean(product.isAutoPricing);
+      const bQty = product.baseQuantity != null ? product.baseQuantity.toString() : '50';
+      const bMrpVal = product.baseMrp != null ? product.baseMrp.toString() : (product.originalPrice || product.price || '').toString();
+
       setFormData({
-        name: product.name,
-        categoryId: product.categoryId._id || product.categoryId,
-        price: product.price,
+        name: product.name || '',
+        categoryId: product.categoryId?._id || product.categoryId || '',
+        price: product.price ?? '',
         originalPrice: product.originalPrice || '',
         weight: product.weight || '',
-        stock: product.stock,
-        description: product.description,
+        stock: product.stock ?? '',
+        description: product.description || '',
         season: product.season || 'All Season',
-        images: product.images.join(', '),
-        featured: product.featured || false,
-        trending: product.trending || false,
-        hasPackages: hasPkgs
+        images: Array.isArray(product.images) ? product.images.join(', ') : (product.images || ''),
+        featured: Boolean(product.featured),
+        trending: Boolean(product.trending),
+        hasPackages: hasPkgs,
+        isAutoPricing: isAuto,
+        baseQuantity: bQty,
+        baseMrp: bMrpVal,
+        baseUnit: product.baseUnit || 'Seeds'
       });
       // Load packages if exists
       if (hasPkgs) {
         setPackages(product.packages.map(p => ({
-          quantity: p.quantity,
-          price: p.price.toString(),
-          stock: p.stock.toString()
+          quantity: p.quantity || '',
+          price: p.price != null ? p.price.toString() : '',
+          originalPrice: p.originalPrice ? p.originalPrice.toString() : '',
+          stock: p.stock != null ? p.stock.toString() : '50',
+          isCustomPrice: Boolean(p.isCustomPrice)
         })));
       } else {
-        setPackages([{ quantity: '', price: '', stock: '' }]);
+        setPackages([{ quantity: '', price: '', originalPrice: '', stock: '50', isCustomPrice: false }]);
       }
-      setImagePreview(product.images || []);
     } else {
       setEditMode(false);
       setCurrentProduct(null);
@@ -183,10 +342,13 @@ const AdminProducts = () => {
         images: '',
         featured: false,
         trending: false,
-        hasPackages: false
+        hasPackages: false,
+        isAutoPricing: false,
+        baseQuantity: '50',
+        baseMrp: '',
+        baseUnit: 'Seeds'
       });
-      setPackages([{ quantity: '', price: '', stock: '' }]);
-      setImagePreview([]);
+      setPackages([{ quantity: '50 Seeds', price: '', originalPrice: '', stock: '50', isCustomPrice: false }]);
       setImageFiles([]);
     }
     setOpen(true);
@@ -196,38 +358,43 @@ const AdminProducts = () => {
     setOpen(false);
     setMessage({ type: '', text: '' });
     setImageFiles([]);
-    setImagePreview([]);
-  };
-
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
-    setImageFiles(files);
-    
-    // Create preview URLs
-    const previews = files.map(file => URL.createObjectURL(file));
-    setImagePreview(previews);
   };
 
   const handleAddPackage = () => {
-    setPackages([...packages, { quantity: '', price: '', stock: '50' }]);
+    let autoOriginal = '';
+    let autoPrice = formData.price || '';
+    setPackages([...packages, { quantity: '', price: autoPrice, originalPrice: autoOriginal, stock: '50', isCustomPrice: false }]);
   };
 
   const handleAddPresetPackage = (labelPreset) => {
-    // If the last package is empty, replace it; otherwise add new
+    const count = extractCount(labelPreset);
+    let autoOriginal = '';
+    let autoPrice = formData.price || '';
+    if (formData.isAutoPricing) {
+      const bQty = parseFloat(formData.baseQuantity);
+      const bMrp = parseFloat(formData.baseMrp);
+      if (count > 0 && bQty > 0 && bMrp > 0) {
+        autoOriginal = Math.round((bMrp * count) / bQty).toString();
+        const baseSelling = parseFloat(formData.price) || bMrp;
+        autoPrice = Math.round((baseSelling * count) / bQty).toString();
+      }
+    }
     const last = packages[packages.length - 1];
     if (last && !last.quantity && !last.price) {
       const updated = [...packages];
       updated[packages.length - 1] = {
         ...last,
         quantity: labelPreset,
-        price: last.price || formData.price || '',
-        stock: last.stock || '50'
+        originalPrice: autoOriginal || last.originalPrice || '',
+        price: autoPrice || last.price || '',
+        stock: last.stock || '50',
+        isCustomPrice: false
       };
       setPackages(updated);
     } else {
       setPackages([
         ...packages,
-        { quantity: labelPreset, price: formData.price || '', stock: '50' }
+        { quantity: labelPreset, originalPrice: autoOriginal, price: autoPrice, stock: '50', isCustomPrice: false }
       ]);
     }
   };
@@ -238,7 +405,20 @@ const AdminProducts = () => {
 
   const handlePackageChange = (index, field, value) => {
     const newPackages = [...packages];
-    newPackages[index][field] = value;
+    newPackages[index] = { ...newPackages[index], [field]: value };
+    if (field === 'price' || field === 'originalPrice') {
+      newPackages[index].isCustomPrice = true;
+    }
+    if (field === 'quantity' && formData.isAutoPricing && !newPackages[index].isCustomPrice) {
+      const count = extractCount(value);
+      const bQty = parseFloat(formData.baseQuantity);
+      const bMrp = parseFloat(formData.baseMrp);
+      if (count > 0 && bQty > 0 && bMrp > 0) {
+        newPackages[index].originalPrice = Math.round((bMrp * count) / bQty).toString();
+        const baseSelling = parseFloat(formData.price) || bMrp;
+        newPackages[index].price = Math.round((baseSelling * count) / bQty).toString();
+      }
+    }
     setPackages(newPackages);
   };
 
@@ -249,18 +429,29 @@ const AdminProducts = () => {
     try {
       let imageUrls = formData.images.split(',').map((url) => url.trim()).filter(url => url);
       
-      // Upload new images if selected
+      // Upload new images if selected (FEAT-018 multi-image Cloudinary streaming)
       if (imageFiles.length > 0) {
-        const uploadPromises = imageFiles.map(async (file) => {
-          const formData = new FormData();
-          formData.append('image', file);
-          const response = await api.post('/upload', formData, {
+        try {
+          const uploadForm = new FormData();
+          imageFiles.forEach((file) => uploadForm.append('images', file));
+          const response = await api.post('/upload/multiple', uploadForm, {
             headers: { 'Content-Type': 'multipart/form-data' }
           });
-          return response.data.data.url;
-        });
-        const uploadedUrls = await Promise.all(uploadPromises);
-        imageUrls = [...imageUrls, ...uploadedUrls];
+          const uploadedUrls = (response.data?.data || []).map((item) => item.url);
+          imageUrls = [...imageUrls, ...uploadedUrls];
+        } catch {
+          // Fallback to single upload loop if /upload/multiple fails
+          const uploadPromises = imageFiles.map(async (file) => {
+            const singleForm = new FormData();
+            singleForm.append('image', file);
+            const response = await api.post('/upload', singleForm, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            return response.data.data.url;
+          });
+          const uploadedUrls = await Promise.all(uploadPromises);
+          imageUrls = [...imageUrls, ...uploadedUrls];
+        }
       }
 
       // Filter valid packages (allowing 0 stock for sold-out variants)
@@ -269,6 +460,8 @@ const AdminProducts = () => {
         .map(p => ({
           quantity: p.quantity.trim(),
           price: parseFloat(p.price),
+          originalPrice: p.originalPrice ? parseFloat(p.originalPrice) : undefined,
+          isCustomPrice: Boolean(p.isCustomPrice),
           stock: Math.max(0, parseInt(p.stock, 10) || 0)
         }));
 
@@ -289,6 +482,10 @@ const AdminProducts = () => {
         ...restFormData,
         images: imageUrls,
         packages: formData.hasPackages && validPackages.length > 0 ? validPackages : [],
+        isAutoPricing: Boolean(formData.isAutoPricing),
+        baseQuantity: formData.isAutoPricing ? (parseInt(formData.baseQuantity, 10) || 50) : undefined,
+        baseMrp: formData.isAutoPricing && formData.baseMrp ? parseFloat(formData.baseMrp) : undefined,
+        baseUnit: formData.baseUnit || 'Seeds',
         originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : undefined,
         price: parseFloat(formData.price),
         // If selling by packages, overall stock is the sum of variant package stock
@@ -387,7 +584,18 @@ const AdminProducts = () => {
               />
             </div>
 
-            {/* Export CSV */}
+            {/* CSV Pipeline (Import/Export) */}
+            <button
+              type="button"
+              onClick={() => setCsvModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-semibold min-h-[42px] transition-colors shrink-0 shadow-2xs"
+              title="Bulk CSV Import/Export Pipeline"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span className="hidden sm:inline">CSV Pipeline</span>
+            </button>
+
+            {/* Quick Export CSV */}
             <button
               type="button"
               onClick={handleExportCsv}
@@ -517,6 +725,15 @@ const AdminProducts = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-fv-surface/60 dark:bg-gray-700/50 border-b border-fv-border text-[11px] font-bold text-fv-muted uppercase tracking-wider">
+                    <th className="py-3 px-3 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={products.length > 0 && selectedProductIds.length === products.length}
+                        onChange={toggleSelectAll}
+                        className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                        title="Select All"
+                      />
+                    </th>
                     <th className="py-3 px-4">Item & Catalog Info</th>
                     <th className="py-3 px-4">Category</th>
                     <th className="py-3 px-4 text-right">Price</th>
@@ -528,7 +745,7 @@ const AdminProducts = () => {
                 <tbody className="divide-y divide-fv-border">
                   {products.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="py-12 text-center text-xs text-fv-muted">
+                      <td colSpan="7" className="py-12 text-center text-xs text-fv-muted">
                         No products match your current filters.
                       </td>
                     </tr>
@@ -539,14 +756,24 @@ const AdminProducts = () => {
                         : product.stock;
                       const isOutOfStock = stockCount <= 0;
                       const isLowStock = !isOutOfStock && stockCount <= 10;
+                      const isSelected = selectedProductIds.includes(product._id);
 
                       return (
-                        <tr key={product._id} className="hover:bg-fv-surface/40 transition-colors text-xs">
+                        <tr key={product._id} className={`hover:bg-fv-surface/40 transition-colors text-xs ${isSelected ? 'bg-emerald-50/50 dark:bg-emerald-950/20' : ''}`}>
+                          <td className="py-3 px-3 text-center">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelectProduct(product._id)}
+                              className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                            />
+                          </td>
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-3">
                               <img
-                                src={product.images?.[0] || 'https://via.placeholder.com/80'}
+                                src={getProductImageUrl(product)}
                                 alt={product.name}
+                                onError={(e) => handleImageError(e, getProductImageUrl(product))}
                                 className="w-10 h-10 object-cover rounded-xl border border-fv-border shrink-0"
                               />
                               <div className="min-w-0">
@@ -649,8 +876,9 @@ const AdminProducts = () => {
                 <div>
                   <div className="relative">
                     <img
-                      src={product.images?.[0] || 'https://via.placeholder.com/300'}
+                      src={getProductImageUrl(product)}
                       alt={product.name}
+                      onError={(e) => handleImageError(e, getProductImageUrl(product))}
                       className="w-full h-44 object-cover"
                     />
                     <div className="absolute top-2.5 right-2.5 flex flex-col gap-1 items-end">
@@ -1004,13 +1232,89 @@ const AdminProducts = () => {
                         </div>
                       </div>
 
+                      {/* Auto-Proportional Count-Based Pricing Configuration Panel */}
+                      <div className="mb-4 p-4 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 shadow-2xs">
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <div>
+                            <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200 uppercase tracking-wider flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                              <span>Automatic Proportional Count-Based Pricing</span>
+                            </span>
+                            <p className="text-[11px] text-fv-muted mt-0.5">
+                              Formula: <code className="bg-white/90 dark:bg-gray-800 px-1 py-0.5 rounded text-[10.5px] font-mono font-bold text-emerald-800 dark:text-emerald-300">Calculated MRP = Base MRP × (Selected Variant Quantity ÷ Base Quantity)</code>
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleAutoPricing(!formData.isAutoPricing)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0 ${
+                              formData.isAutoPricing ? 'bg-fv-primary' : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                                formData.isAutoPricing ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {formData.isAutoPricing && (
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 mt-2 border-t border-emerald-200/70 dark:border-emerald-800/70">
+                            <div>
+                              <label className="block text-xs font-bold text-fv-heading mb-1">
+                                Base Quantity *
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="e.g. 50"
+                                value={formData.baseQuantity}
+                                onChange={(e) => handleBasePricingChange('baseQuantity', e.target.value)}
+                                className="w-full px-3 py-2 text-xs border border-fv-border rounded-xl bg-white dark:bg-gray-800 text-fv-heading focus:ring-2 focus:ring-fv-primary font-semibold"
+                              />
+                              <span className="text-[10px] text-fv-muted">Configurable base (e.g. 50)</span>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-fv-heading mb-1">
+                                Base MRP (₹) *
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="e.g. 100"
+                                value={formData.baseMrp}
+                                onChange={(e) => handleBasePricingChange('baseMrp', e.target.value)}
+                                className="w-full px-3 py-2 text-xs border border-fv-border rounded-xl bg-white dark:bg-gray-800 text-fv-heading focus:ring-2 focus:ring-fv-primary font-semibold"
+                              />
+                              <span className="text-[10px] text-fv-muted">MRP of the base quantity</span>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-bold text-fv-heading mb-1">
+                                Unit Name
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="Seeds"
+                                value={formData.baseUnit}
+                                onChange={(e) => handleBasePricingChange('baseUnit', e.target.value)}
+                                className="w-full px-3 py-2 text-xs border border-fv-border rounded-xl bg-white dark:bg-gray-800 text-fv-heading focus:ring-2 focus:ring-fv-primary"
+                              />
+                              <span className="text-[10px] text-fv-muted">e.g. Seeds, Bulbs, Tubers</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
                       {/* Quick Presets Toolbar */}
                       <div className="mb-4 p-3 bg-white dark:bg-gray-800/80 rounded-xl border border-fv-border space-y-2">
                         <div className="flex flex-wrap items-center gap-1.5 text-xs">
                           <span className="font-semibold text-fv-heading text-[11px] uppercase tracking-wider mr-1">
                             Seed Count:
                           </span>
-                          {['50 Seeds', '100 Seeds', '250 Seeds', '500 Seeds', '1000 Seeds'].map((preset) => (
+                          {['50 Seeds', '100 Seeds', '150 Seeds', '200 Seeds', '250 Seeds', '500 Seeds'].map((preset) => (
                             <button
                               key={preset}
                               type="button"
@@ -1037,60 +1341,135 @@ const AdminProducts = () => {
                             </button>
                           ))}
                         </div>
+
+                        {/* 1-Click Costco / Bulk Volume Tier Generator (FEAT-006) */}
+                        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
+                          <span className="font-semibold text-fv-heading text-[11px] uppercase tracking-wider flex items-center gap-1">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                            <span>Costco Tier Generator:</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleGenerateStandardTiers('weight')}
+                            className="px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-xs hover:from-amber-600 hover:to-amber-700 transition-all cursor-pointer"
+                          >
+                            Weight Packs (100g, 250g, 500g, 1kg)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleGenerateStandardTiers('seeds')}
+                            className="px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xs hover:from-emerald-700 hover:to-teal-700 transition-all cursor-pointer"
+                          >
+                            Seed Packs (50, 100, 250, 500 Seeds)
+                          </button>
+                        </div>
                       </div>
 
                       {/* Column headers */}
-                      <div className="flex gap-3 mb-1.5 px-1">
-                        <span className="flex-1 text-xs font-semibold text-fv-muted">Variant Label (Count or Weight)</span>
-                        <span className="w-28 text-xs font-semibold text-fv-muted">Price (₹)</span>
-                        <span className="w-24 text-xs font-semibold text-fv-muted">Stock (Qty)</span>
+                      <div className="flex gap-2.5 mb-1.5 px-1 items-center text-xs font-semibold text-fv-muted">
+                        <span className="flex-1">Variant Label (Count / Weight)</span>
+                        {formData.isAutoPricing && (
+                          <span className="w-28 text-center">Calculated MRP (₹)</span>
+                        )}
+                        <span className="w-28">Selling Price (₹)</span>
+                        <span className="w-24">Stock (Qty)</span>
                         <span className="w-8"></span>
                       </div>
 
                       {/* Variant Rows */}
                       <div className="space-y-2.5">
-                        {packages.map((pkg, index) => (
-                          <div key={index} className="flex gap-2.5 items-center">
-                            <input
-                              type="text"
-                              placeholder="e.g. 50 Seeds or 25 gm"
-                              value={pkg.quantity}
-                              onChange={(e) => handlePackageChange(index, 'quantity', e.target.value)}
-                              className="flex-1 px-3 py-2 text-sm border border-fv-border rounded-xl bg-white dark:bg-gray-800 text-fv-heading focus:ring-2 focus:ring-fv-primary"
-                            />
-                            <div className="relative w-28">
-                              <span className="absolute left-3 top-2 text-xs text-fv-muted">₹</span>
-                              <input
-                                type="number"
-                                placeholder="Price"
-                                value={pkg.price}
-                                onChange={(e) => handlePackageChange(index, 'price', e.target.value)}
-                                className="w-full pl-6 pr-2 py-2 text-sm border border-fv-border rounded-xl bg-white dark:bg-gray-800 text-fv-heading focus:ring-2 focus:ring-fv-primary"
-                              />
+                        {packages.map((pkg, index) => {
+                          const count = extractQuantityCount(pkg.quantity);
+                          const bQty = parseFloat(formData.baseQuantity) || 50;
+                          const bMrp = parseFloat(formData.baseMrp) || 0;
+                          const formulaDisplay = formData.isAutoPricing && count > 0 && bMrp > 0
+                            ? `₹${bMrp} × ${count}/${bQty} = ₹${pkg.originalPrice || Math.round((bMrp * count) / bQty)}`
+                            : null;
+
+                          return (
+                            <div key={index} className="flex flex-col gap-1.5 p-2 rounded-xl border border-gray-100 dark:border-gray-800 bg-white/60 dark:bg-gray-800/60">
+                              <div className="flex gap-2.5 items-center">
+                                <div className="flex-1 min-w-0">
+                                  <input
+                                    type="text"
+                                    placeholder="e.g. 50 Seeds or 25 gm"
+                                    value={pkg.quantity}
+                                    onChange={(e) => handlePackageChange(index, 'quantity', e.target.value)}
+                                    className="w-full px-3 py-2 text-sm border border-fv-border rounded-xl bg-white dark:bg-gray-800 text-fv-heading focus:ring-2 focus:ring-fv-primary font-medium"
+                                  />
+                                </div>
+
+                                {formData.isAutoPricing && (
+                                  <div className="relative w-28">
+                                    <span className="absolute left-2.5 top-2 text-xs text-fv-muted">₹</span>
+                                    <input
+                                      type="number"
+                                      placeholder="MRP"
+                                      value={pkg.originalPrice}
+                                      onChange={(e) => handlePackageChange(index, 'originalPrice', e.target.value)}
+                                      className="w-full pl-6 pr-2 py-2 text-sm border border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl text-emerald-900 dark:text-emerald-200 font-bold focus:ring-2 focus:ring-fv-primary"
+                                      title={pkg.isCustomPrice ? "Custom MRP override" : "Automatically calculated MRP"}
+                                    />
+                                  </div>
+                                )}
+
+                                <div className="relative w-28">
+                                  <span className="absolute left-2.5 top-2 text-xs text-fv-muted">₹</span>
+                                  <input
+                                    type="number"
+                                    placeholder="Price"
+                                    value={pkg.price}
+                                    onChange={(e) => handlePackageChange(index, 'price', e.target.value)}
+                                    className="w-full pl-6 pr-2 py-2 text-sm border border-fv-border rounded-xl bg-white dark:bg-gray-800 text-fv-heading focus:ring-2 focus:ring-fv-primary font-semibold"
+                                  />
+                                </div>
+
+                                <input
+                                  type="number"
+                                  placeholder="Stock"
+                                  value={pkg.stock}
+                                  onChange={(e) => handlePackageChange(index, 'stock', e.target.value)}
+                                  className="w-24 px-3 py-2 text-sm border border-fv-border rounded-xl bg-white dark:bg-gray-800 text-fv-heading focus:ring-2 focus:ring-fv-primary"
+                                />
+
+                                {packages.length > 1 ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemovePackage(index)}
+                                    className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-colors shrink-0"
+                                    title="Remove variant"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                ) : <span className="w-8 shrink-0" />}
+                              </div>
+
+                              {formulaDisplay && (
+                                <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] px-1 text-fv-muted">
+                                  <span className="font-mono text-emerald-700 dark:text-emerald-400">
+                                    Formula: {formulaDisplay}
+                                  </span>
+                                  <div className="flex items-center gap-1.5">
+                                    {pkg.volumeDiscountPct > 0 && !pkg.isCustomPrice && (
+                                      <span className="text-emerald-800 dark:text-emerald-300 font-bold bg-emerald-100 dark:bg-emerald-950/70 px-1.5 py-0.5 rounded text-[10px]">
+                                        Costco {pkg.volumeDiscountPct}% Bulk Discount
+                                      </span>
+                                    )}
+                                    {pkg.isCustomPrice && (
+                                      <span className="text-amber-700 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.5 rounded text-[10px]">
+                                        Custom Price Override
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <input
-                              type="number"
-                              placeholder="Stock"
-                              value={pkg.stock}
-                              onChange={(e) => handlePackageChange(index, 'stock', e.target.value)}
-                              className="w-24 px-3 py-2 text-sm border border-fv-border rounded-xl bg-white dark:bg-gray-800 text-fv-heading focus:ring-2 focus:ring-fv-primary"
-                            />
-                            {packages.length > 1 ? (
-                              <button
-                                type="button"
-                                onClick={() => handleRemovePackage(index)}
-                                className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-colors"
-                                title="Remove variant"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            ) : <span className="w-8" />}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
                       <p className="text-[11px] text-fv-muted mt-3">
-                        Tip: Customers will see interactive pills on both the product grid card and the detail page to switch between these variants instantly.
+                        Tip: Proportional pricing automatically calculates each variant's MRP. Customers see these real-time price updates on product pages and carts.
                       </p>
                     </div>
                   )}
@@ -1109,44 +1488,23 @@ const AdminProducts = () => {
                     />
                   </div>
 
-                  {/* Image Upload */}
-                  <div>
-                    <label className="block text-sm font-medium text-fv-ink  mb-2">
-                      Product Images
-                    </label>
-                    <div className="flex items-center gap-4">
-                      <label className="flex items-center gap-2 bg-fv-surface  hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-3 rounded-lg cursor-pointer transition-colors">
-                        <Upload className="w-5 h-5" />
-                        <span>Upload from Device</span>
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          onChange={handleImageChange}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                    {imagePreview.length > 0 && (
-                      <div className="grid grid-cols-4 gap-2 mt-4">
-                        {imagePreview.map((url, idx) => (
-                          <img
-                            key={idx}
-                            src={url}
-                            alt={`Preview ${idx}`}
-                            className="w-full h-24 object-cover rounded-lg"
-                          />
-                        ))}
-                      </div>
-                    )}
-                    <input
-                      type="text"
-                      placeholder="Or paste image URLs (comma-separated)"
-                      value={formData.images}
-                      onChange={(e) => setFormData({ ...formData, images: e.target.value })}
-                      className="w-full px-4 py-3 border border-fv-border  rounded-lg bg-white  text-fv-heading  focus:ring-2 focus:ring-fv-primary mt-2"
-                    />
-                  </div>
+                  {/* Dual Mode Media Picker (Shopify-grade media management) */}
+                  <DualMediaPicker
+                    label="Product Images & Gallery"
+                    multiple={true}
+                    aspectRatioHint="1:1 square recommended"
+                    value={
+                      formData.images
+                        ? formData.images.split(',').map((u) => u.trim()).filter(Boolean)
+                        : []
+                    }
+                    onChange={(newUrls) => {
+                      const joined = Array.isArray(newUrls) ? newUrls.join(', ') : newUrls;
+                      setFormData((prev) => ({ ...prev, images: joined }));
+                    }}
+                    uploadEndpoint="/upload"
+                    helperText="Upload JPG, PNG, WebP up to 10MB or paste direct image links. First image is primary."
+                  />
 
                   {/* Checkboxes */}
                   <div className="flex gap-6">
@@ -1214,6 +1572,67 @@ const AdminProducts = () => {
           isLoading={isDeleting}
           onConfirm={handleConfirmDeleteProduct}
           onClose={() => setProductToDelete(null)}
+        />
+
+        {/* Sticky Batch Actions Toolbar */}
+        {selectedProductIds.length > 0 && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-gray-900 text-white rounded-2xl px-5 py-3 shadow-2xl flex flex-wrap items-center gap-3 sm:gap-4 border border-gray-700 animate-in fade-in slide-in-from-bottom-4 duration-200">
+            <span className="text-xs font-bold text-emerald-400">
+              {selectedProductIds.length} product(s) selected
+            </span>
+            <div className="h-4 w-px bg-gray-700 hidden sm:block" />
+            <button
+              type="button"
+              onClick={() => handleBatchStatus(true)}
+              disabled={isBatchProcessing}
+              className="text-xs font-semibold hover:text-emerald-400 transition-colors"
+            >
+              Activate
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBatchStatus(false)}
+              disabled={isBatchProcessing}
+              className="text-xs font-semibold hover:text-amber-400 transition-colors"
+            >
+              Deactivate
+            </button>
+            <button
+              type="button"
+              onClick={handleBatchExport}
+              className="text-xs font-semibold hover:text-blue-400 transition-colors flex items-center gap-1"
+            >
+              <Download className="w-3 h-3" />
+              <span>Export</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleBatchDelete}
+              disabled={isBatchProcessing}
+              className="text-xs font-semibold text-rose-400 hover:text-rose-300 transition-colors flex items-center gap-1"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span>Delete</span>
+            </button>
+            <div className="h-4 w-px bg-gray-700 hidden sm:block" />
+            <button
+              type="button"
+              onClick={() => setSelectedProductIds([])}
+              className="text-xs text-gray-400 hover:text-white transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
+        {/* CSV Import/Export Pipeline Modal */}
+        <ProductCsvModal
+          isOpen={csvModalOpen}
+          onClose={() => setCsvModalOpen(false)}
+          onImportSuccess={() => {
+            fetchProducts();
+            setCsvModalOpen(false);
+          }}
         />
       </div>
     </div>

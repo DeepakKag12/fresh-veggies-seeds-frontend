@@ -2,6 +2,12 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../../utils/api';
+import {
+  getBannerImageUrl,
+  handleImageError,
+  DEFAULT_MONSOON_BANNER,
+  DEFAULT_BANNER_IMAGE,
+} from '../../utils/imageFallback';
 
 /**
  * [CHG-011] Sleek Wide Panoramic Collection Banner.
@@ -12,6 +18,15 @@ import api from '../../utils/api';
  * and touch swipe for mobile while keeping artwork unobscured.
  */
 const DEFAULT_SLIDES = [
+  {
+    id: 'slide-monsoon',
+    imageUrl: DEFAULT_MONSOON_BANNER,
+    mobileImageUrl: DEFAULT_MONSOON_BANNER,
+    tag: 'Monsoon Sowing Festival',
+    title: 'Monsoon Gardening Festival',
+    subtitle: 'Nourish your balcony & kitchen garden with fresh rain-ready vegetable seeds and organic soil.',
+    linkUrl: '#catalogue-heading',
+  },
   {
     id: 'slide-1',
     imageUrl: '/sandbox-assets/hero/slide_1.webp',
@@ -61,15 +76,19 @@ const CollectionBanner = ({ title = 'Bring life to your space' }) => {
         if (!isMounted) return;
         const remoteBanners = res.data?.data;
         if (Array.isArray(remoteBanners) && remoteBanners.length > 0) {
-          const formatted = remoteBanners.map((b) => ({
-            id: b._id,
-            imageUrl: b.imageUrl,
-            mobileImageUrl: b.mobileImageUrl,
-            tag: 'Featured Offer',
-            title: b.title,
-            subtitle: b.description || '',
-            linkUrl: b.linkUrl || '/',
-          }));
+          const formatted = remoteBanners.map((b) => {
+            const resolvedImg = getBannerImageUrl(b.imageUrl, b.title, b.tag);
+            const resolvedMobile = b.mobileImageUrl ? getBannerImageUrl(b.mobileImageUrl, b.title, b.tag) : resolvedImg;
+            return {
+              id: b._id,
+              imageUrl: resolvedImg,
+              mobileImageUrl: resolvedMobile,
+              tag: b.tag || 'Featured Offer',
+              title: b.title,
+              subtitle: b.description || '',
+              linkUrl: b.linkUrl || '/',
+            };
+          });
           setSlides([...formatted, ...DEFAULT_SLIDES]);
         }
       })
@@ -167,17 +186,26 @@ const CollectionBanner = ({ title = 'Bring life to your space' }) => {
                     onClick={(e) => handleCtaClick(e, slide.linkUrl)}
                     className="block w-full h-full relative cursor-pointer"
                   >
-                    <img
-                      src={slide.imageUrl}
-                      alt={slide.title || ''}
-                      width="2500"
-                      height="547"
-                      loading={idx === 0 ? 'eager' : 'lazy'}
-                      decoding="async"
-                      className={`h-full w-full object-cover fv-banner-ken-burns ${
-                        isActive ? 'scale-105' : 'scale-100'
-                      }`}
-                    />
+                    <picture className="block w-full h-full">
+                      {slide.mobileImageUrl && (
+                        <source media="(max-width: 640px)" srcSet={slide.mobileImageUrl} />
+                      )}
+                      <img
+                        src={slide.imageUrl}
+                        alt={slide.title || ''}
+                        width="2500"
+                        height="547"
+                        loading={idx === 0 ? 'eager' : 'lazy'}
+                        decoding="async"
+                        onError={(e) => {
+                          const isMonsoon = (slide.title || '').toLowerCase().includes('monsoon');
+                          handleImageError(e, isMonsoon ? DEFAULT_MONSOON_BANNER : DEFAULT_BANNER_IMAGE);
+                        }}
+                        className={`h-full w-full object-cover fv-banner-ken-burns ${
+                          isActive ? 'scale-105' : 'scale-100'
+                        }`}
+                      />
+                    </picture>
                     {!isBannerArtwork && slide.title && (
                       <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/30 to-transparent flex items-center px-4 sm:px-10 lg:px-14">
                         <div className="max-w-[78%] sm:max-w-[50%]">
@@ -203,17 +231,26 @@ const CollectionBanner = ({ title = 'Bring life to your space' }) => {
                     to={slide.linkUrl}
                     className="block w-full h-full relative cursor-pointer"
                   >
-                    <img
-                      src={slide.imageUrl}
-                      alt={slide.title || ''}
-                      width="2500"
-                      height="547"
-                      loading={idx === 0 ? 'eager' : 'lazy'}
-                      decoding="async"
-                      className={`h-full w-full object-cover fv-banner-ken-burns ${
-                        isActive ? 'scale-105' : 'scale-100'
-                      }`}
-                    />
+                    <picture className="block w-full h-full">
+                      {slide.mobileImageUrl && (
+                        <source media="(max-width: 640px)" srcSet={slide.mobileImageUrl} />
+                      )}
+                      <img
+                        src={slide.imageUrl}
+                        alt={slide.title || ''}
+                        width="2500"
+                        height="547"
+                        loading={idx === 0 ? 'eager' : 'lazy'}
+                        decoding="async"
+                        onError={(e) => {
+                          const isMonsoon = (slide.title || '').toLowerCase().includes('monsoon');
+                          handleImageError(e, isMonsoon ? DEFAULT_MONSOON_BANNER : DEFAULT_BANNER_IMAGE);
+                        }}
+                        className={`h-full w-full object-cover fv-banner-ken-burns ${
+                          isActive ? 'scale-105' : 'scale-100'
+                        }`}
+                      />
+                    </picture>
                     {!isBannerArtwork && slide.title && (
                       <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/30 to-transparent flex items-center px-4 sm:px-10 lg:px-14">
                         <div className="max-w-[78%] sm:max-w-[50%]">
@@ -244,6 +281,10 @@ const CollectionBanner = ({ title = 'Bring life to your space' }) => {
                     height="547"
                     loading={idx === 0 ? 'eager' : 'lazy'}
                     decoding="async"
+                    onError={(e) => {
+                      const isMonsoon = (slide.title || '').toLowerCase().includes('monsoon');
+                      handleImageError(e, isMonsoon ? DEFAULT_MONSOON_BANNER : DEFAULT_BANNER_IMAGE);
+                    }}
                     className={`h-full w-full object-cover fv-banner-ken-burns ${
                       isActive ? 'scale-105' : 'scale-100'
                     }`}

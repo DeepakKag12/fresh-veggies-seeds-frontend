@@ -1,8 +1,11 @@
 import CollectionBanner from '../components/storefront/CollectionBanner';
 import CategoryCircleRow from '../components/storefront/CategoryCircleRow';
 import FilterSortBar from '../components/storefront/FilterSortBar';
+import FacetFilterSidebar from '../components/storefront/FacetFilterSidebar';
+import ActiveFilterPills from '../components/storefront/ActiveFilterPills';
 import ProductCardV2 from '../components/storefront/ProductCardV2';
-import PageLoader from '../components/PageLoader';
+import ProductListItem from '../components/storefront/ProductListItem';
+import ProductSkeletonGrid from '../components/storefront/ProductSkeletonGrid';
 import SupportCta from '../components/storefront/SupportCta';
 import GardeningGuides from '../components/storefront/GardeningGuides';
 import CustomerTestimonials from '../components/storefront/CustomerTestimonials';
@@ -12,30 +15,50 @@ import Pagination from '../components/Pagination';
 import TrustBadgesBar from '../components/storefront/TrustBadgesBar';
 import FarmToHome from '../components/storefront/FarmToHome';
 import ComparisonMatrix from '../components/storefront/ComparisonMatrix';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Upload, X, ShoppingBag, Search } from 'lucide-react';
+import { Plus, Upload, X, ShoppingBag, Search, Sparkles, RotateCcw } from 'lucide-react';
 import api, { cachedGet } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { getProductImageUrl, handleImageError } from '../utils/imageFallback';
 
 const Storefront = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('grid');
   const [searchParams, setSearchParams] = useSearchParams();
-  const [filters, setFilters] = useState({
-    category: searchParams.get('category') || '',
-    season: '',
-    search: searchParams.get('search') || '',
-    sort: 'newest',
-  });
-  const [page, setPage] = useState(1);
+  const [suggestions, setSuggestions] = useState([]);
+  const [recommended, setRecommended] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Single Source of Truth: URL query parameters define all filter & page states
+  const category = searchParams.get('category') || '';
+  const search   = searchParams.get('search') || '';
+  const season   = searchParams.get('season') || '';
+  const sort     = searchParams.get('sort') || 'newest';
+  const minPrice = searchParams.get('minPrice') || '';
+  const maxPrice = searchParams.get('maxPrice') || '';
+  const rating   = searchParams.get('rating') || '';
+  const inStock  = searchParams.get('inStock') === 'true';
+  const page     = Math.max(1, parseInt(searchParams.get('page'), 10) || 1);
+
+  const filters = useMemo(() => ({
+    category,
+    season,
+    search,
+    sort,
+    minPrice,
+    maxPrice,
+    rating,
+    inStock,
+  }), [category, season, search, sort, minPrice, maxPrice, rating, inStock]);
 
   // Admin combo modal states
   const [showComboModal, setShowComboModal] = useState(false);
@@ -52,47 +75,95 @@ const Storefront = () => {
   const [comboImages, setComboImages] = useState([]);
   const [comboImagePreview, setComboImagePreview] = useState([]);
 
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = {
-        ...filters,
-        page,
-        limit: 12,
-      };
-      const response = await cachedGet('/products', { params });
-      const productsData = response.data?.data || response.data || [];
-      setProducts(Array.isArray(productsData) ? productsData : []);
-      setTotalPages(response.data?.totalPages || 1);
-      setTotal(response.data?.total ?? productsData.length);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      setProducts([]);
-    }
-    setLoading(false);
-  }, [filters, page]);
-
   useEffect(() => {
     fetchCategories();
   }, []);
 
-  // Keep filters in step with the URL. Both params matter: the header search
-  // navigates here with ?search=, and category tiles with ?category=. Clearing
-  // a param must clear the filter too, otherwise a stale term sticks after the
-  // user searches again for nothing.
+  // Fetch products whenever filters, page, or refreshKey changes with race cancellation
   useEffect(() => {
-    const categoryFromUrl = searchParams.get('category') || '';
-    const searchFromUrl = searchParams.get('search') || '';
-    setFilters((prev) => {
-      if (prev.category === categoryFromUrl && prev.search === searchFromUrl) return prev;
-      return { ...prev, category: categoryFromUrl, search: searchFromUrl };
-    });
-    setPage(1); // a new search starts at the first page, not wherever you were
-  }, [searchParams]);
+    let isCancelled = false;
+    setLoading(true);
 
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    const loadProducts = async () => {
+      try {
+        const params = {
+          ...filters,
+          page,
+          limit: 12,
+        };
+
+        // Sanitize empty/false params
+        Object.keys(params).forEach((k) => {
+          if (params[k] === '' || params[k] === null || params[k] === undefined || params[k] === false) {
+            delete params[k];
+          }
+        });
+        if (filters.inStock) {
+          params.inStock = 'true';
+        }
+
+        const response = await api.get('/products', { params });
+        if (isCancelled) return;
+
+        const productsData = response.data?.data || response.data || [];
+        setProducts(Array.isArray(productsData) ? productsData : []);
+        setTotalPages(response.data?.totalPages || 1);
+        setTotal(response.data?.total ?? productsData.length);
+        setSuggestions(response.data?.suggestions || []);
+        setRecommended(response.data?.recommended || []);
+      } catch (error) {
+        if (isCancelled) return;
+        console.error('Error fetching products:', error);
+        setProducts([]);
+        setSuggestions([]);
+        setRecommended([]);
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadProducts();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [filters, page, refreshKey]);
+
+  // Handle single facet filter change (direct URL searchParams mutation)
+  const handleFilterChange = useCallback((key, value) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value === '' || value === false || value === null || value === undefined) {
+        next.delete(key);
+      } else if (key === 'sort' && value === 'newest') {
+        next.delete('sort');
+      } else {
+        next.set(key, String(value));
+      }
+      next.delete('page');
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  // Reset all facet filters
+  const handleClearAllFilters = useCallback(() => {
+    setSearchParams(new URLSearchParams(), { replace: true });
+  }, [setSearchParams]);
+
+  // Handle pagination change
+  const handlePageChange = useCallback((newPage) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (newPage > 1) {
+        next.set('page', String(newPage));
+      } else {
+        next.delete('page');
+      }
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   // Auto-calculate original price and discount for combo
   useEffect(() => {
@@ -138,20 +209,6 @@ const Storefront = () => {
     }
   };
 
-  const handleFilterChange = (field, value) => {
-    setFilters(prev => ({ ...prev, [field]: value }));
-    setPage(1);
-    
-    // Update URL params so back/forward browser navigation and page refreshes preserve state
-    const newParams = new URLSearchParams(searchParams);
-    if (value) {
-      newParams.set(field, value);
-    } else {
-      newParams.delete(field);
-    }
-    setSearchParams(newParams);
-  };
-
   // Admin Functions
   const handleDeleteProduct = async (productId) => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
@@ -159,7 +216,7 @@ const Storefront = () => {
     try {
       await api.delete(`/products/${productId}`);
       alert('Product deleted successfully!');
-      fetchProducts();
+      setRefreshKey((k) => k + 1);
     } catch (error) {
       alert('Failed to delete product: ' + (error.response?.data?.message || error.message));
     }
@@ -266,24 +323,24 @@ const Storefront = () => {
   };
 
   const SORT_OPTIONS = [
-    { value: 'newest', label: 'Newest' },
-    { value: 'price-low', label: 'Price: low to high' },
-    { value: 'price-high', label: 'Price: high to low' },
+    { value: 'newest', label: 'Newest Arrivals' },
+    { value: 'price-low', label: 'Price: Low to High' },
+    { value: 'price-high', label: 'Price: High to Low' },
+    { value: 'rating', label: 'Top Customer Rated' },
   ];
-
-  const hasExtraFilters = filters.search || filters.season;
-
-
 
   return (
     <div className="bg-fv-page">
       <CollectionBanner />
 
-      <CategoryCircleRow
-        categories={categories}
-        activeId={filters.category}
-        onSelect={(id) => handleFilterChange('category', id)}
-      />
+      {/* Sticky Horizontal Category Pill Bar (BigBasket / Nature's Basket botanical navigation) */}
+      <div className="sticky top-[60px] sm:top-[68px] z-20 bg-fv-page/95 backdrop-blur-md shadow-xs border-b border-fv-border/40 transition-all">
+        <CategoryCircleRow
+          categories={categories}
+          activeId={filters.category}
+          onSelect={(id) => handleFilterChange('category', id)}
+        />
+      </div>
 
       {/* Mobile-First Search Bar: Quick in-catalogue search on mobile screens */}
       <div className="px-4 pt-2.5 pb-1 sm:px-6 lg:hidden">
@@ -316,6 +373,7 @@ const Storefront = () => {
       {/* Ugaoo Signature Trust Badges Bar */}
       <TrustBadgesBar />
 
+      {/* Control Bar: Filter Toggle, View Mode Switcher, Item Count, and Sort Dropdown */}
       <FilterSortBar
         count={total}
         sort={filters.sort}
@@ -323,54 +381,28 @@ const Storefront = () => {
         onSortChange={(v) => handleFilterChange('sort', v)}
         onOpenFilter={() => setFiltersOpen((o) => !o)}
         filtersOpen={filtersOpen}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
 
-      {/* Season and attribute filters live behind FILTER so the bar stays uncluttered */}
-      {filtersOpen && (
-        <div className="px-4 sm:px-6 lg:px-10">
-          <div className="mx-auto flex max-w-[1500px] flex-wrap items-end gap-4 border-b border-fv-border py-4">
-            <p className="hidden min-w-[220px] flex-1 lg:block">
-              <label htmlFor="shop-search" className="block text-[13px] font-medium text-fv-muted">Search in catalogue</label>
-              <input
-                id="shop-search"
-                type="search"
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                placeholder="Search for seeds, soil, tools…"
-                className="mt-1 h-11 w-full rounded-[50px] border border-fv-border bg-white px-4 text-[14px]
-                           focus:border-fv-primary focus:outline-none focus:ring-2 focus:ring-fv-primary"
-              />
-            </p>
-            <p className="min-w-[180px] flex-1 sm:flex-none">
-              <label htmlFor="shop-season" className="block text-[13px] font-medium text-fv-muted">Season</label>
-              <select
-                id="shop-season"
-                value={filters.season}
-                onChange={(e) => handleFilterChange('season', e.target.value)}
-                className="mt-1 h-11 w-full rounded-[50px] border border-fv-border bg-white px-4 text-[14px]
-                           focus:border-fv-primary focus:outline-none focus:ring-2 focus:ring-fv-primary"
-              >
-                <option value="">All seasons</option>
-                <option value="Summer">Summer</option>
-                <option value="Winter">Winter</option>
-                <option value="All Season">All season</option>
-                <option value="Monsoon">Monsoon</option>
-              </select>
-            </p>
-            {hasExtraFilters && (
-              <button
-                type="button"
-                onClick={() => { handleFilterChange('search', ''); handleFilterChange('season', ''); }}
-                className="h-11 rounded-[50px] border border-fv-primary px-5 text-[14px] font-semibold text-fv-primary
-                           hover:bg-fv-primary hover:text-white focus-visible:outline-none focus-visible:ring-2
-                           focus-visible:ring-fv-primary"
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Amazon / Sephora Benchmark: Faceted Filter Panel Drawer */}
+      <FacetFilterSidebar
+        filters={filters}
+        categories={categories}
+        onChange={handleFilterChange}
+        onReset={handleClearAllFilters}
+        isOpen={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        totalCount={total}
+      />
+
+      {/* Active Filter Pills Bar with Removable Chips and Clear All */}
+      <ActiveFilterPills
+        filters={filters}
+        categories={categories}
+        onRemoveFilter={handleFilterChange}
+        onClearAll={handleClearAllFilters}
+      />
 
       <div id="catalogue-heading" className="mx-auto max-w-[1500px] px-4 py-8 sm:px-6 lg:px-10 scroll-mt-20">
         {user?.role === 'admin' && (
@@ -385,45 +417,108 @@ const Storefront = () => {
           </button>
         )}
 
-        {loading ? (
-          <PageLoader text="Loading products…" />
+        {loading && products.length === 0 ? (
+          <ProductSkeletonGrid count={8} viewMode={viewMode} />
         ) : products.length > 0 ? (
-          <>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-3 xl:grid-cols-4">
-              {products.map((product, i) => (
-                <React.Fragment key={product._id}>
-                  <motion.div
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, delay: Math.min(i * 0.03, 0.3), ease: 'easeOut' }}
-                    className="h-full flex flex-col"
-                  >
+          <div className={`transition-opacity duration-200 ${loading ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-3 xl:grid-cols-4">
+                {products.map((product) => (
+                  <div key={product._id} className="h-full flex flex-col">
                     <ProductCardV2
                       product={product}
                       isAdmin={user?.role === 'admin'}
                       onEdit={user?.role === 'admin' ? handleEditProduct : undefined}
                       onDelete={user?.role === 'admin' ? handleDeleteProduct : undefined}
                     />
-                  </motion.div>
-
-                </React.Fragment>
-              ))}
-            </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {products.map((product) => (
+                  <div key={product._id}>
+                    <ProductListItem
+                      product={product}
+                      isAdmin={user?.role === 'admin'}
+                      onEdit={user?.role === 'admin' ? handleEditProduct : undefined}
+                      onDelete={user?.role === 'admin' ? handleDeleteProduct : undefined}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="mt-10">
               <Pagination
                 page={page}
                 totalPages={totalPages}
                 total={total}
-                onPageChange={setPage}
+                onPageChange={handlePageChange}
                 itemLabel="products"
               />
             </div>
-          </>
+          </div>
         ) : (
-          <div className="py-20 text-center">
-            <p className="text-[18px] font-medium text-fv-heading">No products found</p>
-            <p className="mt-1 text-[15px] text-fv-muted">Try a different category or clear your filters.</p>
+          <div className="py-16 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-fv-primary mb-4">
+              <Search className="h-8 w-8" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+              No products found
+            </h3>
+            <p className="mt-2 text-sm text-fv-muted max-w-md mx-auto">
+              We couldn't find matches for your active search or filter selection. Try adjusting keywords or clearing specific filters.
+            </p>
+
+            {/* Spelling Suggestions ("Did you mean...") */}
+            {suggestions.length > 0 && (
+              <div className="mt-6 p-4 rounded-2xl bg-[#FFF3D9]/80 border border-[#E8D7B8] max-w-lg mx-auto">
+                <span className="text-xs font-bold text-[#0A4D3C] uppercase tracking-wider">
+                  Did you mean:
+                </span>
+                <div className="flex flex-wrap justify-center gap-2 mt-2">
+                  {suggestions.map((sug, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => handleFilterChange('search', sug)}
+                      className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-white text-[#0A4D3C] border border-[#0A4D3C]/30 hover:border-[#0A4D3C] hover:bg-emerald-50 transition-all cursor-pointer shadow-2xs hover:scale-105"
+                    >
+                      "{sug}"
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={handleClearAllFilters}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-fv-primary hover:bg-fv-primary-dark text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reset All Filters
+              </button>
+            </div>
+
+            {/* Recommended Seasonal Items when Zero Results */}
+            {recommended.length > 0 && (
+              <div className="mt-16 text-left border-t border-fv-border pt-10">
+                <div className="flex items-center gap-2 mb-6">
+                  <Sparkles className="w-5 h-5 text-fv-primary" />
+                  <h4 className="text-lg font-bold text-gray-900 dark:text-white">
+                    Recommended Seasonal Varieties
+                  </h4>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-4">
+                  {recommended.map((prod) => (
+                    <ProductCardV2 key={prod._id} product={prod} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -589,8 +684,9 @@ const Storefront = () => {
                           }`}
                         >
                           <img
-                            src={product.images?.[0] || 'https://via.placeholder.com/100'}
+                            src={getProductImageUrl(product)}
                             alt={product.name}
+                            onError={(e) => handleImageError(e, getProductImageUrl(product))}
                             className="w-full h-20 object-cover rounded mb-2"
                           />
                           <p className="text-xs font-semibold text-gray-900 dark:text-white line-clamp-2">
@@ -615,8 +711,9 @@ const Storefront = () => {
                       {selectedProductsForCombo.map((item) => (
                         <div key={item.productId._id} className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                           <img
-                            src={item.productId.images?.[0] || 'https://via.placeholder.com/40'}
+                            src={getProductImageUrl(item.productId)}
                             alt={item.productId.name}
+                            onError={(e) => handleImageError(e, getProductImageUrl(item.productId))}
                             className="w-10 h-10 object-cover rounded"
                           />
                           <p className="flex-1 text-sm text-gray-900 dark:text-white">

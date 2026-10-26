@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from './AuthContext';
 import api from '../utils/api';
 
@@ -12,12 +13,8 @@ export const useCart = () => {
   return context;
 };
 
-
 /**
  * Drop cart lines whose product or combo no longer exists.
- *
- * Returns the surviving items plus the names that were removed, so the caller
- * can tell the customer what happened instead of silently shrinking their cart.
  */
 const pruneUnavailable = async (items) => {
   if (!Array.isArray(items) || items.length === 0) return { kept: [], removed: [] };
@@ -29,8 +26,6 @@ const pruneUnavailable = async (items) => {
         const res = await api.get(path);
         return { item, ok: Boolean(res?.data?.data) };
       } catch (err) {
-        // Only treat a definite "gone" as gone. A network blip or a 500 must
-        // not wipe someone's cart.
         const status = err?.response?.status;
         return { item, ok: !(status === 404 || status === 400) };
       }
@@ -47,15 +42,24 @@ export const CartProvider = ({ children }) => {
   const { user, loading: authLoading } = useAuth();
   const [cartItems, setCartItems] = useState([]);
   const [cartPopup, setCartPopup] = useState({ show: false, product: null });
-  // The cart now opens as a drawer that stays until dismissed, rather than a
-  // toast that vanishes on a timer — people need time to read and adjust it.
   const [cartOpen, setCartOpen] = useState(false);
   const [cartReady, setCartReady] = useState(false);
   const [removedItems, setRemovedItems] = useState([]);
   const cartOwnerId = user?._id || null;
-  // Ref to track the auto-hide timer — prevents stacked setTimeout calls
   const popupTimerRef = useRef(null);
+  const syncTimeoutRef = useRef(null);
 
+  const sameCartLine = useCallback((a, b) => {
+    const idA = String(a._id || a.productId || a.product || '');
+    const idB = String(b._id || b.productId || b.product || '');
+    const comboA = Boolean(a.isCombo);
+    const comboB = Boolean(b.isCombo);
+    const packA = String(a.packageId || a.selectedPackage?._id || a.selectedPackage?.size || '');
+    const packB = String(b.packageId || b.selectedPackage?._id || b.selectedPackage?.size || '');
+    return idA === idB && comboA === comboB && packA === packB;
+  }, []);
+
+  // Hydrate cart on mount or auth change
   useEffect(() => {
     if (authLoading) return undefined;
 
@@ -72,6 +76,7 @@ export const CartProvider = ({ children }) => {
         localStorage.removeItem(storageKey);
       }
 
+      // Guest user: restore local cart
       if (!cartOwnerId) {
         const { kept, removed } = await pruneUnavailable(Array.isArray(guestCart) ? guestCart : []);
         if (!cancelled) {
@@ -82,30 +87,39 @@ export const CartProvider = ({ children }) => {
         return;
       }
 
+      // Authenticated user: Bidirectional Union Merge via server /api/auth/cart/sync
       try {
-        const response = await api.get('/auth/cart');
-        const accountCart = Array.isArray(response.data.data) ? response.data.data : [];
-        const sameCartLine = (a, b) =>
-          a._id === b._id &&
-          Boolean(a.isCombo) === Boolean(b.isCombo) &&
-          (a.packageId || null) === (b.packageId || null);
+        let accountCart = [];
+        if (Array.isArray(guestCart) && guestCart.length > 0) {
+          const syncRes = await api.put('/auth/cart/sync', { guestCart });
+          accountCart = Array.isArray(syncRes?.data?.data) ? syncRes.data.data : [];
+        } else {
+          const response = await api.get('/auth/cart');
+          accountCart = Array.isArray(response?.data?.data) ? response.data.data : [];
+        }
 
+        // Client-side safety fallback union merge
         const mergedCart = [...accountCart];
         (Array.isArray(guestCart) ? guestCart : []).forEach((savedItem) => {
           const existingItem = mergedCart.find((item) => sameCartLine(item, savedItem));
-          if (existingItem) existingItem.quantity += savedItem.quantity;
-          else mergedCart.push(savedItem);
+          if (existingItem) {
+            existingItem.quantity = Math.max(Number(existingItem.quantity) || 1, Number(savedItem.quantity) || 1);
+          } else {
+            mergedCart.push(savedItem);
+          }
         });
+
         const { kept, removed } = await pruneUnavailable(mergedCart);
         if (!cancelled) {
           setCartItems(kept);
           if (removed.length) setRemovedItems(removed);
           setCartReady(true);
+          // Clean guest cart and update account storage
           localStorage.removeItem('cart');
           localStorage.setItem(storageKey, JSON.stringify(kept));
-          // Persist the pruned cart, otherwise the stale lines come straight
-          // back on the next device or refresh.
-          if (guestCart.length > 0 || removed.length) await api.put('/auth/cart', { cart: kept });
+          if (guestCart.length > 0 || removed.length) {
+            await api.put('/auth/cart', { cart: kept }).catch(() => {});
+          }
         }
       } catch {
         if (!cancelled) {
@@ -118,26 +132,46 @@ export const CartProvider = ({ children }) => {
     setCartReady(false);
     hydrateCart();
     return () => { cancelled = true; };
-  }, [authLoading, cartOwnerId]);
+  }, [authLoading, cartOwnerId, sameCartLine]);
 
+  // Persist cart to localStorage and debounced server sync (500ms)
   useEffect(() => {
     if (!cartReady) return;
     const storageKey = cartOwnerId ? `cart:${cartOwnerId}` : 'cart';
     localStorage.setItem(storageKey, JSON.stringify(cartItems));
-    if (cartOwnerId) api.put('/auth/cart', { cart: cartItems }).catch(() => {});
+
+    if (cartOwnerId) {
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+      syncTimeoutRef.current = setTimeout(() => {
+        api.put('/auth/cart', { cart: cartItems }).catch(() => {});
+      }, 500);
+    }
+
+    return () => {
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    };
   }, [cartItems, cartOwnerId, cartReady]);
 
-  const addToCart = (product, quantity = 1, isCombo = false) => {
-    const sameLine = (item) =>
-      item._id === product._id &&
-      item.isCombo === isCombo &&
-      (item.packageId || null) === (product.packageId || null);
+  const matches = useCallback((item, productId, isCombo, packageId) => {
+    const idA = String(item._id || item.productId || item.product || '');
+    const idB = String(productId || '');
+    return (
+      idA === idB &&
+      Boolean(item.isCombo) === Boolean(isCombo) &&
+      (item.packageId || null) === (packageId || null)
+    );
+  }, []);
 
+  const addToCart = (product, quantity = 1, isCombo = false) => {
+    const sameLine = (item) => matches(item, product._id, isCombo, product.packageId);
     const existingItem = cartItems.find(sameLine);
     const maxStock = product.stock !== undefined ? product.stock : (existingItem?.stock ?? 99);
 
     if (existingItem) {
       const targetQty = existingItem.quantity + quantity;
+      if (product.stock !== undefined && targetQty > maxStock) {
+        toast.error(`Only ${maxStock} packets available in stock`);
+      }
       const finalQty = Math.min(targetQty, maxStock);
       setCartItems(
         cartItems.map((item) =>
@@ -145,6 +179,9 @@ export const CartProvider = ({ children }) => {
         )
       );
     } else {
+      if (product.stock !== undefined && quantity > maxStock) {
+        toast.error(`Only ${maxStock} packets available in stock`);
+      }
       const initialQty = Math.min(quantity, maxStock);
       setCartItems([
         ...cartItems,
@@ -156,32 +193,50 @@ export const CartProvider = ({ children }) => {
       ]);
     }
     
-    // Adding to the cart opens the drawer so the change is visible in context.
+    // Automatically open slide-over drawer
     setCartOpen(true);
   };
 
   const openCart = () => setCartOpen(true);
   const closeCart = () => setCartOpen(false);
 
-  // A line is identified by product + combo flag + chosen pack, so operating on
-  // one pack never disturbs another pack of the same product.
-  const matches = (item, productId, isCombo, packageId) =>
-    item._id === productId &&
-    item.isCombo === isCombo &&
-    (item.packageId || null) === (packageId || null);
-
   const removeFromCart = (productId, isCombo, packageId = null) => {
-    setCartItems(cartItems.filter((item) => !matches(item, productId, isCombo, packageId)));
+    const itemToRemove = cartItems.find((item) => matches(item, productId, isCombo, packageId));
+    if (itemToRemove) {
+      toast((t) => (
+        <div className="flex items-center gap-3">
+          <span className="text-[13px] font-medium text-slate-800">Removed {itemToRemove.name}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setCartItems((prev) => [...prev, itemToRemove]);
+              toast.dismiss(t.id);
+            }}
+            className="rounded bg-[#0A4D3C] px-2 py-0.5 text-xs font-semibold text-white hover:bg-[#07362b] transition-colors"
+          >
+            Undo
+          </button>
+        </div>
+      ), { duration: 4000 });
+    }
+    setCartItems((prev) => prev.filter((item) => !matches(item, productId, isCombo, packageId)));
   };
 
   const updateQuantity = (productId, isCombo, quantity, packageId = null) => {
     if (quantity <= 0) {
       removeFromCart(productId, isCombo, packageId);
     } else {
-      setCartItems(
-        cartItems.map((item) => {
+      const targetItem = cartItems.find((item) => matches(item, productId, isCombo, packageId));
+      const maxStock = targetItem?.stock !== undefined ? targetItem.stock : 99;
+
+      if (targetItem?.stock !== undefined && quantity > maxStock) {
+        toast.error(`Only ${maxStock} packets available in stock`);
+        return;
+      }
+
+      setCartItems((prev) =>
+        prev.map((item) => {
           if (!matches(item, productId, isCombo, packageId)) return item;
-          const maxStock = item.stock !== undefined ? item.stock : 99;
           const cappedQty = Math.max(1, Math.min(quantity, maxStock));
           return { ...item, quantity: cappedQty };
         })
@@ -194,14 +249,13 @@ export const CartProvider = ({ children }) => {
   };
 
   const getCartTotal = () => {
-    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+    return cartItems.reduce((total, item) => total + (item.price || 0) * (item.quantity || 1), 0);
   };
 
   const getCartCount = () => {
-    return cartItems.reduce((count, item) => count + item.quantity, 0);
+    return cartItems.reduce((count, item) => count + (item.quantity || 1), 0);
   };
 
-  // Clear timer and hide popup immediately (used on route changes and manual close)
   const hideCartPopup = () => {
     if (popupTimerRef.current) {
       clearTimeout(popupTimerRef.current);
@@ -212,11 +266,13 @@ export const CartProvider = ({ children }) => {
 
   const value = {
     cartItems,
-    cart: cartItems, // alias for compatibility
+    cart: cartItems,
     addToCart,
     removeFromCart,
     updateQuantity,
     clearCart,
+    setCartItems,
+    replaceCart: (newItems) => setCartItems(newItems),
     getCartTotal,
     getCartCount,
     cartPopup,
@@ -224,9 +280,7 @@ export const CartProvider = ({ children }) => {
     cartOpen,
     openCart,
     closeCart,
-    // Consumers must not treat an un-hydrated cart as an empty one.
     cartReady,
-    // Names of lines dropped because they no longer exist, so the UI can say so.
     removedItems,
     clearRemovedNotice: () => setRemovedItems([]),
   };

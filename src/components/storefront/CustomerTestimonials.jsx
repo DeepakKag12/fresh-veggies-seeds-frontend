@@ -19,7 +19,7 @@ const TESTIMONIALS = [
     product: 'Kitchen Garden Seed Kit',
     rating: 5,
     date: '1 week ago',
-    comment: 'I have tried many seed brands online, but these had 90%+ germination. The WhatsApp support helped me get the right potting mix ratio. Now harvesting fresh coriander and mint weekly.'
+    comment: 'I have tried many seed brands online, but these had 90%+ germination. The in-app live chat support helped me get the right potting mix ratio. Now harvesting fresh coriander and mint weekly.'
   },
   {
     id: 3,
@@ -157,6 +157,10 @@ const CustomerTestimonials = () => {
                 <img
                   src={photo.image}
                   alt={photo.caption}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/sandbox-assets/community/comm_1.webp';
+                  }}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"
                 />

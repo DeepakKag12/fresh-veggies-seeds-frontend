@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   ArchiveRestore,
@@ -59,9 +59,21 @@ const ACTION_COLORS = {
   SETTINGS_UPDATE: 'bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300',
 };
 
-export const AdminDeleteHistory = () => {
+export const AdminDeleteHistory = ({ initialTab }) => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('history'); // 'history' | 'audit'
+  const location = useLocation();
+
+  const getResolvedTab = useCallback(() => {
+    if (initialTab) return initialTab;
+    if (location.pathname.includes('audit')) return 'audit';
+    return 'history';
+  }, [initialTab, location.pathname]);
+
+  const [activeTab, setActiveTab] = useState(getResolvedTab());
+
+  useEffect(() => {
+    setActiveTab(getResolvedTab());
+  }, [getResolvedTab]);
 
   // Delete History state
   const [historyItems, setHistoryItems] = useState([]);
@@ -232,22 +244,30 @@ export const AdminDeleteHistory = () => {
             Dashboard
           </button>
           <span>/</span>
-          <span className="text-gray-900 dark:text-white font-semibold">Delete History & Audit Logs</span>
+          <span className="text-gray-900 dark:text-white font-semibold">
+            {activeTab === 'audit' ? 'Audit Trail Logs' : 'Recycle Bin'}
+          </span>
         </div>
 
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center shadow-xs">
-                <ArchiveRestore className="w-5 h-5" />
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-xs ${
+                activeTab === 'audit'
+                  ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
+                  : 'bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400'
+              }`}>
+                {activeTab === 'audit' ? <Activity className="w-5 h-5" /> : <ArchiveRestore className="w-5 h-5" />}
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  Delete History & Audit Trails
+                  {activeTab === 'audit' ? 'Admin Audit Trail Logs' : 'Recycle Bin & Soft-Delete Recovery'}
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                  Track deletions, recover archived records with conflict validation, and audit all seller actions.
+                  {activeTab === 'audit'
+                    ? 'Immutable append-only audit trail tracking administrative modifications, price adjustments, and settings revisions.'
+                    : 'Linear-style trash bin with 30-day retention, conflict-safe 1-click restoration, and permanent cloud purge.'}
                 </p>
               </div>
             </div>
@@ -258,7 +278,10 @@ export const AdminDeleteHistory = () => {
             <div className="inline-flex p-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs">
               <button
                 type="button"
-                onClick={() => setActiveTab('history')}
+                onClick={() => {
+                  setActiveTab('history');
+                  navigate('/admin/recycle-bin');
+                }}
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   activeTab === 'history'
                     ? 'bg-fv-primary text-white shadow-xs'
@@ -266,7 +289,7 @@ export const AdminDeleteHistory = () => {
                 }`}
               >
                 <ArchiveRestore className="w-3.5 h-3.5" />
-                <span>Delete History</span>
+                <span>Recycle Bin (Trash)</span>
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 text-white font-mono">
                   {historyTotal}
                 </span>
@@ -274,7 +297,10 @@ export const AdminDeleteHistory = () => {
 
               <button
                 type="button"
-                onClick={() => setActiveTab('audit')}
+                onClick={() => {
+                  setActiveTab('audit');
+                  navigate('/admin/audit-logs');
+                }}
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   activeTab === 'audit'
                     ? 'bg-fv-primary text-white shadow-xs'

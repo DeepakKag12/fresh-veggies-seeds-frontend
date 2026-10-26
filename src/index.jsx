@@ -7,16 +7,19 @@ import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { WishlistProvider } from './context/WishlistContext';
+import { ChatProvider } from './context/ChatContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <SettingsProvider>
         <AuthProvider>
           <CartProvider>
             <WishlistProvider>
-              <App />
+              <ChatProvider>
+                <App />
+              </ChatProvider>
             </WishlistProvider>
           </CartProvider>
         </AuthProvider>

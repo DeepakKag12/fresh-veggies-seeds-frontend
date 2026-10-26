@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
+import { useAuth } from './AuthContext';
+import api from '../utils/api';
 
 const WishlistContext = createContext();
 
@@ -11,7 +13,18 @@ export const useWishlist = () => {
   return context;
 };
 
+/**
+ * Nike / ASOS Benchmark:
+ * Wishlist Drawer & Quick Toggle (FEAT-009)
+ *
+ * Provides:
+ * - Instant heart micro-interaction with optimistic state
+ * - Guest mode persistence in localStorage
+ * - Seamless authenticated database synchronization via /api/auth/wishlist
+ * - Direct move-to-cart integration with automatic wishlist removal
+ */
 export const WishlistProvider = ({ children }) => {
+  const { user, loading: authLoading } = useAuth();
   const [wishlist, setWishlist] = useState(() => {
     try {
       const saved = localStorage.getItem('fv_wishlist');
@@ -21,37 +34,135 @@ export const WishlistProvider = ({ children }) => {
     }
   });
   const [wishlistOpen, setWishlistOpen] = useState(false);
+  const [wishlistReady, setWishlistReady] = useState(false);
+  const userId = user?._id || null;
+  const initialSyncDone = useRef(false);
 
+  // Hydrate & synchronize wishlist on auth state change
   useEffect(() => {
+    if (authLoading) return undefined;
+
+    let cancelled = false;
+    const hydrateWishlist = async () => {
+      let guestList = [];
+      try {
+        const saved = localStorage.getItem('fv_wishlist');
+        guestList = saved ? JSON.parse(saved) : [];
+      } catch {
+        guestList = [];
+      }
+
+      if (!userId) {
+        if (!cancelled) {
+          setWishlist(Array.isArray(guestList) ? guestList : []);
+          setWishlistReady(true);
+        }
+        return;
+      }
+
+      // User logged in: sync guest list to server once per login session
+      try {
+        let serverList = [];
+        if (Array.isArray(guestList) && guestList.length > 0 && !initialSyncDone.current) {
+          const syncRes = await api.put('/auth/wishlist/sync', { guestWishlist: guestList });
+          serverList = Array.isArray(syncRes.data?.data) ? syncRes.data.data : [];
+          initialSyncDone.current = true;
+        } else {
+          const getRes = await api.get('/auth/wishlist');
+          serverList = Array.isArray(getRes.data?.data) ? getRes.data.data : [];
+        }
+
+        if (!cancelled) {
+          // Merge client-cached details with server populated data
+          const merged = [...serverList];
+          const serverIdSet = new Set(serverList.map((i) => String(i._id)));
+
+          guestList.forEach((gItem) => {
+            if (!serverIdSet.has(String(gItem._id))) {
+              merged.push(gItem);
+            }
+          });
+
+          setWishlist(merged);
+          localStorage.setItem('fv_wishlist', JSON.stringify(merged));
+          setWishlistReady(true);
+        }
+      } catch {
+        if (!cancelled) {
+          setWishlist(Array.isArray(guestList) ? guestList : []);
+          setWishlistReady(true);
+        }
+      }
+    };
+
+    hydrateWishlist();
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, userId]);
+
+  // Persist to local storage whenever wishlist state changes
+  useEffect(() => {
+    if (!wishlistReady) return;
     try {
       localStorage.setItem('fv_wishlist', JSON.stringify(wishlist));
     } catch (e) {
       console.warn('Failed to persist wishlist to localStorage', e);
     }
-  }, [wishlist]);
+  }, [wishlist, wishlistReady]);
 
-  const toggleWishlist = (product) => {
-    if (!product || !product._id) return;
+  const isInWishlist = useCallback(
+    (productId) => {
+      const targetId = String(productId || '');
+      return wishlist.some((item) => String(item._id) === targetId);
+    },
+    [wishlist]
+  );
 
-    setWishlist((prev) => {
-      const exists = prev.some((item) => item._id === product._id);
+  const toggleWishlist = useCallback(
+    (product) => {
+      if (!product || !product._id) return;
+      const targetId = String(product._id);
+      const exists = wishlist.some((item) => String(item._id) === targetId);
+
       if (exists) {
-        toast.success(`Removed ${product.name} from wishlist`, { icon: '🤍' });
-        return prev.filter((item) => item._id !== product._id);
+        // Optimistic remove
+        setWishlist((prev) => prev.filter((item) => String(item._id) !== targetId));
+        toast.success(`Removed "${product.name}" from wishlist`, { icon: '🤍' });
+        if (userId) {
+          api.delete(`/auth/wishlist/${targetId}`).catch(() => {});
+        }
       } else {
-        toast.success(`Added ${product.name} to wishlist`, { icon: '❤️' });
-        return [...prev, product];
+        // Optimistic add
+        setWishlist((prev) => [...prev, product]);
+        toast.success(`Saved "${product.name}" to wishlist`, { icon: '❤️' });
+        if (userId) {
+          api.post(`/auth/wishlist/${targetId}`).catch(() => {});
+        }
       }
-    });
-  };
+    },
+    [wishlist, userId]
+  );
 
-  const isInWishlist = (productId) => {
-    return wishlist.some((item) => item._id === productId);
-  };
+  const removeFromWishlist = useCallback(
+    (productId) => {
+      const targetId = String(productId || '');
+      setWishlist((prev) => prev.filter((item) => String(item._id) !== targetId));
+      if (userId) {
+        api.delete(`/auth/wishlist/${targetId}`).catch(() => {});
+      }
+    },
+    [userId]
+  );
 
-  const removeFromWishlist = (productId) => {
-    setWishlist((prev) => prev.filter((item) => item._id !== productId));
-  };
+  const clearWishlist = useCallback(() => {
+    setWishlist([]);
+    localStorage.removeItem('fv_wishlist');
+    toast.success('Wishlist cleared');
+    if (userId) {
+      api.delete('/auth/wishlist').catch(() => {});
+    }
+  }, [userId]);
 
   const openWishlist = () => setWishlistOpen(true);
   const closeWishlist = () => setWishlistOpen(false);
@@ -64,9 +175,11 @@ export const WishlistProvider = ({ children }) => {
         isInWishlist,
         toggleWishlist,
         removeFromWishlist,
+        clearWishlist,
         wishlistOpen,
         openWishlist,
         closeWishlist,
+        wishlistReady,
       }}
     >
       {children}

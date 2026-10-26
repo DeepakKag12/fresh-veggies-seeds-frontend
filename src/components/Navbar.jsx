@@ -23,13 +23,18 @@ import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
 import { Button } from './ui/Button';
+import SearchAutocomplete from './SearchAutocomplete';
 
-const NavbarNew = () => {
+const Navbar = () => {
   const { settings } = useSettings();
   const storeName = settings?.store?.name || 'Fresh Veggies';
   const storeLogo = settings?.store?.logo || '/logo.png';
   const freeDeliveryThreshold = settings?.delivery?.freeDeliveryThreshold ?? 499;
   const isCodAvailable = (settings?.delivery?.codAvailable ?? true) && (settings?.payments?.codEnabled ?? true);
+  const isStoreClosed = Boolean(settings?.maintenance?.isStoreClosed);
+  const closureNotice = settings?.maintenance?.closureNotice || 'Our storefront is currently closed for routine maintenance.';
+  const announcement = settings?.maintenance?.announcementBanner;
+  const showAnnouncement = Boolean(announcement?.enabled && announcement?.message);
 
   const OFFERS = [
     `Free shipping on orders above ₹${freeDeliveryThreshold}`,
@@ -46,7 +51,7 @@ const NavbarNew = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const cartItemsCount = cartItems?.reduce((acc, item) => acc + item.quantity, 0) || 0;
+  const cartItemsCount = cartItems?.reduce((totalCount, item) => totalCount + item.quantity, 0) || 0;
 
   const handleLogout = () => {
     logout();
@@ -66,7 +71,8 @@ const NavbarNew = () => {
       return true;
     }
     if (targetPath === '/') {
-      return location.pathname === '/' && !location.search;
+      const currentParams = new URLSearchParams(location.search);
+      return location.pathname === '/' && !currentParams.get('category') && !currentParams.get('search');
     }
     return location.pathname === targetPath || location.pathname.startsWith(targetPath + '/');
   };
@@ -88,19 +94,48 @@ const NavbarNew = () => {
   ];
 
   return (
-    <motion.nav
-      initial={{ y: -100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
+    <nav
       className="sticky top-0 z-50 bg-white border-b border-fv-border"
     >
+      {/* Emergency Store Closure Notice */}
+      {isStoreClosed && (
+        <div className="bg-red-600 text-white py-2.5 px-4 text-center text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 shadow-sm">
+          <ShieldAlert className="w-4 h-4 shrink-0 animate-pulse" />
+          <span>{closureNotice}</span>
+        </div>
+      )}
+
+      {/* Dynamic Announcement Banner */}
+      {!isStoreClosed && showAnnouncement && (
+        <div className={`py-2 px-4 text-center text-xs font-medium tracking-wide flex items-center justify-center gap-2 shadow-xs transition-colors ${
+          announcement?.type === 'emergency'
+            ? 'bg-rose-600 text-white'
+            : announcement?.type === 'warning'
+            ? 'bg-amber-400 text-slate-950 font-semibold'
+            : announcement?.type === 'success'
+            ? 'bg-emerald-600 text-white'
+            : 'bg-indigo-600 text-white'
+        }`}>
+          <span>{announcement?.message}</span>
+          {announcement?.link && (
+            <Link
+              to={announcement.link}
+              className="underline font-bold hover:opacity-90 ml-1 inline-flex items-center gap-0.5"
+            >
+              Learn More →
+            </Link>
+          )}
+        </div>
+      )}
+
       {showOffersBar && (
       <div className="overflow-hidden bg-[#FFF3D9] border-b border-[#E8D7B8]/60 py-2" aria-hidden="true">
         <div className="fv-offers-track">
           {['a', 'b'].map((pass) => (
             <div className="fv-offers-pass" key={pass}>
-              {OFFERS.map((o) => (
-                <span key={o} className="whitespace-nowrap px-8 text-[12px] font-bold uppercase tracking-wider text-[#0A4D3C]">
-                  ⚡ {o}
+              {OFFERS.map((offerText) => (
+                <span key={offerText} className="whitespace-nowrap px-8 text-[12px] font-bold uppercase tracking-wider text-[#0A4D3C]">
+                  ⚡ {offerText}
                 </span>
               ))}
             </div>
@@ -111,43 +146,28 @@ const NavbarNew = () => {
       {/* The bar is decorative motion; the same facts are stated in the footer. */}
       <p className="sr-only">Free delivery on orders over ₹{freeDeliveryThreshold}. Cash on delivery available.</p>
       <div className="mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-10">
-        <div className="flex items-center gap-4 h-16">
+        <div className="flex items-center justify-between h-16 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-6">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group">
-            <img 
-              src={storeLogo} 
-              alt={storeName} 
-              className="h-12 w-auto object-contain group-hover:scale-105 transition-transform"
-            />
-            <span className="hidden font-serif text-[22px] font-bold text-fv-primary lg:block">
-              {storeName}
-            </span>
-          </Link>
-
-          {/* Search — the primary way people find products, so it gets the
-              centre of the bar rather than a cramped corner. */}
-          <form
-            role="search"
-            onSubmit={(e) => { e.preventDefault(); const q = new FormData(e.currentTarget).get('q');
-              navigate(q ? `/?search=${encodeURIComponent(q)}` : '/'); }}
-            className="hidden flex-1 lg:block"
-          >
-            <label htmlFor="site-search" className="sr-only">Search products</label>
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-fv-primary/60" aria-hidden="true" />
-              <input
-                id="site-search"
-                name="q"
-                type="search"
-                placeholder="Search plants, seeds, planters, soil…"
-                className="h-11 w-full rounded-[50px] bg-[#F4E6C6]/60 border border-[#E8D7B8] pl-12 pr-4 text-[15px] text-[#0A4C36]
-                           placeholder:text-[#0A4C36]/60 focus:bg-white focus:border-[#0A4C36] focus:outline-none focus:ring-2 focus:ring-[#0A4C36]/20 transition-all"
+          <div className="flex items-center justify-start shrink-0">
+            <Link to="/" className="flex items-center gap-2 group">
+              <img 
+                src={storeLogo} 
+                alt={storeName} 
+                className="h-11 sm:h-12 w-auto object-contain group-hover:scale-105 transition-transform"
               />
-            </div>
-          </form>
+              <span className="hidden font-serif text-[22px] font-bold text-fv-primary lg:block">
+                {storeName}
+              </span>
+            </Link>
+          </div>
+
+          {/* Amazon / Sephora 300ms Debounced Autocomplete Search */}
+          <div className="hidden lg:flex items-center justify-center w-full min-w-[340px] max-w-xl xl:max-w-2xl mx-auto px-4">
+            <SearchAutocomplete />
+          </div>
 
           {/* Right Actions */}
-          <div className="ml-auto flex items-center gap-2 lg:ml-0">
+          <div className="flex items-center justify-end gap-1.5 sm:gap-2.5 shrink-0 ml-auto lg:ml-0">
             {/* Mobile Search Trigger */}
             <button
               type="button"
@@ -215,7 +235,8 @@ const NavbarNew = () => {
                   variant="ghost"
                   size="icon"
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="hidden md:flex"
+                  className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full text-fv-primary hover:bg-fv-surface"
+                  aria-label="User profile and account settings"
                 >
                   <User className="w-5 h-5" />
                 </Button>
@@ -358,9 +379,9 @@ const NavbarNew = () => {
                 to="/login"
                 state={{ from: location }}
                 aria-label="Sign in to your account"
-                className="hidden h-11 w-11 items-center justify-center rounded-full text-fv-primary
+                className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full text-fv-primary
                            hover:bg-fv-surface focus-visible:outline-none focus-visible:ring-2
-                           focus-visible:ring-fv-primary md:flex"
+                           focus-visible:ring-fv-primary"
               >
                 <User className="h-5 w-5" aria-hidden="true" />
               </Link>
@@ -370,8 +391,9 @@ const NavbarNew = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full"
+              className="md:hidden h-10 w-10 sm:h-11 sm:w-11 flex items-center justify-center rounded-full text-fv-primary hover:bg-fv-surface"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Open navigation menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
@@ -386,37 +408,9 @@ const NavbarNew = () => {
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="border-t border-fv-border bg-white px-3 py-2.5 lg:hidden overflow-hidden"
+              className="border-t border-fv-border bg-white px-3 py-2.5 lg:hidden"
             >
-              <form
-                role="search"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const q = new FormData(e.currentTarget).get('q');
-                  navigate(q ? `/?search=${encodeURIComponent(q)}` : '/');
-                  setMobileSearchOpen(false);
-                }}
-              >
-                <div className="relative flex items-center">
-                  <Search className="pointer-events-none absolute left-3.5 h-4 w-4 text-fv-primary/60" aria-hidden="true" />
-                  <input
-                    name="q"
-                    type="search"
-                    autoFocus
-                    placeholder="Search plants, seeds, planters, soil…"
-                    className="h-11 w-full rounded-full bg-[#F4E6C6]/60 border border-[#E8D7B8] pl-10 pr-10 text-[15px] sm:text-[14px] text-[#0A4C36]
-                               placeholder:text-[#0A4C36]/60 focus:bg-white focus:border-[#0A4C36] focus:outline-none focus:ring-2 focus:ring-[#0A4C36]/20 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setMobileSearchOpen(false)}
-                    className="absolute right-1 flex h-10 w-10 items-center justify-center rounded-full text-fv-primary/70 hover:text-fv-primary"
-                    aria-label="Close search"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              </form>
+              <SearchAutocomplete onClose={() => setMobileSearchOpen(false)} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -577,8 +571,8 @@ const NavbarNew = () => {
           )}
         </AnimatePresence>
       </div>
-    </motion.nav>
+    </nav>
   );
 };
 
-export default NavbarNew;
+export default Navbar;

@@ -24,7 +24,7 @@ const BADGES = [
   {
     icon: '/sandbox-assets/trust/tbb_support.png',
     title: 'Free Plant Care Support',
-    subtitle: 'Expert gardener WhatsApp help',
+    subtitle: 'Expert gardener live chat help',
   },
 ];
 

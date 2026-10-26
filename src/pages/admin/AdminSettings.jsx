@@ -19,7 +19,7 @@ import {
   Phone,
   Mail,
   Clock,
-  MessageCircle,
+  MessageSquare,
   Loader2,
   Info,
   ArrowLeft
@@ -28,12 +28,13 @@ import api from '../../utils/api';
 import { useSettings } from '../../context/SettingsContext';
 
 const SECTIONS = [
-  { id: 'store', label: 'Store', icon: Store, description: 'Basic business details & contact information' },
-  { id: 'delivery', label: 'Delivery', icon: Truck, description: 'Shipping fees, free delivery rules & COD limits' },
+  { id: 'store', label: 'General', icon: Store, description: 'Store identity, address & contact information' },
+  { id: 'delivery', label: 'Delivery & Shipping', icon: Truck, description: 'Standard delivery fees, free delivery rules & COD limits' },
+  { id: 'payments', label: 'Payments & COD', icon: CreditCard, description: 'Payment method switches & basic COD limits' },
+  { id: 'maintenance', label: 'Store Status & Maintenance', icon: AlertTriangle, description: 'Emergency store closure & storefront announcement banner' },
   { id: 'orders', label: 'Orders', icon: Package, description: 'Cancellation cutoffs, auto-cancel timers & order rules' },
   { id: 'inventory', label: 'Inventory', icon: Boxes, description: 'Low stock alerts & out-of-stock visibility' },
-  { id: 'payments', label: 'Payments', icon: CreditCard, description: 'Payment method switches & basic COD limits' },
-  { id: 'notifications', label: 'Notifications', icon: Bell, description: 'Email and WhatsApp alert toggles' },
+  { id: 'notifications', label: 'Notifications', icon: Bell, description: 'Email and in-app alert toggles' },
   { id: 'advanced', label: 'Advanced', icon: ShieldAlert, description: 'System status & developer configuration', isSuperAdminOnly: true },
 ];
 
@@ -140,6 +141,16 @@ export default function AdminSettings() {
         isOpen: true,
         title: 'Update Payment Methods?',
         message: 'Disabling a payment method (like COD or Online Payments) will hide it from customers at checkout.',
+        onConfirm: () => executeSave(sectionName),
+      });
+      return;
+    }
+
+    if (sectionName === 'maintenance') {
+      setWarningModal({
+        isOpen: true,
+        title: 'Update Store Status & Maintenance?',
+        message: 'Toggling emergency closure or announcement banners will immediately reflect live on the customer storefront.',
         onConfirm: () => executeSave(sectionName),
       });
       return;
@@ -325,19 +336,19 @@ export default function AdminSettings() {
 
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-fv-muted mb-1.5">
-                      WhatsApp Support Number
+                      Live Chat Desk Greeting
                     </label>
                     <div className="relative">
-                      <MessageCircle className="w-4 h-4 text-green-600 absolute left-3.5 top-3.5" />
+                      <MessageSquare className="w-4 h-4 text-emerald-600 absolute left-3.5 top-3.5" />
                       <input
                         type="text"
-                        value={settings.store?.whatsappNumber || ''}
-                        onChange={(e) => handleFieldChange('store', 'whatsappNumber', e.target.value)}
-                        placeholder="9876543210"
+                        value={settings.store?.chatGreeting || ''}
+                        onChange={(e) => handleFieldChange('store', 'chatGreeting', e.target.value)}
+                        placeholder="Live Support Desk is Online"
                         className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-fv-border bg-fv-page text-fv-heading focus:ring-2 focus:ring-fv-primary focus:outline-none"
                       />
                     </div>
-                    <p className="text-xs text-fv-muted mt-1">This powers the floating WhatsApp button for shoppers.</p>
+                    <p className="text-xs text-fv-muted mt-1">Status greeting shown in the storefront customer live chat widget.</p>
                   </div>
 
                   <div>
@@ -478,12 +489,12 @@ export default function AdminSettings() {
                           />
                           <input
                             type="text"
-                            value={settings.store?.trustPillars?.pillar4Subtitle ?? 'Gardener help via WhatsApp'}
+                            value={settings.store?.trustPillars?.pillar4Subtitle ?? 'Gardener help via Live Chat'}
                             onChange={(e) => handleFieldChange('store', 'trustPillars', {
                               ...settings.store?.trustPillars,
                               pillar4Subtitle: e.target.value
                             })}
-                            placeholder="e.g. Gardener help via WhatsApp"
+                            placeholder="e.g. Gardener help via Live Chat"
                             className="w-full px-3 py-1.5 text-xs rounded-lg border border-fv-border bg-white text-fv-muted"
                           />
                         </div>
@@ -1028,6 +1039,165 @@ export default function AdminSettings() {
               </div>
             )}
 
+            {/* 4. STORE STATUS & MAINTENANCE SECTION (WooCommerce Benchmark) */}
+            {activeSection === 'maintenance' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold text-fv-heading flex items-center gap-2">
+                    <AlertTriangle className="w-6 h-6 text-amber-600" /> Store Status & Maintenance
+                  </h2>
+                  <p className="text-sm text-fv-muted mt-1">
+                    Manage emergency store closure, custom customer maintenance notices, and global storefront announcements.
+                  </p>
+                </div>
+
+                <div className="space-y-5">
+                  {/* Emergency Closure Card */}
+                  <div className={`p-5 rounded-2xl border transition-all ${
+                    settings.maintenance?.isStoreClosed
+                      ? 'border-red-300 bg-red-50/70 dark:bg-red-950/30 dark:border-red-800'
+                      : 'border-fv-border bg-fv-page'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="pr-4">
+                        <span className="text-base font-bold text-fv-heading flex items-center gap-2">
+                          <AlertTriangle className={`w-5 h-5 ${settings.maintenance?.isStoreClosed ? 'text-red-600 animate-pulse' : 'text-gray-400'}`} />
+                          Emergency Store Closure
+                        </span>
+                        <p className="text-xs sm:text-sm text-fv-muted mt-1">
+                          When activated, customers will see a closure banner and checkout will be safely paused to prevent new orders.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={Boolean(settings.maintenance?.isStoreClosed)}
+                        onChange={(v) => handleFieldChange('maintenance', 'isStoreClosed', v)}
+                      />
+                    </div>
+
+                    {settings.maintenance?.isStoreClosed && (
+                      <div className="mt-4 pt-4 border-t border-red-200 dark:border-red-800/60">
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-red-800 dark:text-red-300 mb-1.5">
+                          Customer Closure Notice
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={settings.maintenance?.closureNotice || ''}
+                          onChange={(e) => handleFieldChange('maintenance', 'closureNotice', e.target.value)}
+                          placeholder="Our nursery is temporarily closed for inventory count / seasonal break. We will reopen on Monday!"
+                          className="w-full px-4 py-2.5 rounded-xl border border-red-300 dark:border-red-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:outline-none text-sm"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Storefront Announcement Banner Card */}
+                  <div className="p-5 rounded-2xl border border-fv-border bg-fv-page space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="pr-4">
+                        <span className="text-base font-bold text-fv-heading flex items-center gap-2">
+                          <Bell className="w-5 h-5 text-fv-primary" />
+                          Storefront Announcement Banner
+                        </span>
+                        <p className="text-xs sm:text-sm text-fv-muted mt-1">
+                          Display a prominent top announcement ticker across the entire website (e.g. Free delivery alerts, festival greetings).
+                        </p>
+                      </div>
+                      <Switch
+                        checked={Boolean(settings.maintenance?.announcementBanner?.enabled)}
+                        onChange={(v) => handleFieldChange('maintenance', 'announcementBanner', {
+                          ...(settings.maintenance?.announcementBanner || {}),
+                          enabled: v,
+                        })}
+                      />
+                    </div>
+
+                    {settings.maintenance?.announcementBanner?.enabled && (
+                      <div className="space-y-4 pt-4 border-t border-fv-border">
+                        <div>
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-fv-muted mb-1.5">
+                            Announcement Message Text *
+                          </label>
+                          <input
+                            type="text"
+                            value={settings.maintenance?.announcementBanner?.message || ''}
+                            onChange={(e) => handleFieldChange('maintenance', 'announcementBanner', {
+                              ...(settings.maintenance?.announcementBanner || {}),
+                              message: e.target.value,
+                            })}
+                            placeholder="⚡ Special Offer: Free delivery across all seed orders above ₹500!"
+                            className="w-full px-4 py-2.5 rounded-xl border border-fv-border bg-white dark:bg-gray-800 text-fv-heading focus:ring-2 focus:ring-fv-primary focus:outline-none text-sm font-medium"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-fv-muted mb-1.5">
+                              Banner Style / Urgency
+                            </label>
+                            <select
+                              value={settings.maintenance?.announcementBanner?.type || 'info'}
+                              onChange={(e) => handleFieldChange('maintenance', 'announcementBanner', {
+                                ...(settings.maintenance?.announcementBanner || {}),
+                                type: e.target.value,
+                              })}
+                              className="w-full px-4 py-2.5 rounded-xl border border-fv-border bg-white dark:bg-gray-800 text-fv-heading focus:ring-2 focus:ring-fv-primary focus:outline-none text-sm"
+                            >
+                              <option value="info">Information (Teal / Emerald)</option>
+                              <option value="warning">Seasonal Alert (Amber / Orange)</option>
+                              <option value="success">Promotion & Free Shipping (Emerald / Green)</option>
+                              <option value="emergency">High Priority / Urgent (Crimson / Red)</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-fv-muted mb-1.5">
+                              Target Deep Link (Optional)
+                            </label>
+                            <input
+                              type="text"
+                              value={settings.maintenance?.announcementBanner?.link || ''}
+                              onChange={(e) => handleFieldChange('maintenance', 'announcementBanner', {
+                                ...(settings.maintenance?.announcementBanner || {}),
+                                link: e.target.value,
+                              })}
+                              placeholder="e.g. /?category=Seeds or /combos"
+                              className="w-full px-4 py-2.5 rounded-xl border border-fv-border bg-white dark:bg-gray-800 text-fv-heading focus:ring-2 focus:ring-fv-primary focus:outline-none text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Live Preview */}
+                        {settings.maintenance?.announcementBanner?.message && (
+                          <div className="mt-3 p-3 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1.5 block">
+                              Live Customer Preview:
+                            </span>
+                            <div className={`py-2 px-4 rounded-lg text-center text-xs font-bold ${
+                              settings.maintenance?.announcementBanner?.type === 'emergency'
+                                ? 'bg-red-600 text-white'
+                                : settings.maintenance?.announcementBanner?.type === 'warning'
+                                ? 'bg-amber-500 text-white'
+                                : settings.maintenance?.announcementBanner?.type === 'success'
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-[#0A4D3C] text-amber-200'
+                            }`}>
+                              {settings.maintenance?.announcementBanner?.message}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <SectionActions
+                  onSave={() => promptSave('maintenance')}
+                  onReset={() => setResetModal({ isOpen: true, section: 'maintenance' })}
+                  saving={saving}
+                />
+              </div>
+            )}
+
             {/* 6. NOTIFICATIONS SECTION */}
             {activeSection === 'notifications' && (
               <div className="space-y-6">
@@ -1036,7 +1206,7 @@ export default function AdminSettings() {
                     <Bell className="w-6 h-6 text-fv-primary" /> Notifications & Alerts
                   </h2>
                   <p className="text-sm text-fv-muted mt-1">
-                    Choose exactly which alerts are sent to the admin and customers via Email and WhatsApp.
+                    Choose exactly which alerts are sent to the admin and customers via Email and Live In-App Chat.
                   </p>
                 </div>
 
@@ -1053,7 +1223,7 @@ export default function AdminSettings() {
                       { key: 'paymentFailed', label: 'Payment Failure' },
                       { key: 'courierFailed', label: 'Courier Dispatch Failure' },
                     ].map((item) => {
-                      const cfg = settings.notifications?.admin?.[item.key] || { email: true, whatsapp: false };
+                      const cfg = settings.notifications?.admin?.[item.key] || { email: true, inAppChat: true };
                       return (
                         <div key={item.key} className="p-4 bg-white dark:bg-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                           <span className="text-sm font-medium text-fv-heading">{item.label}</span>
@@ -1066,10 +1236,10 @@ export default function AdminSettings() {
                               />
                             </label>
                             <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                              <span>WhatsApp</span>
+                              <span>In-App Chat</span>
                               <Switch
-                                checked={Boolean(cfg.whatsapp)}
-                                onChange={(v) => handleNotificationChange('admin', item.key, 'whatsapp', v)}
+                                checked={Boolean(cfg.inAppChat)}
+                                onChange={(v) => handleNotificationChange('admin', item.key, 'inAppChat', v)}
                               />
                             </label>
                           </div>
@@ -1091,7 +1261,7 @@ export default function AdminSettings() {
                       { key: 'orderDelivered', label: 'Order Delivered' },
                       { key: 'orderCancelled', label: 'Order Cancellation & Refund' },
                     ].map((item) => {
-                      const cfg = settings.notifications?.customer?.[item.key] || { email: true, whatsapp: true };
+                      const cfg = settings.notifications?.customer?.[item.key] || { email: true, inAppChat: true };
                       return (
                         <div key={item.key} className="p-4 bg-white dark:bg-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                           <span className="text-sm font-medium text-fv-heading">{item.label}</span>
@@ -1104,10 +1274,10 @@ export default function AdminSettings() {
                               />
                             </label>
                             <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                              <span>WhatsApp</span>
+                              <span>In-App Chat</span>
                               <Switch
-                                checked={Boolean(cfg.whatsapp)}
-                                onChange={(v) => handleNotificationChange('customer', item.key, 'whatsapp', v)}
+                                checked={Boolean(cfg.inAppChat)}
+                                onChange={(v) => handleNotificationChange('customer', item.key, 'inAppChat', v)}
                               />
                             </label>
                           </div>
@@ -1157,7 +1327,7 @@ export default function AdminSettings() {
                           { name: 'Razorpay Payment Gateway', key: 'razorpay' },
                           { name: 'Razorpay Webhooks', key: 'webhook' },
                           { name: 'Brevo (Sendinblue) SMTP Mail', key: 'brevoSmtp' },
-                          { name: 'Twilio WhatsApp & SMS', key: 'twilio' },
+                          { name: 'Socket.io Realtime Service', key: 'socketio' },
                           { name: 'DTDC Logistics Integration', key: 'dtdc' },
                           { name: 'Cloudinary Image CDN', key: 'cloudinary' },
                         ].map((srv) => {

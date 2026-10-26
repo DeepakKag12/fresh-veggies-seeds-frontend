@@ -1,8 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
 export function useAdminDashboard() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab');
+
   const [stats, setStats] = useState({
     totalOrders: 0,
     totalUsers: 0,
@@ -47,7 +51,25 @@ export function useAdminDashboard() {
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [productSort, setProductSort] = useState('revenue');
   const [showAllOrders, setShowAllOrders] = useState(false);
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTabState] = useState(urlTab || 'home');
+
+  useEffect(() => {
+    if (urlTab && urlTab !== activeTab) {
+      setActiveTabState(urlTab);
+    } else if (!urlTab && activeTab !== 'home') {
+      setActiveTabState('home');
+    }
+  }, [urlTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const setActiveTab = (tab) => {
+    setActiveTabState(tab);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'home') next.delete('tab');
+      else next.set('tab', tab);
+      return next;
+    });
+  };
 
   const fetchDashboardData = useCallback(async () => {
     try {

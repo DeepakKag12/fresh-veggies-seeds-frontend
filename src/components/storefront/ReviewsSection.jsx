@@ -134,7 +134,7 @@ const ReviewsSection = ({ productId, productName }) => {
 
   const handleOpenReviewModal = () => {
     if (!user) {
-      toast('Please sign in to write your review', { icon: '🔒' });
+      toast('Please sign in to write your review');
       navigate('/login');
       return;
     }
@@ -361,7 +361,7 @@ const ReviewsSection = ({ productId, productName }) => {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold text-gray-900">{reviewerName}</span>
-                          {r.isVerifiedPurchase && (
+                          {(r.isVerifiedPurchase || r.isVerifiedBuyer) && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200">
                               <BadgeCheck className="w-3 h-3 text-[#00A93D]" />
                               <span>Verified Buyer</span>
@@ -402,6 +402,10 @@ const ReviewsSection = ({ productId, productName }) => {
                           <img
                             src={img}
                             alt="Customer plant harvest"
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = '/sandbox-assets/community/comm_1.webp';
+                            }}
                             className="h-full w-full object-cover group-hover:opacity-90"
                             loading="lazy"
                           />

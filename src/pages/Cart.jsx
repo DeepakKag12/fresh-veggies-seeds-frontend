@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Minus, Trash2, ShoppingBag, ArrowRight, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
+import { getProductImageUrl, handleImageError, DEFAULT_PRODUCT_IMAGE } from '../utils/imageFallback';
 
 const Cart = () => {
   const { cartItems, updateQuantity, removeFromCart, getCartTotal, removedItems, clearRemovedNotice } = useCart();
@@ -89,8 +90,9 @@ const Cart = () => {
               >
                 <div className="flex gap-3 sm:gap-4">
                   <img
-                    src={item.images?.[0] || 'https://via.placeholder.com/150'}
+                    src={getProductImageUrl(item)}
                     alt={item.name}
+                    onError={(e) => handleImageError(e, DEFAULT_PRODUCT_IMAGE)}
                     className="w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32 object-cover rounded-xl shrink-0"
                   />
                   <div className="flex-1 min-w-0">

@@ -34,7 +34,7 @@ const ROWS = [
   {
     feature: 'Gardener Guidance',
     local: 'Zero post-sale guidance',
-    us: 'Free lifetime WhatsApp plant care support',
+    us: 'Free lifetime in-app live plant care support',
     others: 'Generic bot responses',
   },
 ];

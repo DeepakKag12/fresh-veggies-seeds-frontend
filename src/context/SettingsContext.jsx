@@ -7,7 +7,7 @@ const DEFAULT_SETTINGS = {
     logo: '/logo.png',
     phone: '9876543210',
     email: 'contact@freshveggies.me',
-    whatsappNumber: '9876543210',
+    chatGreeting: 'Live Support Desk is Online',
     address: '123 Garden Street, Indore, Madhya Pradesh 452001',
     businessHours: '9:00 AM – 8:00 PM',
     trustPillars: {
@@ -18,7 +18,7 @@ const DEFAULT_SETTINGS = {
       pillar3Title: 'High Germination',
       pillar3Subtitle: 'Tested & fresh batch',
       pillar4Title: 'Expert Support',
-      pillar4Subtitle: 'Gardener help via WhatsApp',
+      pillar4Subtitle: 'Gardener help via Live Chat',
     },
   },
   delivery: {
@@ -50,6 +50,16 @@ const DEFAULT_SETTINGS = {
     onlineDiscountType: 'percentage',
     onlineDiscountValue: 0,
     onlineDiscountMaxLimit: 100,
+  },
+  maintenance: {
+    isStoreClosed: false,
+    closureNotice: 'Our storefront is currently closed for routine maintenance. Please check back shortly!',
+    announcementBanner: {
+      enabled: false,
+      message: 'Free shipping on all garden orders over ₹500! Shop new harvest seeds now.',
+      link: '/shop',
+      type: 'info',
+    },
   },
 };
 

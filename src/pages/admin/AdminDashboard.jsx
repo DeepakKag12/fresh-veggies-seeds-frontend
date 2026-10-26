@@ -8,16 +8,19 @@ import {
   BarChart2,
   ArrowRight,
   ClipboardList,
+  MessageSquare
 } from 'lucide-react';
 import { useAdminDashboard } from '../../hooks/admin/useAdminDashboard';
-import { DashboardKpiGrid } from '../../components/admin/dashboard/DashboardKpiGrid';
+import { useChat } from '../../context/ChatContext';
 import { DashboardQuickActions } from '../../components/admin/dashboard/DashboardQuickActions';
 import { UrgentOrdersBanner } from '../../components/admin/dashboard/UrgentOrdersBanner';
-import { RevenueSnapshot } from '../../components/admin/dashboard/RevenueSnapshot';
 import { OrderPipelineSection } from '../../components/admin/dashboard/OrderPipelineSection';
 import { RecentOrdersTable } from '../../components/admin/dashboard/RecentOrdersTable';
 import { RevenueTab } from '../../components/admin/dashboard/RevenueTab';
 import { AnalyticsTab } from '../../components/admin/dashboard/AnalyticsTab';
+import { ExecutiveKpiCards } from '../../components/admin/dashboard/ExecutiveKpiCards';
+import { SalesAnalyticsChart } from '../../components/admin/dashboard/SalesAnalyticsChart';
+import { LowStockWarningTable } from '../../components/admin/dashboard/LowStockWarningTable';
 
 const TABS = [
   { id: 'home',      label: 'Executive Overview',  icon: LayoutDashboard },
@@ -27,6 +30,7 @@ const TABS = [
 ];
 
 const AdminDashboard = () => {
+  const { adminUnreadCount } = useChat();
   const {
     stats,
     actionLoadingId,
@@ -102,6 +106,21 @@ const AdminDashboard = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Live Chat Direct Button */}
+            <Link
+              to="/admin/communication"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded-xl text-xs font-bold border border-emerald-200 dark:border-emerald-800/60 transition-colors min-h-[40px] relative"
+              title="Open Live Customer Chat"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Live Chat</span>
+              {adminUnreadCount > 0 && (
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-600 text-white animate-pulse">
+                  {adminUnreadCount}
+                </span>
+              )}
+            </Link>
+
             <Link
               to="/admin/orders"
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 bg-fv-surface hover:bg-fv-border text-fv-heading dark:text-gray-200 rounded-xl text-xs font-semibold transition-colors min-h-[40px]"
@@ -121,7 +140,7 @@ const AdminDashboard = () => {
                   fetchAnalytics(period, specificMonth);
                 }
               }}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-fv-surface hover:bg-fv-border text-fv-heading dark:text-gray-200 rounded-xl text-xs font-semibold transition-colors min-h-[40px]"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-fv-surface hover:bg-fv-border text-fv-heading dark:text-gray-200 rounded-xl text-xs font-semibold transition-colors min-h-[40px] cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5 text-fv-primary dark:text-emerald-400" />
               <span className="hidden md:inline">Refresh Data</span>
@@ -137,7 +156,7 @@ const AdminDashboard = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 whitespace-nowrap transition-all min-h-[42px] ${
+                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 whitespace-nowrap transition-all min-h-[42px] cursor-pointer ${
                   isActive
                     ? 'border-fv-primary text-fv-primary dark:text-emerald-400 font-bold'
                     : 'border-transparent text-fv-muted hover:text-fv-heading hover:border-fv-border'
@@ -157,7 +176,7 @@ const AdminDashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto p-3 md:p-6 space-y-6">
-        {/* EXECUTIVE OVERVIEW (HOME) TAB */}
+        {/* EXECUTIVE OVERVIEW (HOME) TAB - Streamlined & Non-Redundant */}
         {activeTab === 'home' && (
           <>
             {/* Urgent attention banner for pending orders or customer cancellation requests */}
@@ -168,14 +187,23 @@ const AdminDashboard = () => {
               onQuickApproveCancel={handleQuickApproveCancel}
             />
 
-            {/* Quick 1-click Management Launchpad Shortcuts */}
+            {/* Core Executive Metric KPI Cards (Gross Revenue, Total Orders, Average Order Value, Active Customers) */}
+            <ExecutiveKpiCards stats={stats} revenueData={revenueData} />
+
+            {/* Interactive Time-Series Sales & Orders Recharts with filter presets (Today, 7D, 30D, 1Y) + Status Pie Chart */}
+            <SalesAnalyticsChart
+              analyticsData={analyticsData}
+              stats={stats}
+              period={period}
+              onPeriodChange={handlePeriodChange}
+              loading={analyticsLoading}
+            />
+
+            {/* Urgent Low Stock Warning Table */}
+            <LowStockWarningTable lowStockProducts={lowStockProducts} />
+
+            {/* Quick 1-click Management Launchpad Shortcuts (including Live Chat) */}
             <DashboardQuickActions stats={stats} />
-
-            {/* High level KPI statistics grid */}
-            <DashboardKpiGrid stats={stats} />
-
-            {/* Snapshot of Revenue & Cashflow */}
-            <RevenueSnapshot stats={stats} />
 
             {/* Recent Orders Live Table with In-Place Status Update & Delete */}
             <RecentOrdersTable

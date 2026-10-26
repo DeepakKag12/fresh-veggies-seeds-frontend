@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Star, Sprout, Pencil, Trash2, Heart, ShoppingBag, Check } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
+import { getProductImageUrl, handleImageError } from '../../utils/imageFallback';
 
 /**
  * Ugaoo-Inspired Botanical Product Card:
@@ -19,6 +20,7 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
   const [imgFailed, setImgFailed] = useState(false);
   const [secondImgFailed, setSecondImgFailed] = useState(false);
   const [addedAnim, setAddedAnim] = useState(false);
+  const [heartBounced, setHeartBounced] = useState(false);
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
 
@@ -49,7 +51,6 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
     description,
     stock = 0,
     packages = [],
-    weight,
     season,
     featured,
   } = product;
@@ -61,10 +62,10 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
   const discountPct = hasDiscount ? Math.round(((activeOriginalPrice - activePrice) / activeOriginalPrice) * 100) : 0;
   const isOutOfStock = activeStock <= 0;
 
-  const FALLBACK_PRODUCT_IMAGE = '/sandbox-assets/guides/guide_1.webp';
-  const primaryImage = images?.[0] && !imgFailed ? images[0] : null;
-  const effectivePrimaryImage = primaryImage || FALLBACK_PRODUCT_IMAGE;
-  const secondaryImage = images?.[1] && !secondImgFailed ? images[1] : null;
+  const fallbackProductImage = getProductImageUrl(product);
+  const primaryImage = images?.[0] && !imgFailed && !images[0].includes('via.placeholder') ? images[0] : null;
+  const effectivePrimaryImage = primaryImage || fallbackProductImage;
+  const secondaryImage = images?.[1] && !secondImgFailed && !images[1].includes('via.placeholder') ? images[1] : null;
 
   const isFavorited = isInWishlist(_id);
 
@@ -89,6 +90,8 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
   const handleWishlistClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    setHeartBounced(true);
+    setTimeout(() => setHeartBounced(false), 400);
     toggleWishlist(product);
   };
 
@@ -125,14 +128,19 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
         <Link to={`/product/${_id}`} state={{ from: location }} className="block h-full w-full">
           {effectivePrimaryImage ? (
             <>
-              {/* Primary Image */}
+              {/* Primary Image with Out-of-Stock Greyscale Filter */}
               <img
                 src={effectivePrimaryImage}
                 alt={name}
                 loading="lazy"
                 decoding="async"
-                onError={() => setImgFailed(true)}
+                onError={(e) => {
+                  setImgFailed(true);
+                  handleImageError(e, fallbackProductImage);
+                }}
                 className={`h-full w-full object-cover transition-all duration-500 ease-out ${
+                  isOutOfStock ? 'grayscale contrast-75 opacity-75' : ''
+                } ${
                   secondaryImage ? 'group-hover:opacity-0' : 'group-hover:scale-105'
                 }`}
               />
@@ -144,7 +152,9 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
                   loading="lazy"
                   decoding="async"
                   onError={() => setSecondImgFailed(true)}
-                  className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100 group-hover:scale-105"
+                  className={`absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100 group-hover:scale-105 ${
+                    isOutOfStock ? 'grayscale contrast-75 opacity-60' : ''
+                  }`}
                 />
               )}
             </>
@@ -158,8 +168,8 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
         {/* Top-Left Badges */}
         <div className="absolute left-2.5 top-2.5 z-20 flex flex-col gap-1 pointer-events-none">
           {isOutOfStock ? (
-            <span className="rounded-full bg-gray-900/80 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white backdrop-blur-xs">
-              Sold Out
+            <span className="rounded-full bg-black/85 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-xs shadow-sm">
+              Out of Stock
             </span>
           ) : featured ? (
             <span className="rounded-full bg-[#fed02f] px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wider text-[#0a4c36] shadow-xs">
@@ -181,7 +191,9 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
             className="absolute right-2.5 top-2.5 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-xs backdrop-blur-sm transition-all hover:bg-white hover:scale-110 active:scale-90 cursor-pointer"
           >
             <Heart
-              className={`h-4 w-4 transition-colors ${
+              className={`h-4 w-4 transition-all duration-300 ${
+                heartBounced ? 'scale-125' : 'scale-100'
+              } ${
                 isFavorited ? 'fill-red-500 text-red-500' : 'text-gray-600 hover:text-red-500'
               }`}
             />
@@ -202,16 +214,14 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
 
       {/* Card Content Area */}
       <div className="flex flex-1 flex-col p-3 sm:p-4">
-        {/* Category / Season Subtext */}
-        <div className="flex items-center justify-between text-[11px] text-gray-500 mb-1">
-          <span className="uppercase tracking-wider font-semibold text-emerald-800/80">
-            {season || 'All Season'}
+        {/* Category / Season Subtext & Botanical Freshness Badges */}
+        <div className="flex items-center justify-between text-[11px] mb-1.5 flex-wrap gap-1">
+          <span className="inline-flex items-center gap-1 uppercase tracking-wider font-bold text-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full text-[10px] border border-emerald-200/60 dark:border-emerald-800">
+            {season ? `In Season: ${season}` : 'All Season'}
           </span>
-          {weight && !hasPackages && (
-            <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-medium">
-              {weight}
-            </span>
-          )}
+          <span className="text-[10px] font-semibold text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 px-1.5 py-0.5 rounded border border-green-200/50">
+            100% Organic
+          </span>
         </div>
 
         {/* Title */}

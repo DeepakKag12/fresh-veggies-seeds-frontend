@@ -18,6 +18,7 @@ import {
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { useSettings } from '../context/SettingsContext';
+import { handleImageError, DEFAULT_PRODUCT_IMAGE } from '../utils/imageFallback';
 
 const steps = ['Pending', 'Confirmed', 'Packed', 'Shipped', 'Delivered'];
 const stepIcons = {
@@ -141,9 +142,6 @@ const OrderDetailDrawer = ({ orderId, isOpen, onClose, onOrderUpdated }) => {
     order.orderStatus !== 'Cancelled';
 
   const activeStep = order ? steps.indexOf(order.orderStatus) : -1;
-  const storePhone = settings?.store?.phone || '9876543210';
-  const cleanPhone = storePhone.replace(/\D/g, '');
-  const whatsappUrl = `https://wa.me/91${cleanPhone.slice(-10)}?text=${encodeURIComponent(`Hello Fresh Veggies Support, I need help with my Order ${order?.orderNumber || order?._id || ''}`)}`;
 
   return (
     <div className="fixed inset-0 z-[70]" role="dialog" aria-modal="true" aria-label="Order Details">
@@ -284,8 +282,9 @@ const OrderDetailDrawer = ({ orderId, isOpen, onClose, onOrderUpdated }) => {
                   {(order.orderItems || []).map((item, idx) => (
                     <div key={idx} className="py-2.5 first:pt-0 last:pb-0 flex items-center gap-3">
                       <img
-                        src={item.image || 'https://via.placeholder.com/60'}
+                        src={item.image && !item.image.includes('via.placeholder') ? item.image : DEFAULT_PRODUCT_IMAGE}
                         alt={item.name}
+                        onError={(e) => handleImageError(e, DEFAULT_PRODUCT_IMAGE)}
                         className="w-13 h-13 object-cover rounded-lg bg-gray-100 shrink-0"
                       />
                       <div className="flex-1 min-w-0">
@@ -402,15 +401,27 @@ const OrderDetailDrawer = ({ orderId, isOpen, onClose, onOrderUpdated }) => {
         {/* Footer Actions */}
         {order && (
           <div className="border-t border-fv-border px-5 py-3.5 bg-white flex items-center justify-between gap-3 z-10">
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 transition-colors"
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                window.dispatchEvent(new CustomEvent('open-in-app-chat', {
+                  detail: {
+                    prompt: `Hello, I need help with my Order #${order?.orderNumber || order?._id}`,
+                    orderContext: {
+                      orderId: order?._id,
+                      orderNumber: order?.orderNumber || String(order?._id).slice(-6).toUpperCase(),
+                      totalAmount: order?.totalAmount,
+                      orderStatus: order?.orderStatus
+                    }
+                  }
+                }));
+              }}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 transition-colors cursor-pointer"
             >
               <MessageCircle className="w-4 h-4 text-emerald-600" />
-              WhatsApp Help
-            </a>
+              <span>Live Order Support</span>
+            </button>
 
             <div className="flex items-center gap-2">
               <Link

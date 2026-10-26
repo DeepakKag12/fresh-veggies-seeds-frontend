@@ -14,6 +14,7 @@ import {
 export const ALL_STATUS_OPTIONS = [
   'Pending',
   'Confirmed',
+  'Processing',
   'Packed',
   'Shipped',
   'Delivered',
@@ -22,10 +23,11 @@ export const ALL_STATUS_OPTIONS = [
 
 /** Primary next workflow action mappings */
 export const NEXT_PRIMARY_ACTION = {
-  Pending:   { target: 'Confirmed', label: 'Confirm Order', icon: CheckCircle2, color: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
-  Confirmed: { target: 'Packed',    label: 'Mark as Packed', icon: Boxes,        color: 'bg-blue-600 hover:bg-blue-700 text-white' },
-  Packed:    { target: 'Shipped',   label: 'Ship Order',    icon: Truck,        color: 'bg-purple-600 hover:bg-purple-700 text-white' },
-  Shipped:   { target: 'Delivered', label: 'Mark Delivered', icon: PackageCheck, color: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
+  Pending:    { target: 'Confirmed',  label: 'Confirm Order', icon: CheckCircle2, color: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
+  Confirmed:  { target: 'Processing', label: 'Start Processing', icon: Boxes,     color: 'bg-blue-600 hover:bg-blue-700 text-white' },
+  Processing: { target: 'Packed',     label: 'Mark Packed',   icon: Package,      color: 'bg-indigo-600 hover:bg-indigo-700 text-white' },
+  Packed:     { target: 'Shipped',    label: 'Ship Order',    icon: Truck,        color: 'bg-purple-600 hover:bg-purple-700 text-white' },
+  Shipped:    { target: 'Delivered',  label: 'Mark Delivered', icon: PackageCheck, color: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
 };
 
 /** Segmented workflow tabs configuration */
@@ -46,8 +48,9 @@ export const getStatusColor = (status) => {
   const colors = {
     Pending: 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-950/40 dark:text-yellow-300 dark:border-yellow-800',
     Confirmed: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800',
-    Packed: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800',
-    Shipped: 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800',
+    Processing: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800',
+    Packed: 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800',
+    Shipped: 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800',
     Delivered: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800',
     Cancelled: 'bg-red-100 text-red-800 border-red-300 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800',
     CancellationRequested: 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800',
@@ -60,6 +63,7 @@ export const getStatusIconComponent = (status) => {
   const icons = {
     Pending: Clock,
     Confirmed: CheckCircle,
+    Processing: Boxes,
     Packed: Package,
     Shipped: Truck,
     Delivered: PackageCheck,

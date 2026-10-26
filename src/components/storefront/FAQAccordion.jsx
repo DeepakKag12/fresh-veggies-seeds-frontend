@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { ChevronDown, HelpCircle, MessageCircle } from 'lucide-react';
-import { useSettings } from '../../context/SettingsContext';
 
 const FAQS = [
   {
@@ -46,16 +45,13 @@ const FAQS = [
       },
       {
         q: 'Do you offer horticulturist consultation?',
-        a: 'Yes, our gardening team is available via WhatsApp to answer your potting, pest control, and watering questions. Tap our live WhatsApp support button on the bottom corner to chat directly with a plant expert.'
+        a: 'Yes, our gardening team is available via In-App Live Chat to answer your potting, pest control, and watering questions. Tap our floating live chat button on the bottom corner to chat directly with a plant expert.'
       }
     ]
   }
 ];
 
 const FAQAccordion = () => {
-  const { settings } = useSettings();
-  const storePhone = settings?.store?.phone || '919876543210';
-  const cleanPhone = storePhone.replace(/[^0-9]/g, '');
   const [activeCategory, setActiveCategory] = useState(FAQS[0].category);
   const [openIndex, setOpenIndex] = useState(0);
 
@@ -147,18 +143,21 @@ const FAQAccordion = () => {
           <div>
             <h3 className="font-serif text-lg font-bold">Have more questions about planting?</h3>
             <p className="text-xs sm:text-sm text-white/80 mt-1">
-              Our gardening team is on WhatsApp every day to help your garden thrive.
+              Our gardening specialists are live in-app every day to help your garden thrive.
             </p>
           </div>
-          <a
-            href={`https://wa.me/${cleanPhone}?text=Hi%2C%20I%20have%20a%20question%20about%20seeds%20and%20gardening`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full bg-[#fed02f] px-5 py-2.5 text-xs sm:text-sm font-bold text-[#0a4c36] hover:bg-[#ffe169] transition-all hover:scale-105 shrink-0 shadow-xs"
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('open-in-app-chat', {
+                detail: { prompt: 'Hi, I have a question about seeds and planting!' }
+              }));
+            }}
+            className="inline-flex items-center gap-2 rounded-full bg-[#fed02f] px-5 py-2.5 text-xs sm:text-sm font-bold text-[#0a4c36] hover:bg-[#ffe169] transition-all hover:scale-105 shrink-0 shadow-xs cursor-pointer"
           >
             <MessageCircle className="w-4 h-4" />
             <span>Chat with Expert</span>
-          </a>
+          </button>
         </div>
       </div>
     </section>

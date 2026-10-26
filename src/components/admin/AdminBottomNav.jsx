@@ -16,7 +16,8 @@ import {
   ShieldAlert,
   ArrowLeft,
   ArchiveRestore,
-  Store
+  Store,
+  MessageSquare
 } from 'lucide-react';
 import api from '../../utils/api';
 import AdminNotificationBell from './AdminNotificationBell';
@@ -78,6 +79,7 @@ const AdminBottomNav = () => {
     {
       title: 'Management & Settings',
       items: [
+        { path: '/admin/communication', label: 'Live Chat', icon: MessageSquare },
         { path: '/admin/users', label: 'Customers', icon: Users },
         { path: '/admin/delete-history', label: 'Delete History', icon: ArchiveRestore },
         { path: '/admin/settings', label: 'Store Settings', icon: Settings },
