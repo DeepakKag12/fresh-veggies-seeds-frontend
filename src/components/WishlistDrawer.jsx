@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { X, Trash2, Heart, ShoppingBag, Sprout, ArrowRight } from 'lucide-react';
+import { X, Trash2, Heart, ShoppingBag, Sprout, ArrowRight, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useWishlist } from '../context/WishlistContext';
 import { useCart } from '../context/CartContext';
 
@@ -30,8 +31,19 @@ const WishlistDrawer = () => {
   if (!wishlistOpen) return null;
 
   const handleMoveToCart = (product) => {
-    // If product has packages, select the first available or default package
-    const pkg = product.packages?.find((p) => p.stock > 0) || product.packages?.[0] || null;
+    const isOutOfStock =
+      (Number(product.stock) || 0) <= 0 &&
+      (!Array.isArray(product.packages) ||
+        product.packages.length === 0 ||
+        product.packages.every((p) => (Number(p.stock) || 0) <= 0));
+
+    if (isOutOfStock) {
+      toast.error(`"${product.name}" is currently out of stock.`);
+      return;
+    }
+
+    // If product has packages, select the first available in-stock package
+    const pkg = product.packages?.find((p) => (Number(p.stock) || 0) > 0) || product.packages?.[0] || null;
     const cartProduct = {
       ...product,
       price: pkg ? pkg.price : product.price,
@@ -40,6 +52,7 @@ const WishlistDrawer = () => {
     };
     addToCart(cartProduct, 1);
     removeFromWishlist(product._id);
+    toast.success(`Moved "${product.name}" to cart!`);
   };
 
   return (
@@ -98,6 +111,12 @@ const WishlistDrawer = () => {
               {wishlist.map((item) => {
                 const hasDiscount = item.originalPrice > item.price;
                 const discountPct = hasDiscount ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100) : 0;
+                const isOutOfStock =
+                  (Number(item.stock) || 0) <= 0 &&
+                  (!Array.isArray(item.packages) ||
+                    item.packages.length === 0 ||
+                    item.packages.every((p) => (Number(p.stock) || 0) <= 0));
+
                 return (
                   <li key={item._id} className="flex gap-3 py-4 group">
                     <Link
@@ -116,9 +135,14 @@ const WishlistDrawer = () => {
                       ) : (
                         <Sprout className="m-auto mt-6 h-7 w-7 text-fv-primary/25" aria-hidden="true" />
                       )}
-                      {discountPct > 0 && (
+                      {discountPct > 0 && !isOutOfStock && (
                         <span className="absolute top-1 left-1 bg-[#fed02f] text-[#0a4c36] text-[9px] font-bold px-1.5 py-0.5 rounded-full">
                           {discountPct}% OFF
+                        </span>
+                      )}
+                      {isOutOfStock && (
+                        <span className="absolute top-1 left-1 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                          Out of Stock
                         </span>
                       )}
                     </Link>
@@ -157,11 +181,16 @@ const WishlistDrawer = () => {
                       <div className="mt-2.5">
                         <button
                           type="button"
+                          disabled={isOutOfStock}
                           onClick={() => handleMoveToCart(item)}
-                          className="w-full inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-fv-primary hover:bg-fv-primary-dark text-white text-[12px] font-semibold transition-all shadow-xs active:scale-95 cursor-pointer"
+                          className={`w-full inline-flex items-center justify-center gap-1.5 h-8 rounded-lg text-[12px] font-semibold transition-all shadow-xs ${
+                            isOutOfStock
+                              ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                              : 'bg-fv-primary hover:bg-fv-primary-dark text-white active:scale-95 cursor-pointer'
+                          }`}
                         >
                           <ShoppingBag className="w-3.5 h-3.5" />
-                          <span>Move to Cart</span>
+                          <span>{isOutOfStock ? 'Out of Stock' : 'Move to Cart'}</span>
                         </button>
                       </div>
                     </div>
