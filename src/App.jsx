@@ -74,6 +74,67 @@ function ScrollToTop() {
   return null;
 }
 
+const AppRoutes = () => (
+  <Routes>
+    {/* Public Routes */}
+    <Route path="/" element={<Storefront />} />
+    {/* Legacy path. Carry the query string across so filtered links like
+        /shop?category=… keep working instead of landing unfiltered. */}
+    <Route path="/shop" element={<ShopRedirect />} />
+    <Route path="/product/:id" element={<ProductDetail />} />
+    <Route path="/combos" element={<ComboOffers />} />
+    <Route path="/cart" element={<Cart />} />
+    <Route path="/login" element={<LoginPage />} />
+    <Route path="/register" element={<RegisterPage />} />
+    <Route path="/forgot-password" element={<ForgotPassword />} />
+    <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
+    <Route path="/verify-email/:token" element={<VerifyEmail />} />
+    <Route path="/mobile-login" element={<MobileLogin />} />
+    <Route path="/about" element={<About />} />
+    <Route path="/contact" element={<Contact />} />
+
+    {/* Checkout (Guest OTP or Authenticated) */}
+    <Route path="/checkout" element={<Checkout />} />
+    <Route path="/orders" element={<PrivateRoute><MyOrders /></PrivateRoute>} />
+    <Route path="/orders/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
+    <Route path="/order/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
+    <Route path="/order-success/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
+    <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
+
+    {/* Admin Routes & Convenience Aliases */}
+    <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+    <Route path="/admin/login" element={<Navigate to="/login" replace />} />
+    <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+    <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
+    <Route path="/admin/inventory" element={<Navigate to="/admin/products" replace />} />
+    <Route path="/admin/categories" element={<AdminRoute><AdminCategories /></AdminRoute>} />
+    <Route path="/admin/combos" element={<AdminRoute><AdminCombos /></AdminRoute>} />
+    <Route path="/admin/orders" element={<AdminRoute><AdminOrders /></AdminRoute>} />
+    <Route path="/admin/orders/:id" element={<AdminRoute><OrderDetail /></AdminRoute>} />
+    <Route path="/admin/order/:id" element={<AdminRoute><OrderDetail /></AdminRoute>} />
+    <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+    <Route path="/admin/customers" element={<Navigate to="/admin/users" replace />} />
+    <Route path="/admin/coupons" element={<AdminRoute><AdminCoupons /></AdminRoute>} />
+    <Route path="/admin/reviews" element={<AdminRoute><AdminReviews /></AdminRoute>} />
+    <Route path="/admin/banners" element={<AdminRoute><AdminBanners /></AdminRoute>} />
+    <Route path="/admin/communication" element={<AdminRoute><AdminCommunication /></AdminRoute>} />
+    <Route path="/admin/messages" element={<Navigate to="/admin/communication" replace />} />
+    <Route path="/admin/chat" element={<Navigate to="/admin/communication" replace />} />
+    <Route path="/admin/recycle-bin" element={<AdminRoute><AdminDeleteHistory initialTab="history" /></AdminRoute>} />
+    <Route path="/admin/audit-logs" element={<AdminRoute><AdminDeleteHistory initialTab="audit" /></AdminRoute>} />
+    <Route path="/admin/delete-history" element={<AdminRoute><AdminDeleteHistory initialTab="history" /></AdminRoute>} />
+    <Route path="/admin/history" element={<Navigate to="/admin/recycle-bin" replace />} />
+    <Route path="/admin/trash" element={<Navigate to="/admin/recycle-bin" replace />} />
+    <Route path="/admin/danger-zone" element={<AdminRoute><AdminDangerZone /></AdminRoute>} />
+    <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
+    <Route path="/admin/profile" element={<Navigate to="/admin/settings" replace />} />
+    <Route path="/admin/*" element={<Navigate to="/admin/dashboard" replace />} />
+
+    {/* Catch-all — must stay last. */}
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
+
 function App() {
   const location = useLocation();
   const { user } = useAuth();
@@ -113,123 +174,11 @@ function App() {
       {!isAuthPage && !isAdminPage && <Navbar />}
       {isAdminPage ? (
         <AdminLayout>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Storefront />} />
-            {/* Legacy path. Carry the query string across so filtered links like
-                /shop?category=… keep working instead of landing unfiltered. */}
-            <Route path="/shop" element={<ShopRedirect />} />
-            <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/combos" element={<ComboOffers />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
-            <Route path="/verify-email/:token" element={<VerifyEmail />} />
-            <Route path="/mobile-login" element={<MobileLogin />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-
-            {/* Checkout (Guest OTP or Authenticated) */}
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/orders" element={<PrivateRoute><MyOrders /></PrivateRoute>} />
-            <Route path="/orders/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
-            <Route path="/order/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
-            <Route path="/order-success/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
-            <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
-
-            {/* Admin Routes & Convenience Aliases */}
-            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="/admin/login" element={<Navigate to="/login" replace />} />
-            <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-            <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
-            <Route path="/admin/inventory" element={<Navigate to="/admin/products" replace />} />
-            <Route path="/admin/categories" element={<AdminRoute><AdminCategories /></AdminRoute>} />
-            <Route path="/admin/combos" element={<AdminRoute><AdminCombos /></AdminRoute>} />
-            <Route path="/admin/orders" element={<AdminRoute><AdminOrders /></AdminRoute>} />
-            <Route path="/admin/orders/:id" element={<AdminRoute><OrderDetail /></AdminRoute>} />
-            <Route path="/admin/order/:id" element={<AdminRoute><OrderDetail /></AdminRoute>} />
-            <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
-            <Route path="/admin/customers" element={<Navigate to="/admin/users" replace />} />
-            <Route path="/admin/coupons" element={<AdminRoute><AdminCoupons /></AdminRoute>} />
-            <Route path="/admin/reviews" element={<AdminRoute><AdminReviews /></AdminRoute>} />
-            <Route path="/admin/banners" element={<AdminRoute><AdminBanners /></AdminRoute>} />
-            <Route path="/admin/communication" element={<AdminRoute><AdminCommunication /></AdminRoute>} />
-            <Route path="/admin/messages" element={<Navigate to="/admin/communication" replace />} />
-            <Route path="/admin/chat" element={<Navigate to="/admin/communication" replace />} />
-            <Route path="/admin/recycle-bin" element={<AdminRoute><AdminDeleteHistory initialTab="history" /></AdminRoute>} />
-            <Route path="/admin/audit-logs" element={<AdminRoute><AdminDeleteHistory initialTab="audit" /></AdminRoute>} />
-            <Route path="/admin/delete-history" element={<AdminRoute><AdminDeleteHistory initialTab="history" /></AdminRoute>} />
-            <Route path="/admin/history" element={<Navigate to="/admin/recycle-bin" replace />} />
-            <Route path="/admin/trash" element={<Navigate to="/admin/recycle-bin" replace />} />
-            <Route path="/admin/danger-zone" element={<AdminRoute><AdminDangerZone /></AdminRoute>} />
-            <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
-            <Route path="/admin/profile" element={<Navigate to="/admin/settings" replace />} />
-            <Route path="/admin/*" element={<Navigate to="/admin/dashboard" replace />} />
-
-            {/* Catch-all — must stay last. */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AppRoutes />
         </AdminLayout>
       ) : (
         <main className={`flex-grow overflow-x-hidden ${isAuthPage ? 'pb-0 min-h-screen w-full' : 'pb-20 md:pb-0'}`}>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Storefront />} />
-            {/* Legacy path. Carry the query string across so filtered links like
-                /shop?category=… keep working instead of landing unfiltered. */}
-            <Route path="/shop" element={<ShopRedirect />} />
-            <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/combos" element={<ComboOffers />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
-            <Route path="/verify-email/:token" element={<VerifyEmail />} />
-            <Route path="/mobile-login" element={<MobileLogin />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-
-            {/* Checkout (Guest OTP or Authenticated) */}
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/orders" element={<PrivateRoute><MyOrders /></PrivateRoute>} />
-            <Route path="/orders/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
-            <Route path="/order/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
-            <Route path="/order-success/:id" element={<PrivateRoute><OrderDetail /></PrivateRoute>} />
-            <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
-
-            {/* Admin Routes & Convenience Aliases */}
-            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="/admin/login" element={<Navigate to="/login" replace />} />
-            <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-            <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
-            <Route path="/admin/inventory" element={<Navigate to="/admin/products" replace />} />
-            <Route path="/admin/categories" element={<AdminRoute><AdminCategories /></AdminRoute>} />
-            <Route path="/admin/combos" element={<AdminRoute><AdminCombos /></AdminRoute>} />
-            <Route path="/admin/orders" element={<AdminRoute><AdminOrders /></AdminRoute>} />
-            <Route path="/admin/orders/:id" element={<AdminRoute><OrderDetail /></AdminRoute>} />
-            <Route path="/admin/order/:id" element={<AdminRoute><OrderDetail /></AdminRoute>} />
-            <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
-            <Route path="/admin/customers" element={<Navigate to="/admin/users" replace />} />
-            <Route path="/admin/coupons" element={<AdminRoute><AdminCoupons /></AdminRoute>} />
-            <Route path="/admin/reviews" element={<AdminRoute><AdminReviews /></AdminRoute>} />
-            <Route path="/admin/banners" element={<AdminRoute><AdminBanners /></AdminRoute>} />
-            <Route path="/admin/communication" element={<AdminRoute><AdminCommunication /></AdminRoute>} />
-            <Route path="/admin/messages" element={<Navigate to="/admin/communication" replace />} />
-            <Route path="/admin/chat" element={<Navigate to="/admin/communication" replace />} />
-            <Route path="/admin/delete-history" element={<AdminRoute><AdminDeleteHistory /></AdminRoute>} />
-            <Route path="/admin/audit-logs" element={<Navigate to="/admin/delete-history" replace />} />
-            <Route path="/admin/history" element={<Navigate to="/admin/delete-history" replace />} />
-            <Route path="/admin/danger-zone" element={<AdminRoute><AdminDangerZone /></AdminRoute>} />
-            <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
-            <Route path="/admin/profile" element={<Navigate to="/admin/settings" replace />} />
-            <Route path="/admin/*" element={<Navigate to="/admin/dashboard" replace />} />
-
-            {/* Catch-all — must stay last. */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AppRoutes />
         </main>
       )}
       {/* Storefront Footer: isolated from admin screens and checkout */}

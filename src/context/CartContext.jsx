@@ -45,11 +45,6 @@ const pruneUnavailable = async (items) => {
 export const CartProvider = ({ children }) => {
   const { user, loading: authLoading } = useAuth();
   const [cartItems, setCartItems] = useState([]);
-  const cartItemsRef = useRef(cartItems);
-  useEffect(() => {
-    cartItemsRef.current = cartItems;
-  }, [cartItems]);
-
   const [cartPopup, setCartPopup] = useState({ show: false, product: null });
   const [cartOpen, setCartOpen] = useState(false);
   const [cartReady, setCartReady] = useState(false);
@@ -84,20 +79,13 @@ export const CartProvider = ({ children }) => {
         cachedAccountCart = JSON.parse(localStorage.getItem(storageKey) || '[]');
       } catch {}
 
-      // Keep active in-memory cart lines if already loaded in the React tree
-      const inMemoryLines = Array.isArray(cartItemsRef.current) && cartItemsRef.current.length > 0
-        ? cartItemsRef.current
-        : [];
-
-      const effectiveGuestCart = Array.isArray(guestCart) && guestCart.length > 0
-        ? guestCart
-        : inMemoryLines;
+      const effectiveGuestCart = Array.isArray(guestCart) ? guestCart : [];
 
       // Guest user: restore local cart
       if (!cartOwnerId) {
         const { kept, removed } = await pruneUnavailable(effectiveGuestCart);
         if (!cancelled) {
-          const finalKept = kept.length > 0 ? kept : effectiveGuestCart;
+          const finalKept = removed.length > 0 ? kept : effectiveGuestCart;
           setCartItems(finalKept);
           if (removed.length && kept.length > 0) setRemovedItems(removed);
           setCartReady(true);
@@ -109,19 +97,22 @@ export const CartProvider = ({ children }) => {
       // Authenticated user: Bidirectional Union Merge via server /api/auth/cart/sync
       try {
         let accountCart = [];
+        let serverReadSucceeded = false;
         if (effectiveGuestCart.length > 0) {
           try {
             const syncRes = await api.put('/auth/cart/sync', { guestCart: effectiveGuestCart });
             accountCart = Array.isArray(syncRes?.data?.data) ? syncRes.data.data : [];
+            serverReadSucceeded = true;
           } catch {
-            accountCart = [];
+            serverReadSucceeded = false;
           }
         } else {
           try {
             const response = await api.get('/auth/cart');
             accountCart = Array.isArray(response?.data?.data) ? response.data.data : [];
+            serverReadSucceeded = true;
           } catch {
-            accountCart = [];
+            serverReadSucceeded = false;
           }
         }
 
@@ -130,7 +121,6 @@ export const CartProvider = ({ children }) => {
         const localSources = [
           ...(Array.isArray(cachedAccountCart) ? cachedAccountCart : []),
           ...(Array.isArray(effectiveGuestCart) ? effectiveGuestCart : []),
-          ...inMemoryLines
         ];
 
         localSources.forEach((savedItem) => {
@@ -148,16 +138,22 @@ export const CartProvider = ({ children }) => {
           : (effectiveGuestCart.length > 0 ? effectiveGuestCart : cachedAccountCart);
 
         const { kept, removed } = await pruneUnavailable(candidateCart);
-        const finalItems = kept.length > 0 ? kept : candidateCart;
+        const finalItems = removed.length > 0 ? kept : candidateCart;
 
         if (!cancelled) {
           setCartItems(finalItems);
           if (removed.length && kept.length > 0) setRemovedItems(removed);
           setCartReady(true);
-          // Persist to user account key AND keep 'cart' key backed up
+          // Persist authenticated carts only under the account-specific key.
           localStorage.setItem(storageKey, JSON.stringify(finalItems));
-          localStorage.setItem('cart', JSON.stringify(finalItems));
-          api.put('/auth/cart', { cart: finalItems }).catch(() => {});
+          localStorage.removeItem('cart');
+          if (serverReadSucceeded) {
+            api.put('/auth/cart', { cart: finalItems }).catch((error) => {
+              toast.error(error.response?.data?.message || 'Unable to sync your cart');
+            });
+          } else {
+            toast.error('Unable to load your saved cart. Your local cart is shown; retry before syncing.');
+          }
         }
       } catch {
         if (!cancelled) {
@@ -167,7 +163,7 @@ export const CartProvider = ({ children }) => {
           setCartItems(fallback);
           setCartReady(true);
           localStorage.setItem(storageKey, JSON.stringify(fallback));
-          localStorage.setItem('cart', JSON.stringify(fallback));
+          if (!cartOwnerId) localStorage.setItem('cart', JSON.stringify(fallback));
         }
       }
     };
@@ -182,12 +178,14 @@ export const CartProvider = ({ children }) => {
     if (!cartReady) return;
     const storageKey = cartOwnerId ? `cart:${cartOwnerId}` : 'cart';
     localStorage.setItem(storageKey, JSON.stringify(cartItems));
-    localStorage.setItem('cart', JSON.stringify(cartItems));
+    if (!cartOwnerId) localStorage.setItem('cart', JSON.stringify(cartItems));
 
     if (cartOwnerId) {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
       syncTimeoutRef.current = setTimeout(() => {
-        api.put('/auth/cart', { cart: cartItems }).catch(() => {});
+        api.put('/auth/cart', { cart: cartItems }).catch((error) => {
+          toast.error(error.response?.data?.message || 'Unable to sync your cart');
+        });
       }, 500);
     }
 
@@ -210,6 +208,14 @@ export const CartProvider = ({ children }) => {
     const sameLine = (item) => matches(item, product._id, isCombo, product.packageId);
     const existingItem = cartItems.find(sameLine);
     const maxStock = product.stock !== undefined ? product.stock : (existingItem?.stock ?? 99);
+
+    if (Number(maxStock) <= 0) {
+      toast.error('This item is currently out of stock');
+      if (existingItem) {
+        setCartItems((prev) => prev.filter((item) => !sameLine(item)));
+      }
+      return;
+    }
 
     if (existingItem) {
       const targetQty = existingItem.quantity + quantity;

@@ -917,7 +917,13 @@ const Checkout = () => {
     setCouponError('');
     setCouponLoading(true);
     try {
-      const res = await api.post('/coupons/apply', { code, orderAmount: itemsPrice });
+      const orderItems = cartItems.map(item => ({
+        product: item._id,
+        productType: item.isCombo ? 'Combo' : 'Product',
+        quantity: item.quantity,
+        packageId: item.packageId || undefined
+      }));
+      const res = await api.post('/coupons/apply', { code, orderItems });
       const couponData = res.data.data;
       setAppliedCoupon(couponData);
       setCouponCode(code);
@@ -947,7 +953,13 @@ const Checkout = () => {
   useEffect(() => {
     if (!appliedCoupon) return;
     let cancelled = false;
-    api.post('/coupons/validate', { code: appliedCoupon.code, orderAmount: itemsPrice })
+    const orderItems = cartItems.map(item => ({
+      product: item._id,
+      productType: item.isCombo ? 'Combo' : 'Product',
+      quantity: item.quantity,
+      packageId: item.packageId || undefined
+    }));
+    api.post('/coupons/validate', { code: appliedCoupon.code, orderItems })
       .then(res => { if (!cancelled) setAppliedCoupon(res.data.data); })
       .catch(err => {
         if (cancelled) return;

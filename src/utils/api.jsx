@@ -23,6 +23,10 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    const guestCapability = localStorage.getItem('fv_chat_guest_capability');
+    if (guestCapability) {
+      config.headers['X-Guest-Capability'] = guestCapability;
+    }
     return config;
   },
   (error) => Promise.reject(error)

@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  X, 
-  Sparkles, 
-  Truck, 
-  ShieldCheck, 
-  CreditCard, 
-  Banknote, 
-  Tag, 
-  Check, 
+import {
+  X,
+  Sparkles,
+  Truck,
+  ShieldCheck,
+  CreditCard,
+  Banknote,
+  Tag,
+  Check,
   ArrowRight,
   MessageCircleQuestion,
   Gift
@@ -29,7 +29,7 @@ const SaleOffersModal = ({ isOpen, onClose, storeSettings }) => {
     setCopiedCode(code);
     toast.success(`Coupon "${code}" copied to clipboard!`);
     setTimeout(() => setCopiedCode(null), 2500);
-  };
+  }
 
   const handleShopNow = () => {
     onClose();
@@ -56,7 +56,7 @@ const SaleOffersModal = ({ isOpen, onClose, storeSettings }) => {
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();

@@ -114,8 +114,12 @@ export default function AdminSettings() {
       const res = await api.put(`/settings/admin/${sectionName}`, payload);
       if (res.data?.success) {
         toast.success(`${sectionName.charAt(0).toUpperCase() + sectionName.slice(1)} settings saved successfully!`);
-        setSettings(res.data.data);
-        updateSettings(res.data.data);
+        const responseSettings = res.data.data || {};
+        const mergedSettings = sectionName === 'all'
+          ? responseSettings
+          : { ...settings, [sectionName]: responseSettings[sectionName] || responseSettings };
+        setSettings(mergedSettings);
+        updateSettings(mergedSettings);
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save settings.');

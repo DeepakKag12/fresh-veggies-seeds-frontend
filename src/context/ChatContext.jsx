@@ -20,7 +20,10 @@ const getOrCreateGuestId = () => {
   if (typeof window === 'undefined') return 'guest_default';
   let id = localStorage.getItem('fv_chat_guest_id');
   if (!id) {
-    id = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const bytes = new Uint8Array(16);
+    window.crypto?.getRandomValues(bytes);
+    const randomPart = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    id = `guest_${randomPart}`;
     localStorage.setItem('fv_chat_guest_id', id);
   }
   return id;
@@ -89,6 +92,7 @@ export const ChatProvider = ({ children }) => {
       auth: {
         token: token || undefined,
         guestId,
+        guestCapability: localStorage.getItem('fv_chat_guest_capability') || undefined,
         customerName,
         customerPhone
       },
@@ -207,6 +211,15 @@ export const ChatProvider = ({ children }) => {
       const queryPhone = user?.phone || guestPhone;
       const res = await api.get(`/chat/my-conversation?guestId=${guestId}&customerName=${encodeURIComponent(queryName)}&customerPhone=${encodeURIComponent(queryPhone)}`);
       if (res.data?.success && res.data.conversation) {
+        if (res.data.guestCapability) {
+          localStorage.setItem('fv_chat_guest_capability', res.data.guestCapability);
+          if (socketRef.current) {
+            socketRef.current.auth.guestCapability = res.data.guestCapability;
+            if (socketRef.current.connected) {
+              socketRef.current.disconnect().connect();
+            }
+          }
+        }
         const conv = res.data.conversation;
         setCustomerConversation(conv);
         setCustomerUnreadCount(conv.unreadCustomerCount || 0);
@@ -305,6 +318,9 @@ export const ChatProvider = ({ children }) => {
         customerPhone: digitsOnly
       });
       if (res.data?.success && res.data.conversation) {
+        if (res.data.guestCapability) {
+          localStorage.setItem('fv_chat_guest_capability', res.data.guestCapability);
+        }
         setCustomerConversation(res.data.conversation);
       }
     } catch (err) {

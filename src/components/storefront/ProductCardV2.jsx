@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Star, Sprout, Pencil, Trash2, Heart, ShoppingBag, Check } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
@@ -24,19 +24,23 @@ const ProductCardV2 = ({ product, onEdit, onDelete, isAdmin = false }) => {
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
 
-  const productPackages = product?.packages || [];
+  const productPackages = useMemo(() => product?.packages || [], [product?.packages]);
   const hasPackages = Array.isArray(productPackages) && productPackages.length > 0;
   const initialPkg = hasPackages ? (productPackages.find((p) => p.stock > 0) || productPackages[0]) : null;
   const [selectedPkg, setSelectedPkg] = useState(initialPkg);
 
   useEffect(() => {
     if (hasPackages) {
-      setSelectedPkg(productPackages.find((p) => p.stock > 0) || productPackages[0]);
+      setSelectedPkg((current) => {
+        const refreshed = current?._id
+          ? productPackages.find((pkg) => String(pkg._id) === String(current._id))
+          : null;
+        return refreshed || productPackages.find((p) => p.stock > 0) || productPackages[0];
+      });
     } else {
       setSelectedPkg(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product?._id]);
+  }, [product?._id, productPackages, hasPackages]);
 
   if (!product) return null;
 

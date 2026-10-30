@@ -135,12 +135,19 @@ export const SettingsProvider = ({ children }) => {
   }, [settings?.store?.name]);
 
   const updateSettings = useCallback((newSettings) => {
-    setSettings(newSettings);
+    setSettings((previous) => ({
+      ...(previous || {}),
+      ...(newSettings || {}),
+    }));
+    const mergedSettings = {
+      ...(settings || {}),
+      ...(newSettings || {}),
+    };
     try {
-      localStorage.setItem('fv_store_settings', JSON.stringify(newSettings));
+      localStorage.setItem('fv_store_settings', JSON.stringify(mergedSettings));
     } catch {}
-    window.dispatchEvent(new CustomEvent('freshveggies:settings-updated', { detail: { settings: newSettings } }));
-  }, []);
+    window.dispatchEvent(new CustomEvent('freshveggies:settings-updated', { detail: { settings: mergedSettings } }));
+  }, [settings]);
 
   const refreshSettings = useCallback(async () => {
     setLoading(true);

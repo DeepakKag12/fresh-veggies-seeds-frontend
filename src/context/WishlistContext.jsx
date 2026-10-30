@@ -36,7 +36,7 @@ export const WishlistProvider = ({ children }) => {
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [wishlistReady, setWishlistReady] = useState(false);
   const userId = user?._id || null;
-  const initialSyncDone = useRef(false);
+  const syncedUserId = useRef(null);
 
   // Hydrate & synchronize wishlist on auth state change
   useEffect(() => {
@@ -44,6 +44,7 @@ export const WishlistProvider = ({ children }) => {
 
     let cancelled = false;
     const hydrateWishlist = async () => {
+      const storageKey = userId ? `fv_wishlist:${userId}` : 'fv_wishlist';
       let guestList = [];
       try {
         const saved = localStorage.getItem('fv_wishlist');
@@ -55,6 +56,7 @@ export const WishlistProvider = ({ children }) => {
       if (!userId) {
         if (!cancelled) {
           setWishlist(Array.isArray(guestList) ? guestList : []);
+          syncedUserId.current = null;
           setWishlistReady(true);
         }
         return;
@@ -63,10 +65,16 @@ export const WishlistProvider = ({ children }) => {
       // User logged in: sync guest list to server once per login session
       try {
         let serverList = [];
-        if (Array.isArray(guestList) && guestList.length > 0 && !initialSyncDone.current) {
+        let savedAccountList = [];
+        try {
+          savedAccountList = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        } catch {
+          savedAccountList = [];
+        }
+        if (Array.isArray(guestList) && guestList.length > 0 && syncedUserId.current !== userId) {
           const syncRes = await api.put('/auth/wishlist/sync', { guestWishlist: guestList });
           serverList = Array.isArray(syncRes.data?.data) ? syncRes.data.data : [];
-          initialSyncDone.current = true;
+          syncedUserId.current = userId;
         } else {
           const getRes = await api.get('/auth/wishlist');
           serverList = Array.isArray(getRes.data?.data) ? getRes.data.data : [];
@@ -74,17 +82,19 @@ export const WishlistProvider = ({ children }) => {
 
         if (!cancelled) {
           // Merge client-cached details with server populated data
-          const merged = [...serverList];
+          const merged = [...serverList, ...(Array.isArray(savedAccountList) ? savedAccountList : [])];
           const serverIdSet = new Set(serverList.map((i) => String(i._id)));
 
-          guestList.forEach((gItem) => {
+          const accountList = Array.isArray(savedAccountList) ? savedAccountList : [];
+          [...guestList, ...accountList].forEach((gItem) => {
             if (!serverIdSet.has(String(gItem._id))) {
-              merged.push(gItem);
+              if (!merged.some((item) => String(item._id) === String(gItem._id))) merged.push(gItem);
             }
           });
 
           setWishlist(merged);
-          localStorage.setItem('fv_wishlist', JSON.stringify(merged));
+          localStorage.setItem(storageKey, JSON.stringify(merged));
+          localStorage.removeItem('fv_wishlist');
           setWishlistReady(true);
         }
       } catch {
@@ -105,11 +115,13 @@ export const WishlistProvider = ({ children }) => {
   useEffect(() => {
     if (!wishlistReady) return;
     try {
-      localStorage.setItem('fv_wishlist', JSON.stringify(wishlist));
+      const storageKey = userId ? `fv_wishlist:${userId}` : 'fv_wishlist';
+      localStorage.setItem(storageKey, JSON.stringify(wishlist));
+      if (!userId) localStorage.setItem('fv_wishlist', JSON.stringify(wishlist));
     } catch (e) {
       console.warn('Failed to persist wishlist to localStorage', e);
     }
-  }, [wishlist, wishlistReady]);
+  }, [wishlist, wishlistReady, userId]);
 
   const isInWishlist = useCallback(
     (productId) => {
@@ -130,14 +142,20 @@ export const WishlistProvider = ({ children }) => {
         setWishlist((prev) => prev.filter((item) => String(item._id) !== targetId));
         toast.success(`Removed "${product.name}" from wishlist`, { icon: '🤍' });
         if (userId) {
-          api.delete(`/auth/wishlist/${targetId}`).catch(() => {});
+          api.delete(`/auth/wishlist/${targetId}`).catch((error) => {
+            setWishlist((prev) => [...prev, product]);
+            toast.error(error.response?.data?.message || 'Unable to update wishlist');
+          });
         }
       } else {
         // Optimistic add
         setWishlist((prev) => [...prev, product]);
         toast.success(`Saved "${product.name}" to wishlist`, { icon: '❤️' });
         if (userId) {
-          api.post(`/auth/wishlist/${targetId}`).catch(() => {});
+          api.post(`/auth/wishlist/${targetId}`).catch((error) => {
+            setWishlist((prev) => prev.filter((item) => String(item._id) !== targetId));
+            toast.error(error.response?.data?.message || 'Unable to update wishlist');
+          });
         }
       }
     },
@@ -149,7 +167,9 @@ export const WishlistProvider = ({ children }) => {
       const targetId = String(productId || '');
       setWishlist((prev) => prev.filter((item) => String(item._id) !== targetId));
       if (userId) {
-        api.delete(`/auth/wishlist/${targetId}`).catch(() => {});
+        api.delete(`/auth/wishlist/${targetId}`).catch((error) => {
+          toast.error(error.response?.data?.message || 'Unable to remove wishlist item');
+        });
       }
     },
     [userId]
@@ -160,7 +180,9 @@ export const WishlistProvider = ({ children }) => {
     localStorage.removeItem('fv_wishlist');
     toast.success('Wishlist cleared');
     if (userId) {
-      api.delete('/auth/wishlist').catch(() => {});
+      api.delete('/auth/wishlist').catch((error) => {
+        toast.error(error.response?.data?.message || 'Unable to clear wishlist');
+      });
     }
   }, [userId]);
 
