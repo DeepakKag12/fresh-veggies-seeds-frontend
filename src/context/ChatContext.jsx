@@ -52,6 +52,12 @@ export const ChatProvider = ({ children }) => {
 
   const activeConvIdRef = useRef(null);
   const socketRef = useRef(null);
+  const customerConversationRef = useRef(customerConversation);
+  customerConversationRef.current = customerConversation;
+  const soundEnabledRef = useRef(soundEnabled);
+  soundEnabledRef.current = soundEnabled;
+  const isAdminRef = useRef(isAdmin);
+  isAdminRef.current = isAdmin;
 
   // Toggle sound
   const toggleSound = useCallback(() => {
@@ -64,7 +70,7 @@ export const ChatProvider = ({ children }) => {
 
   // Fetch admin unread count
   const refreshAdminUnread = useCallback(async () => {
-    if (!isAdmin) return;
+    if (!isAdminRef.current) return;
     try {
       const res = await api.get('/chat/unread-count');
       if (res.data?.success) {
@@ -73,32 +79,56 @@ export const ChatProvider = ({ children }) => {
     } catch {
       // ignore
     }
-  }, [isAdmin]);
+  }, []);
 
-  // Connect socket
+  // Connect socket or detect serverless environment
   useEffect(() => {
     const token = localStorage.getItem('token');
     const guestId = getOrCreateGuestId();
     const customerName = user?.name || localStorage.getItem('fv_chat_guest_name') || 'Guest Shopper';
     const customerPhone = user?.phone || localStorage.getItem('fv_chat_guest_phone') || '';
 
-    // Socket server target: use current origin in prod or default localhost:5000 in dev
-    const serverUrl = process.env.REACT_APP_API_URL 
-      ? process.env.REACT_APP_API_URL.replace(/\/api\/?$/, '') 
-      : window.location.origin;
+    // Socket server target: allow explicit REACT_APP_SOCKET_URL override
+    const rawApiUrl = process.env.REACT_APP_API_URL || '';
+    const socketUrl = process.env.REACT_APP_SOCKET_URL || (
+      rawApiUrl ? rawApiUrl.replace(/\/api\/?$/, '') : (typeof window !== 'undefined' ? window.location.origin : '')
+    );
 
-    const newSocket = io(serverUrl, {
-      transports: ['websocket', 'polling'],
-      auth: {
-        token: token || undefined,
-        guestId,
-        guestCapability: localStorage.getItem('fv_chat_guest_capability') || undefined,
-        customerName,
-        customerPhone
-      },
-      reconnectionAttempts: 10,
-      reconnectionDelay: 2000
-    });
+    // Vercel serverless does not support persistent WebSockets.
+    // If socketUrl points to vercel.app and no dedicated REACT_APP_SOCKET_URL is set,
+    // operate smoothly in HTTP REST mode without attempting a failing WebSocket handshake.
+    const isVercelServerless = !process.env.REACT_APP_SOCKET_URL && (
+      socketUrl.includes('vercel.app') ||
+      (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app'))
+    );
+
+    if (isVercelServerless || !socketUrl) {
+      setIsConnected(false);
+      setSocket(null);
+      socketRef.current = null;
+      return;
+    }
+
+    let newSocket;
+    try {
+      newSocket = io(socketUrl, {
+        transports: ['websocket', 'polling'],
+        auth: {
+          token: token || undefined,
+          guestId,
+          guestCapability: localStorage.getItem('fv_chat_guest_capability') || undefined,
+          customerName,
+          customerPhone
+        },
+        reconnectionAttempts: 2,
+        reconnectionDelay: 4000,
+        timeout: 7000
+      });
+    } catch (err) {
+      console.warn('Socket initialization failed, operating in REST mode:', err?.message || err);
+      setIsConnected(false);
+      return;
+    }
 
     socketRef.current = newSocket;
     setSocket(newSocket);
@@ -106,8 +136,16 @@ export const ChatProvider = ({ children }) => {
     newSocket.on('connect', () => {
       setIsConnected(true);
       newSocket.emit('support:check');
-      if (isAdmin) {
+      if (isAdminRef.current) {
         refreshAdminUnread();
+      }
+    });
+
+    newSocket.on('connect_error', () => {
+      // Disconnect cleanly if socket server is unavailable to prevent console loop spam
+      if (newSocket.io?.opts?._failedAttempts >= 2 || !newSocket.active) {
+        newSocket.disconnect();
+        setIsConnected(false);
       }
     });
 
@@ -121,8 +159,8 @@ export const ChatProvider = ({ children }) => {
 
     // Incoming message
     newSocket.on('message:received', (message) => {
-      // Check if message belongs to active customer widget
-      if (customerConversation && message.conversationId === customerConversation._id) {
+      const activeConv = customerConversationRef.current;
+      if (activeConv && message.conversationId === activeConv._id) {
         setCustomerMessages((prev) => {
           if (prev.some((m) => m._id === message._id || (message.clientMsgId && m.clientMsgId === message.clientMsgId))) {
             return prev.map((m) => (m.clientMsgId === message.clientMsgId ? message : m));
@@ -131,8 +169,7 @@ export const ChatProvider = ({ children }) => {
         });
 
         if (message.sender === 'admin') {
-          if (soundEnabled) playIncomingChime();
-          // If widget is open, mark read immediately
+          if (soundEnabledRef.current) playIncomingChime();
           if (activeConvIdRef.current === message.conversationId) {
             newSocket.emit('message:mark_read', { conversationId: message.conversationId });
           } else {
@@ -141,9 +178,9 @@ export const ChatProvider = ({ children }) => {
         }
       }
 
-      if (isAdmin) {
+      if (isAdminRef.current) {
         if (message.sender === 'customer') {
-          if (soundEnabled) playIncomingChime();
+          if (soundEnabledRef.current) playIncomingChime();
           setAdminUnreadCount((c) => c + 1);
         }
       }
@@ -151,7 +188,8 @@ export const ChatProvider = ({ children }) => {
 
     // Read receipts sync (ticks turn blue!)
     newSocket.on('message:read_receipt', ({ conversationId, reader, readAt }) => {
-      if (customerConversation && conversationId === customerConversation._id) {
+      const activeConv = customerConversationRef.current;
+      if (activeConv && conversationId === activeConv._id) {
         setCustomerMessages((prev) =>
           prev.map((m) => {
             if (reader === 'admin' && m.sender === 'customer') {
@@ -168,7 +206,8 @@ export const ChatProvider = ({ children }) => {
 
     // Typing indicator
     newSocket.on('typing:status', ({ conversationId, isTyping, sender, senderName }) => {
-      if (customerConversation && conversationId === customerConversation._id) {
+      const activeConv = customerConversationRef.current;
+      if (activeConv && conversationId === activeConv._id) {
         if (sender === 'admin') {
           setCustomerTyping(isTyping ? { senderName } : null);
         }
@@ -177,7 +216,7 @@ export const ChatProvider = ({ children }) => {
 
     // Admin counter sync
     newSocket.on('conversation:read_sync', ({ reader }) => {
-      if (isAdmin && reader === 'admin') {
+      if (isAdminRef.current && reader === 'admin') {
         refreshAdminUnread();
       }
     });
@@ -191,7 +230,8 @@ export const ChatProvider = ({ children }) => {
 
     // Real-time conversation cleared sync
     newSocket.on('conversation:cleared', ({ conversationId }) => {
-      if (customerConversation && conversationId === customerConversation._id) {
+      const activeConv = customerConversationRef.current;
+      if (activeConv && conversationId === activeConv._id) {
         setCustomerMessages([]);
       }
     });
@@ -199,7 +239,37 @@ export const ChatProvider = ({ children }) => {
     return () => {
       newSocket.disconnect();
     };
-  }, [user, isAdmin, refreshAdminUnread, soundEnabled, customerConversation]);
+  }, [user?._id, user?.name, user?.phone, refreshAdminUnread]);
+
+  // REST Polling fallback for Customer widget when socket is offline
+  useEffect(() => {
+    if (isConnected || !isWidgetOpen || !customerConversation?._id) return;
+    const convId = customerConversation._id;
+    const guestId = getOrCreateGuestId();
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const msgRes = await api.get(`/chat/conversations/${convId}/messages?guestId=${guestId}`);
+        if (msgRes.data?.success && Array.isArray(msgRes.data.messages)) {
+          setCustomerMessages(msgRes.data.messages);
+        }
+      } catch {
+        // silent catch on background poll
+      }
+    }, 4000);
+
+    return () => clearInterval(pollInterval);
+  }, [isConnected, isWidgetOpen, customerConversation?._id]);
+
+  // REST Polling fallback for Admin unread count when socket is offline
+  useEffect(() => {
+    if (isConnected || !isAdmin) return;
+    refreshAdminUnread();
+    const interval = setInterval(() => {
+      refreshAdminUnread();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [isConnected, isAdmin, refreshAdminUnread]);
 
   // Load customer conversation
   const loadCustomerConversation = useCallback(async () => {

@@ -31,12 +31,12 @@ const AdminBottomNav = () => {
   const fetchPendingOrders = useCallback(async () => {
     try {
       const response = await api.get('/admin/stats');
-      const data = response.data.data;
+      const data = response.data?.data || {};
       // badge = new orders + cancellation requests
       const combined = (data.pendingOrders || 0) + (data.cancellationRequests || 0);
       setPendingCount(combined);
     } catch (error) {
-      console.error('Error fetching pending orders:', error);
+      console.warn('AdminBottomNav: pending orders check delayed:', error?.message || error);
     }
   }, []);
 

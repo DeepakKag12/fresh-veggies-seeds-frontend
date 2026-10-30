@@ -227,6 +227,25 @@ export const AdminCommunication = () => {
     }
   };
 
+  // REST Polling fallback for admin chat when socket is offline
+  useEffect(() => {
+    if (isConnected || !selectedConv?._id) return;
+    const convId = selectedConv._id;
+
+    const interval = setInterval(async () => {
+      try {
+        const msgRes = await api.get(`/chat/conversations/${convId}/messages`);
+        if (msgRes.data?.success && Array.isArray(msgRes.data.messages)) {
+          setMessages(msgRes.data.messages);
+        }
+      } catch {
+        // silent catch on background poll
+      }
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [isConnected, selectedConv?._id]);
+
   // Socket event listeners
   useEffect(() => {
     if (!socket) return;
@@ -620,7 +639,7 @@ export const AdminCommunication = () => {
               <h2 className="font-bold text-sm text-fv-heading dark:text-white leading-tight">Live Chat Desk</h2>
               <p className="text-[11px] text-fv-muted flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                <span>{isConnected ? 'Socket Connected' : 'Reconnecting...'}</span>
+                <span>{isConnected ? 'Live (Socket)' : 'Live (REST)'}</span>
               </p>
             </div>
           </div>
