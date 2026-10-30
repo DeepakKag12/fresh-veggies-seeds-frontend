@@ -238,7 +238,7 @@ const Navbar = () => {
 
             {/* User Menu */}
             {user ? (
-              <div className="relative">
+              <div className="relative hidden md:block">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -387,7 +387,7 @@ const Navbar = () => {
                 to="/login"
                 state={{ from: location }}
                 aria-label="Sign in to your account"
-                className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full text-fv-primary
+                className="hidden md:flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full text-fv-primary
                            hover:bg-fv-surface focus-visible:outline-none focus-visible:ring-2
                            focus-visible:ring-fv-primary"
               >
