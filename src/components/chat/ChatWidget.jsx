@@ -369,7 +369,7 @@ export const ChatWidget = () => {
   return (
     <>
       {/* Floating Launcher Button */}
-      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+      <div className="chat-widget-launcher fixed right-4 z-50 flex items-center gap-3 sm:bottom-6 sm:right-6">
         {!isWidgetOpen && (
           <motion.button
             initial={{ scale: 0, opacity: 0 }}
@@ -411,7 +411,7 @@ export const ChatWidget = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 30 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-32px)] sm:w-[420px] h-[640px] max-h-[88vh] bg-slate-50 dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800"
+            className="chat-widget-popover fixed right-4 z-50 w-[calc(100vw-32px)] sm:right-6 sm:w-[420px] sm:bottom-6 sm:h-[640px] sm:max-h-[88vh] bg-slate-50 dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800"
           >
             {/* Professional Helpdesk Top Header */}
             <div className="bg-[#0A4C36] text-white px-4 py-3 flex items-center justify-between shadow-md shrink-0 relative">
